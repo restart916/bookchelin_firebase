@@ -84,7 +84,7 @@ export default {
         let newDocument = {
           title: this.title,
           description: this.description,
-          image_url: this.description,
+          image_url: this.image_url,
           firestore_url: filepath,
         }
         firestore.collection('books').add(newDocument).then((docRef) => {
