@@ -8,30 +8,33 @@
         </div>
       </div>
       <div>
-        <div>datetime</div>
+        <div>description</div>
         <div class='control'>
-          <input type='text' class='input' v-model='datetime'>
+          <input type='text' class='input' v-model='description'>
         </div>
       </div>
       <div>
-        <div>contents</div>
-        <div class='control' v-for='content in contents' :key='contents.indexOf(content)'>
-          <textarea class='textarea' v-model='content.value'>
-          </textarea>
+        <div>image_url</div>
+        <div class='control'>
+          <input type='text' class='input' v-model='image_url'>
         </div>
       </div>
       <div>
-        <div class='button' @click='addContent'>+</div>
-        <div class='button' @click='removeContent'>-</div>
-        <div class='button' @click='addNewz'>Add</div>
+        <div>epub_file</div>
+        <div class='control'>
+          <input type='file' class='input' @change='onChangeFile'>
+        </div>
+      </div>
+      <div>
+        <div class='button' @click='addBook'>Add</div>
       </div>
     </section>
     <section class='section'>
       <div class='container'>
-        <div class='columns' v-for='newz in newzes' :key="newz['.key']">
+        <div class='columns' v-for='book in books' :key="book['.key']">
           <div class='notification'>
-            <h1 class='title'>{{ newz.title }}</h1>
-            <div class='button' @click="deleteNewz(newz['.key'])">삭제</div>
+            <h1 class='title'>{{ book.title }}</h1>
+            <div class='button' @click="deleteNewz(book['.key'])">삭제</div>
           </div>
         </div>
       </div>
@@ -40,13 +43,13 @@
 </template>
 
 <script>
-import { firestore } from '../main'
+import { firestore, firestorage } from '../main'
 
 export default {
   name: 'EditView',
   firestore () {
     return {
-      newzes: firestore.collection('newz').orderBy('datetime', 'desc')
+      books: firestore.collection('books').orderBy('description', 'desc')
     }
   },
   mounted () {
@@ -55,39 +58,46 @@ export default {
   data () {
     return {
       title: '',
-      datetime: new Date(),
-      contents: [{'value': ''}]
+      description: '',
+      image_url: '',
+      epub_file: '',
+      firestore_url: '',
+      uploadFile: null
     }
   },
   methods: {
-    addContent () {
-      this.contents.push({'value': ''})
+    onChangeFile(event) {
+      console.log('changeFile: ', event.target.files)
+      this.uploadFile = event.target.files[0]
     },
-    removeContent () {
-      this.contents.pop()
-    },
-    addNewz () {
-      let newContents = []
-      for (let content of this.contents) {
-        newContents.push(content.value.replace(/\r?\n/g, '<br />'))
-        console.log('newContents', content, content.value, newContents)
+    addBook () {
+      if (this.uploadFile == null) {
+        alert('퍄일을 등록해주세요')
+        return
       }
 
-      let newDocument = {
-        title: this.title,
-        datetime: this.datetime,
-        contents: newContents
-      }
-      firestore.collection('newz').add(newDocument).then((docRef) => {
-        console.log('Document written with ID: ', docRef.id)
-        alert('추가 성공')
-      }).catch((error) => {
-        console.error('Error adding document: ', error)
-        alert('추가 실패')
-      })
+      let filepath = 'epub/'+this.uploadFile.name
+      let upload_ref = firestorage.ref().child(filepath)
+      upload_ref.put(this.uploadFile).then((snapshot) => {
+        console.log('Uploaded file!');
+
+        let newDocument = {
+          title: this.title,
+          description: this.description,
+          image_url: this.description,
+          firestore_url: filepath,
+        }
+        firestore.collection('books').add(newDocument).then((docRef) => {
+          console.log('Document written with ID: ', docRef.id)
+          alert('추가 성공')
+        }).catch((error) => {
+          console.error('Error adding document: ', error)
+          alert('추가 실패')
+        })
+      });
     },
     deleteNewz (key) {
-      firestore.collection('newz').doc(key).delete().then(() => {
+      firestore.collection('books').doc(key).delete().then(() => {
         console.log('Document successfully deleted!')
         alert('삭제 성공')
       }).catch((error) => {

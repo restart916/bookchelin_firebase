@@ -25,6 +25,7 @@ Vue.use(VueBlu)
 
 let firebase = Firebase.initializeApp(config)
 export const firestore = firebase.firestore()
+export const firestorage = firebase.storage()
 
 new Vue({
   router,
