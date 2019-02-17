@@ -1,0 +1,37 @@
+import Vue from 'vue'
+import Router from 'vue-router'
+import ListView from './views/ListView'
+import ContentsView from './views/ContentsView'
+import EditView from './views/EditView'
+
+Vue.use(Router)
+
+export default new Router({
+  mode: 'history',
+  base: process.env.BASE_URL,
+  routes: [
+    {
+      path: '/about',
+      name: 'about',
+      // route level code-splitting
+      // this generates a separate chunk (about.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import(/* webpackChunkName: "about" */ './views/About.vue')
+    },
+    {
+      path: '/',
+      name: 'ListView',
+      component: ListView
+    },
+    {
+      path: '/contents/:key',
+      name: 'ContentsView',
+      component: ContentsView
+    },
+    {
+      path: '/edit',
+      name: 'EditView',
+      component: EditView
+    }
+  ]
+})
