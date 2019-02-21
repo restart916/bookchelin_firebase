@@ -1,13 +1,3 @@
-// const functions = require('firebase-functions');
-
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
-
-
 // [START functionsimport]
 const functions = require('firebase-functions');
 // [END functionsimport]
@@ -71,3 +61,18 @@ exports.addMessage = functions.https.onRequest(async (req, res) => {
   // [END adminSdkAdd]
 });
 // [END addMessage]
+
+// Listen for any change on document `marie` in collection `users`
+exports.addTimeStamp = functions.firestore
+  .document('read_logs/{document_id}')
+  .onCreate((snap, context) => {
+  // Get an object representing the document
+  // e.g. {'name': 'Marie', 'age': 66}
+  const newValue = snap.data();
+
+  if ('createdAt' in newValue) return snap;
+
+  return snap.ref.set({
+    createdAt: context.timestamp
+  }, {merge: true});
+});
