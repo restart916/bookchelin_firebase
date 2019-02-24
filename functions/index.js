@@ -11,63 +11,36 @@ const cors = require('cors')({
 const admin = require('firebase-admin');
 admin.initializeApp();
 // [END additionalimports]
+const db = admin.firestore();
 
 // [START trigger]
 exports.date = functions.https.onRequest((req, res) => {
-  // [END trigger]
-  // [START sendError]
-  // Forbidding PUT requests.
   if (req.method === 'PUT') {
     return res.status(403).send('Forbidden!');
   }
-  // [END sendError]
 
-  // [START usingMiddleware]
-  // Enable CORS using the `cors` express middleware.
   return cors(req, res, () => {
-    // [END usingMiddleware]
-    // Reading date format from URL query parameter.
-    // [START readQueryParam]
     let format = req.query.format;
-    // [END readQueryParam]
-    // Reading date format from request body query parameter
     if (!format) {
-      // [START readBodyParam]
       format = req.body.format;
-      // [END readBodyParam]
     }
-    // [START sendResponse]
     const formattedDate = moment().format(format);
     console.log('Sending Formatted date:', formattedDate);
     res.status(200).send(formattedDate);
-    // [END sendResponse]
   });
 });
-// [END all]
 
-// [START addMessage]
-// Take the text parameter passed to this HTTP endpoint and insert it into the
-// Realtime Database under the path /messages/:documentId/original
-// [START addMessageTrigger]
 exports.addMessage = functions.https.onRequest(async (req, res) => {
-// [END addMessageTrigger]
-  // Grab the text parameter.
   const original = req.query.text;
-  // [START adminSdkAdd]
-  // Push the new message into the Realtime Database using the Firebase Admin SDK.
-  const writeResult = await admin.firestore().collection('messages').add({original: original});
-  // Send back a message that we've succesfully written the message
-  res.json({result: `Message with ID: ${writeResult.id} added.`});
-  // [END adminSdkAdd]
-});
-// [END addMessage]
 
-// Listen for any change on document `marie` in collection `users`
+  const writeResult = await admin.firestore().collection('messages').add({original: original});
+  res.json({result: `Message with ID: ${writeResult.id} added.`});
+});
+
 exports.addTimeStamp = functions.firestore
   .document('read_logs/{document_id}')
   .onCreate((snap, context) => {
-  // Get an object representing the document
-  // e.g. {'name': 'Marie', 'age': 66}
+
   const newValue = snap.data();
 
   if ('createdAt' in newValue) return snap;
@@ -75,4 +48,45 @@ exports.addTimeStamp = functions.firestore
   return snap.ref.set({
     createdAt: context.timestamp
   }, {merge: true});
+});
+
+exports.hourly_job = functions.pubsub
+  .topic('hourly-tick')
+  .onPublish((message) => {
+  console.log("This job is run every hour!");
+  if (message.data) {
+    const dataString = Buffer.from(message.data, 'base64').toString();
+    console.log(`Message Data: ${dataString}`);
+  }
+
+  return true;
+});
+
+exports.minutes_job = functions.pubsub
+  .topic('minutes-tick')
+  .onPublish(async (message) => {
+  console.log("This job is run every minutes! ver0.075");
+  // if (message.data) {
+  //   const dataString = Buffer.from(message.data, 'base64').toString();
+  //   console.log(`Message Data: ${dataString}`);
+  // }
+
+  let today = moment().format('YYYY-MM-DD')
+  let docs = await db.collection('read_logs').where("createdAt", ">=", today).get()
+
+  let count_data = {}
+  for (doc of docs.docs) {
+      // console.log(doc.id, " => ", doc.data())
+      let read_info = doc.data()
+      let book_id = read_info['book_id']
+      if (book_id in count_data) {
+        count_data[book_id] += 1
+      } else {
+        count_data[book_id] = 1
+      }
+  }
+
+  db.collection('dayly_total').doc(today).set(count_data)
+
+  return true;
 });
