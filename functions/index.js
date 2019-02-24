@@ -65,7 +65,7 @@ exports.hourly_job = functions.pubsub
 exports.minutes_job = functions.pubsub
   .topic('minutes-tick')
   .onPublish(async (message) => {
-  console.log("This job is run every minutes! ver0.075");
+  console.log("This job is run every minutes! ver0.076");
   // if (message.data) {
   //   const dataString = Buffer.from(message.data, 'base64').toString();
   //   console.log(`Message Data: ${dataString}`);
@@ -86,7 +86,7 @@ exports.minutes_job = functions.pubsub
       }
   }
 
-  db.collection('dayly_total').doc(today).set(count_data)
+  db.collection('dayly_total').doc(today).set({total_count: count_data})
 
   return true;
 });

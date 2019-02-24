@@ -1,7 +1,7 @@
 <template>
   <section class="section">
     <div class="container">
-      <div class="columns" v-for="book in books" :key="book['.key']">
+      <!-- <div class="columns" v-for="book in books" :key="book['.key']">
         <div class="notification">
           <router-link :to="{ name: 'ContentsView', params: { key: book['.key'] }}">
             <h1 class="title">{{ book.title }}</h1>
@@ -9,7 +9,7 @@
         </div>
         <div>
         </div>
-      </div>
+      </div> -->
     </div>
   </section>
 </template>

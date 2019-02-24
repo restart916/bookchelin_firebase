@@ -3,6 +3,7 @@ import Router from 'vue-router'
 import ListView from './views/ListView'
 import ContentsView from './views/ContentsView'
 import EditView from './views/EditView'
+import CountView from './views/CountView'
 
 Vue.use(Router)
 
@@ -32,6 +33,11 @@ export default new Router({
       path: '/edit',
       name: 'EditView',
       component: EditView
+    },
+    {
+      path: '/count',
+      name: 'CountView',
+      component: CountView
     }
   ]
 })

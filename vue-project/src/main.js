@@ -7,6 +7,7 @@ import VueBlu from 'vue-blu'
 import 'vue-blu/dist/css/vue-blu.min.css'
 import Firebase from 'firebase'
 import router from './router'
+import { TableComponent, TableColumn } from 'vue-table-component';
 
 Vue.config.productionTip = false
 
@@ -22,6 +23,8 @@ var config = {
 Vue.use(Vuefire)
 Vue.use(VueFirestore)
 Vue.use(VueBlu)
+Vue.component('table-component', TableComponent);
+Vue.component('table-column', TableColumn);
 
 let firebase = Firebase.initializeApp(config)
 export const firestore = firebase.firestore()
