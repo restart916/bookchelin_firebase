@@ -52,24 +52,8 @@ exports.addTimeStamp = functions.firestore
 
 exports.hourly_job = functions.pubsub
   .topic('hourly-tick')
-  .onPublish((message) => {
-  console.log("This job is run every hour!");
-  if (message.data) {
-    const dataString = Buffer.from(message.data, 'base64').toString();
-    console.log(`Message Data: ${dataString}`);
-  }
-
-  return true;
-});
-
-exports.minutes_job = functions.pubsub
-  .topic('minutes-tick')
   .onPublish(async (message) => {
-  console.log("This job is run every minutes! ver0.076");
-  // if (message.data) {
-  //   const dataString = Buffer.from(message.data, 'base64').toString();
-  //   console.log(`Message Data: ${dataString}`);
-  // }
+  console.log("This job is run every hour!");
 
   let today = moment().format('YYYY-MM-DD')
   let docs = await db.collection('read_logs').where("createdAt", ">=", today).get()
@@ -87,6 +71,18 @@ exports.minutes_job = functions.pubsub
   }
 
   db.collection('dayly_total').doc(today).set({total_count: count_data})
+
+  return true;
+});
+
+exports.minutes_job = functions.pubsub
+  .topic('minutes-tick')
+  .onPublish(async (message) => {
+  console.log("This job is run every minutes! ver0.076");
+  // if (message.data) {
+  //   const dataString = Buffer.from(message.data, 'base64').toString();
+  //   console.log(`Message Data: ${dataString}`);
+  // }
 
   return true;
 });
