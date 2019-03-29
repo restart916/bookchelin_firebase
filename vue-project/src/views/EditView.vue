@@ -32,6 +32,29 @@
         </div>
       </div>
       <div>
+        <div>순서 - 숫자로 입력하세요</div>
+        <div class='control'>
+          <input type='text' class='input' v-model='order'>
+        </div>
+      </div>
+      <div>
+        <div>카테고리 - 필수로 선택해주세요</div>
+        <select v-model="category">
+          <option disabled value="0">선택해주세요</option>
+          <option v-for="category in book_category" :key="category.key"
+            :value="category.id">
+            {{ category.name }}
+          </option>
+        </select>
+      </div>
+      <div>
+        <div>숨김여부 - 체크시 앱에서 보이지 않게 됩니다</div>
+        <div class='control'>
+          <input type="checkbox" id="checkbox" v-model="hidden">
+          <label for="checkbox">숨기기</label>
+        </div>
+      </div>
+      <div>
         <div>epub_file</div>
         <div class='control'>
           <input type='file' class='input' @change='onChangeFile'>
@@ -62,7 +85,8 @@ export default {
   name: 'EditView',
   firestore () {
     return {
-      books: firestore.collection('books').orderBy('description', 'desc')
+      books: firestore.collection('books').orderBy('title', 'asc'),
+      book_category: firestore.collection('book_category').orderBy('id', 'desc')
     }
   },
   mounted () {
@@ -76,7 +100,10 @@ export default {
       image_url: '',
       epub_file: '',
       firestore_url: '',
-      uploadFile: null
+      uploadFile: null,
+      category: 0,
+      order: 0,
+      hidden: false
     }
   },
   methods: {
@@ -91,10 +118,17 @@ export default {
       this.image_url = ''
       this.firestore_url = ''
       this.uploadFile = null
+      this.category = 0
+      this.order = 0
+      this.hidden = false
     },
     addBook () {
-      if (this.book_id) {
+      if (this.category == 0) {
+        alert('카테고리를 선택해주세요');
+        return;
+      }
 
+      if (this.book_id) {
         if (this.uploadFile) {
           let filepath = 'epub/'+this.uploadFile.name
           let upload_ref = firestorage.ref().child(filepath)
@@ -106,15 +140,18 @@ export default {
               description: this.description,
               image_url: this.image_url,
               firestore_url: filepath,
+              category: this.category,
+              order: this.order,
+              hidden: this.hidden,
             }
 
             firestore.collection('books').doc(this.book_id).update(data).then((docRef) => {
               console.log('update book with file')
-              alert('추가 성공')
+              alert('수정 성공')
               this.clearInput()
             }).catch((error) => {
               console.error('Error adding document: ', error)
-              alert('추가 실패')
+              alert('수정 실패')
             })
           });
         } else {
@@ -122,15 +159,18 @@ export default {
             title: this.title,
             description: this.description,
             image_url: this.image_url,
+            category: this.category,
+            order: this.order,
+            hidden: this.hidden,
           }
 
           firestore.collection('books').doc(this.book_id).update(data).then((docRef) => {
             console.log('update book without file')
-            alert('추가 성공')
+            alert('수정 성공')
             this.clearInput()
           }).catch((error) => {
             console.error('Error adding document: ', error)
-            alert('추가 실패')
+            alert('수정 실패')
           })
         }
 
@@ -150,6 +190,9 @@ export default {
             description: this.description,
             image_url: this.image_url,
             firestore_url: filepath,
+            category: this.category,
+            order: this.order,
+            hidden: this.hidden,
           }
           firestore.collection('books').add(newDocument).then((docRef) => {
             console.log('Document written with ID: ', docRef.id)
@@ -171,6 +214,9 @@ export default {
           this.description = book['description']
           this.image_url = book['image_url']
           this.firestore_url = book['firestore_url']
+          this.category = 'hidden' in book ? book['category'] : 0
+          this.order = 'hidden' in book ? book['order'] : 0
+          this.hidden = 'hidden' in book ? book['hidden'] : false
         }
       }
     },
