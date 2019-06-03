@@ -20,15 +20,16 @@ var config = {
   messagingSenderId: "658686940034"
 };
 
-Vue.use(Vuefire)
-Vue.use(VueFirestore)
-Vue.use(VueBlu)
+Vue.use(Vuefire);
+Vue.use(VueFirestore);
+Vue.use(VueBlu);
 Vue.component('table-component', TableComponent);
 Vue.component('table-column', TableColumn);
 
-let firebase = Firebase.initializeApp(config)
-export const firestore = firebase.firestore()
-export const firestorage = firebase.storage()
+let firebase = Firebase.initializeApp(config);
+export const fireauth = firebase.auth();
+export const firestore = firebase.firestore();
+export const firestorage = firebase.storage();
 
 new Vue({
   router,
