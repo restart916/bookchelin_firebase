@@ -5,6 +5,7 @@ import ContentsView from './views/ContentsView';
 import EditView from './views/EditView';
 import EditBannerView from './views/EditBannerView';
 import CountView from './views/CountView';
+import CountTimeView from './views/CountTimeView';
 
 Vue.use(Router);
 
@@ -36,6 +37,11 @@ export default new Router({
       path: '/count',
       name: 'CountView',
       component: CountView
+    },
+    {
+      path: '/count_time',
+      name: 'CountTimeView',
+      component: CountTimeView
     }
   ]
-})
+});

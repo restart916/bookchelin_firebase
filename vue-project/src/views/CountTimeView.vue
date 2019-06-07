@@ -25,7 +25,7 @@
 import { firestore, firestorage } from '../main'
 
 export default {
-  name: 'CountView',
+  name: 'CountTimeView',
   mounted () {
     this.$binding("books", firestore.collection('books').orderBy('description', 'desc'))
     .then((books) => {
@@ -39,10 +39,9 @@ export default {
         })
       }
 
-      this.$binding("dayly_total", firestore.collection('dayly_total'))
-      .then((dayly_total) => {
-        // console.log(dayly_total)
-        dayly_total.forEach(total => {
+      this.$binding("dayly_total_time", firestore.collection('dayly_total_time'))
+      .then((dayly_total_time) => {
+        dayly_total_time.forEach(total => {
           let date = total['.key']
           let count_list = total.total_count
           this.data.forEach(item => {item[date] = 0})
