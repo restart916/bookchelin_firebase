@@ -87,6 +87,7 @@ updateReadTimeLog = async () => {
   let docs = await db.collection('read_time_logs').where("createdAt", ">=", today).get();
 
   let count_data = {};
+  let count_data_by_user = {};
   for (let doc of docs.docs) {
       // console.log(doc.id, " => ", doc.data())
       let read_info = doc.data();
@@ -96,10 +97,62 @@ updateReadTimeLog = async () => {
       } else {
         count_data[book_id] = read_info.read_time;
       }
+
+      let user_uid = read_info.user_uid;
+      if (user_uid !== undefined) {
+          if (user_uid in count_data_by_user) {
+            count_data_by_user[user_uid] += read_info.read_time;
+          } else {
+            count_data_by_user[user_uid] = read_info.read_time;
+          }
+      }
   }
 
   db.collection('dayly_total_time').doc(today).set({total_count: count_data});
+  db.collection('dayly_total_time_by_user').doc(today).set({
+    data: count_data_by_user, time: new Date()
+  });
 };
+
+updateSummary = async () => {
+  let docs = await db.collection('dayly_total_time_by_user').get();
+
+  let count_data_by_user = {};
+  for (let doc of docs.docs) {
+      // console.log(doc.id, " => ", doc.data());
+      let user_read_datas = doc.data().data;
+      let data_time = doc.data().time;
+      // console.log(user_read_datas)
+
+      for (let user_uid in user_read_datas) {
+          if (user_uid in count_data_by_user) {
+            count_data_by_user[user_uid].time += user_read_datas[user_uid];
+
+            // console.log('diff', data_time, count_data_by_user[user_uid].start)
+            count_data_by_user[user_uid].start = data_time < count_data_by_user[user_uid].start ? data_time : count_data_by_user[user_uid].start
+          } else {
+            count_data_by_user[user_uid] = {
+              start: data_time,
+              time: user_read_datas[user_uid]
+            };
+          }
+      }
+  }
+
+  for (let user_uid in count_data_by_user) {
+    let data = count_data_by_user[user_uid];
+    db.collection('total_time_by_user').doc(user_uid).set(data);
+  }
+}
+
+exports.test = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+
+    await updateReadTimeLog();
+    await updateSummary();
+    res.status(200).send('successful');
+  });
+});
 
 exports.hourly_job = functions.pubsub
   .topic('hourly-tick')
@@ -108,6 +161,7 @@ exports.hourly_job = functions.pubsub
 
   await updateReadLog();
   await updateReadTimeLog();
+  await updateSummary();
 
   return true;
 });
@@ -116,10 +170,6 @@ exports.minutes_job = functions.pubsub
   .topic('minutes-tick')
   .onPublish(async (message) => {
   console.log("This job is run every minutes! ver0.076");
-  // if (message.data) {
-  //   const dataString = Buffer.from(message.data, 'base64').toString();
-  //   console.log(`Message Data: ${dataString}`);
-  // }
 
   return true;
 });
