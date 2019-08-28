@@ -10,6 +10,11 @@ const cors = require('cors')({
 });
 const admin = require('firebase-admin');
 admin.initializeApp();
+
+// admin.initializeApp({
+//   credential: admin.credential.applicationDefault()
+// });
+
 // [END additionalimports]
 const db = admin.firestore();
 
@@ -122,14 +127,12 @@ updateSummary = async () => {
       // console.log(doc.id, " => ", doc.data());
       let user_read_datas = doc.data().data;
       let data_time = doc.data().time;
-      // console.log(user_read_datas)
 
       for (let user_uid in user_read_datas) {
           if (user_uid in count_data_by_user) {
             count_data_by_user[user_uid].time += user_read_datas[user_uid];
 
-            // console.log('diff', data_time, count_data_by_user[user_uid].start)
-            count_data_by_user[user_uid].start = data_time < count_data_by_user[user_uid].start ? data_time : count_data_by_user[user_uid].start
+            count_data_by_user[user_uid].start = data_time.toMillis() < count_data_by_user[user_uid].start.toMillis() ? data_time : count_data_by_user[user_uid].start
           } else {
             count_data_by_user[user_uid] = {
               start: data_time,
@@ -140,7 +143,13 @@ updateSummary = async () => {
   }
 
   for (let user_uid in count_data_by_user) {
+
     let data = count_data_by_user[user_uid];
+    start_time = data.start;
+    diff = moment().diff(moment(start_time.toMillis()), 'days');
+    diff = Math.max(diff, 1);
+    data.average = data.time / diff;
+
     db.collection('total_time_by_user').doc(user_uid).set(data);
   }
 }
@@ -148,7 +157,6 @@ updateSummary = async () => {
 exports.test = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
 
-    await updateReadTimeLog();
     await updateSummary();
     res.status(200).send('successful');
   });
