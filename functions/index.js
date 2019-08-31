@@ -119,6 +119,13 @@ updateReadTimeLog = async () => {
   });
 };
 
+function addItem(user_uid, data) {
+  return new Promise(resolve => {
+    db.collection('total_time_by_user').doc(user_uid).set(data);
+    setTimeout(resolve, 5);
+  });
+}
+
 updateSummary = async () => {
   let docs = await db.collection('dayly_total_time_by_user').get();
 
@@ -142,6 +149,7 @@ updateSummary = async () => {
       }
   }
 
+  /* eslint-disable no-await-in-loop */
   for (let user_uid in count_data_by_user) {
 
     let data = count_data_by_user[user_uid];
@@ -150,14 +158,19 @@ updateSummary = async () => {
     diff = Math.max(diff, 1);
     data.average = data.time / diff;
 
-    db.collection('total_time_by_user').doc(user_uid).set(data);
+    await addItem(user_uid, data);
   }
+  /* eslint-enable no-await-in-loop */
 }
 
 exports.test = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
 
+    await updateReadLog();
+    await updateReadTimeLog();
     await updateSummary();
+
+
     res.status(200).send('successful');
   });
 });
