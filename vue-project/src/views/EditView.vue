@@ -19,10 +19,20 @@
           <input type='text' class='input' v-model='title'>
         </div>
       </div>
-      <div>
-        <div>description</div>
-        <div class='control'>
-          <input type='text' class='input' v-model='description'>
+      <div class="Row">
+        <div class="Column">
+          <div>description</div>
+          <div class='control'>
+            <textarea type='text' class='input' v-model='description'>
+            </textarea>
+          </div>
+        </div>
+        <div class="Column">
+          <div>table of contents</div>
+          <div class='control'>
+            <textarea type='text' class='input' v-model='toc'>
+            </textarea>
+          </div>
         </div>
       </div>
       <div>
@@ -37,21 +47,23 @@
           <input type='text' class='input' v-model='order'>
         </div>
       </div>
-      <div>
-        <div>카테고리 - 필수로 선택해주세요</div>
-        <select v-model="category">
-          <option disabled value="0">선택해주세요</option>
-          <option v-for="category in book_category" :key="category.key"
-            :value="category.id">
-            {{ category.name }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <div>숨김여부 - 체크시 앱에서 보이지 않게 됩니다</div>
-        <div class='control'>
-          <input type="checkbox" id="checkbox" v-model="hidden">
-          <label for="checkbox">숨기기</label>
+      <div class="Row">
+        <div class="Column">
+          <div>카테고리 - 필수로 선택해주세요</div>
+          <select v-model="category">
+            <option disabled value="0">선택해주세요</option>
+            <option v-for="category in book_category" :key="category.key"
+              :value="category.id">
+              {{ category.name }}
+            </option>
+          </select>
+        </div>
+        <div class="Column">
+          <div>숨김여부 - 체크시 앱에서 보이지 않게 됩니다</div>
+          <div class='control'>
+            <input type="checkbox" id="checkbox" v-model="hidden">
+            <label for="checkbox">숨기기</label>
+          </div>
         </div>
       </div>
       <div>
@@ -67,10 +79,10 @@
     <section class='section'>
       <div class='container'>
         <div class='columns' v-for='book in books' :key="book['.key']">
-          <div class='notification'>
-            <h1 class='title'>{{ book.title }}</h1>
-            <div class='button' @click="selectBook(book['.key'])">수정하기</div>
-            <div class='button' @click="deleteNewz(book['.key'])">삭제</div>
+          <div class='notification Row'>
+            <h1 class='title Column'>{{ book.title }}</h1>
+            <div class='button Column' @click="selectBook(book['.key'])">수정하기</div>
+            <div class='button Column' @click="deleteNewz(book['.key'])">삭제</div>
           </div>
         </div>
       </div>
@@ -97,6 +109,7 @@ export default {
       book_id: '',
       title: '',
       description: '',
+      toc: '',
       image_url: '',
       epub_file: '',
       firestore_url: '',
@@ -115,6 +128,7 @@ export default {
       this.book_id = ''
       this.title = ''
       this.description = ''
+      this.toc = ''
       this.image_url = ''
       this.firestore_url = ''
       this.uploadFile = null
@@ -138,6 +152,7 @@ export default {
             let data = {
               title: this.title,
               description: this.description,
+              toc: this.toc,
               image_url: this.image_url,
               firestore_url: filepath,
               category: this.category,
@@ -158,6 +173,7 @@ export default {
           let data = {
             title: this.title,
             description: this.description,
+            toc: this.toc,
             image_url: this.image_url,
             category: this.category,
             order: this.order,
@@ -188,6 +204,7 @@ export default {
           let newDocument = {
             title: this.title,
             description: this.description,
+            toc: this.toc,
             image_url: this.image_url,
             firestore_url: filepath,
             category: this.category,
@@ -212,6 +229,7 @@ export default {
           this.book_id = book['.key']
           this.title = book['title']
           this.description = book['description']
+          this.toc = book['toc']
           this.image_url = book['image_url']
           this.firestore_url = book['firestore_url']
           this.category = 'hidden' in book ? book['category'] : 0
@@ -235,5 +253,20 @@ export default {
 
 <!-- Add 'scoped' attribute to limit CSS to this component only -->
 <style scoped>
-
+.title{
+  font-size: 20px;
+}
+.Row {
+  display: table;
+  width: 100%; /*Optional*/
+  table-layout: fixed; /*Optional*/
+  border-spacing: 10px; /*Optional*/
+}
+.Column {
+  text-align: left;
+  display: table-cell;
+}
+textarea {
+  height: 200px;
+}
 </style>
