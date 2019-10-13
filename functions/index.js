@@ -42,32 +42,6 @@ exports.addMessage = functions.https.onRequest(async (req, res) => {
   res.json({result: `Message with ID: ${writeResult.id} added.`});
 });
 
-exports.addTimeStamp = functions.firestore
-  .document('read_logs/{document_id}')
-  .onCreate((snap, context) => {
-
-  const newValue = snap.data();
-
-  if ('createdAt' in newValue) return snap;
-
-  return snap.ref.set({
-    createdAt: context.timestamp
-  }, {merge: true});
-});
-
-exports.add_time_read_time_logs = functions.firestore
-  .document('read_time_logs/{document_id}')
-  .onCreate((snap, context) => {
-
-  const newValue = snap.data();
-
-  if ('createdAt' in newValue) return snap;
-
-  return snap.ref.set({
-    createdAt: context.timestamp
-  }, {merge: true});
-});
-
 updateReadLog = async () => {
   let today = moment().format('YYYY-MM-DD');
   let docs = await db.collection('read_logs').where("createdAt", ">=", today).get();
@@ -163,12 +137,69 @@ updateSummary = async () => {
   /* eslint-enable no-await-in-loop */
 }
 
+update_time_event = async(book_id, read_time, datetime) => {
+  // const book_id = '02IEPKaGI0PrgxhfXbkz';
+  let docs = await db.collection('time_event').where("book_id", "==", book_id).get();
+  for (let doc of docs.docs) {
+    console.log('doc.data()', doc.data());
+    let data = doc.data()
+    if (!('read_history' in data)) {
+      data.read_history = [];
+    }
+
+    data.read_history.push({'user_uid': '', 'read_time': read_time, 'datetime': datetime});
+
+    let sum = 0;
+    for (read_history of data.read_history) {
+      sum += read_history.read_time;
+    }
+
+    console.log('time', data.event_minute, sum)
+
+    data.remain_time = data.event_minute - sum;
+    data.remain_time = data.remain_time < 0 ? 0 : data.remain_time;
+
+    console.log('doc.data()', data);
+
+    // db.collection('time_event').doc(doc).set(data);
+    doc.ref.update(data);
+  }
+}
+
+
+exports.addTimeStamp = functions.firestore
+  .document('read_logs/{document_id}')
+  .onCreate((snap, context) => {
+
+  const newValue = snap.data();
+
+  if ('createdAt' in newValue) return snap;
+
+  return snap.ref.set({
+    createdAt: context.timestamp
+  }, {merge: true});
+});
+
+exports.add_time_read_time_logs = functions.firestore
+  .document('read_time_logs/{document_id}')
+  .onCreate(async(snap, context) => {
+
+  const newValue = snap.data();
+
+  const book_id = newValue.book_id;
+  await updateReadLog(book_id, newValue.read_time, context.timestamp);
+
+  if ('createdAt' in newValue) {
+    return snap;
+  }
+
+  return snap.ref.set({
+    createdAt: context.timestamp
+  }, {merge: true});
+});
+
 exports.test = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
-
-    await updateReadLog();
-    await updateReadTimeLog();
-    await updateSummary();
 
 
     res.status(200).send('successful');

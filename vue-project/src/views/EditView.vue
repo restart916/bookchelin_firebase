@@ -82,7 +82,7 @@
           <div class='notification Row'>
             <h1 class='title Column'>{{ book.title }}</h1>
             <div class='button Column' @click="selectBook(book['.key'])">수정하기</div>
-            <div class='button Column' @click="deleteNewz(book['.key'])">삭제</div>
+            <div class='button Column' @click="deleteBook(book['.key'])">삭제</div>
           </div>
         </div>
       </div>
@@ -238,7 +238,11 @@ export default {
         }
       }
     },
-    deleteNewz (key) {
+    deleteBook (key) {
+      if (!confirm("정말 삭제하십니까?")) {
+        return;
+      }
+
       firestore.collection('books').doc(key).delete().then(() => {
         console.log('Document successfully deleted!')
         alert('삭제 성공')
