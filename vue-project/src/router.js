@@ -4,6 +4,7 @@ import ListView from './views/ListView';
 import ContentsView from './views/ContentsView';
 import EditView from './views/EditView';
 import EditBannerView from './views/EditBannerView';
+import EditMainBookView from './views/EditMainBookView';
 import CountView from './views/CountView';
 import CountTimeView from './views/CountTimeView';
 
@@ -29,9 +30,14 @@ export default new Router({
       component: EditView
     },
     {
-      path: '/edit_banner',
+      path: '/edit-banner',
       name: 'EditBannerView',
       component: EditBannerView
+    },
+    {
+      path: '/edit-main-book',
+      name: 'EditMainBookView',
+      component: EditMainBookView
     },
     {
       path: '/count',
