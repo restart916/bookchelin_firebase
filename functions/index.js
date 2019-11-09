@@ -137,7 +137,7 @@ updateSummary = async () => {
   /* eslint-enable no-await-in-loop */
 }
 
-update_time_event = async(book_id, read_time, datetime) => {
+updateTimeEvent = async(book_id, read_time, datetime) => {
   // const book_id = '02IEPKaGI0PrgxhfXbkz';
   let docs = await db.collection('time_event').where("book_id", "==", book_id).get();
   for (let doc of docs.docs) {
@@ -187,7 +187,7 @@ exports.add_time_read_time_logs = functions.firestore
   const newValue = snap.data();
 
   const book_id = newValue.book_id;
-  await updateReadLog(book_id, newValue.read_time, context.timestamp);
+  await updateTimeEvent(book_id, newValue.read_time, context.timestamp);
 
   if ('createdAt' in newValue) {
     return snap;
