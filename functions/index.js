@@ -170,8 +170,40 @@ updateTimeEvent = async(book_id, user_uid, read_time, datetime) => {
     data.remain_time = data.event_minute - sum;
     data.remain_time = data.remain_time < 0 ? 0 : data.remain_time;
 
-    // console.log('doc.data()', data);
-    // db.collection('time_event').doc(doc).set(data);
+    doc.ref.update(data);
+  }
+}
+
+
+updateLimitEvent = async(book_id, user_uid, read_time, datetime) => {
+  let docs = await db.collection('limit_event').where("book_id", "==", book_id).get();
+  for (let doc of docs.docs) {
+    let data = doc.data()
+    if (!('read_history' in data)) {
+      data.read_history = [];
+    }
+
+    let exists = false;
+    for (read_history of data.read_history) {
+      if (read_history.user_uid === user_uid) {
+        read_history.total_time += read_time;
+        read_history.logs.push(
+          {'read_time': read_time, 'datetime': datetime}
+        );
+        exists = true;
+      }
+    }
+
+    if (!exists) {
+      data.read_history.push({
+        'user_uid': user_uid,
+        'logs':[
+          {'read_time': read_time, 'datetime': datetime}
+        ],
+        'total_time': read_time
+      });
+    }
+
     doc.ref.update(data);
   }
 }
@@ -197,6 +229,7 @@ exports.add_time_read_time_logs = functions.firestore
   const newValue = snap.data();
 
   await updateTimeEvent(newValue.book_id, newValue.user_uid, newValue.read_time, context.timestamp);
+  await updateLimitEvent(newValue.book_id, newValue.user_uid, newValue.read_time, context.timestamp);
 
   if ('createdAt' in newValue) {
     return snap;
