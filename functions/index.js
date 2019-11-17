@@ -151,13 +151,13 @@ updateTimeEvent = async(book_id, user_uid, read_time, datetime) => {
     for (read_history of data.read_history) {
       if (read_history.user_uid === user_uid) {
         read_history.read_time += read_time;
-        read_history.datetime.add(datetime);
+        read_history.datetime.push(datetime);
         exists = true;
       }
     }
 
     if (!exists) {
-      data.read_history.push({'user_uid': user_uid, 'read_time': read_time, 'datetime': datetime});
+      data.read_history.push({'user_uid': user_uid, 'read_time': read_time, 'datetime': [datetime]});
     }
 
     let sum = 0;
