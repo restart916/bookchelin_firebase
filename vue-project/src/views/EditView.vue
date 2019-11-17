@@ -1,5 +1,6 @@
 <template>
   <div>
+    <Header></Header>
     <section class='section'>
       1. 추가하기 - book_id 를 제외한 데이터를 입력하고 add 버튼을 누른다<br>
       2. 삭제하기 - 아래 목록에서 삭제버튼을 누른다<br>
@@ -92,9 +93,13 @@
 
 <script>
 import { firestore, firestorage } from '../main'
+import Header from './components/Header'
 
 export default {
   name: 'EditView',
+  components: {
+    Header
+  },
   firestore () {
     return {
       books: firestore.collection('books').orderBy('title', 'asc'),

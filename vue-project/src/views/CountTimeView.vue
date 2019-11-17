@@ -1,5 +1,6 @@
 <template>
   <div>
+    <Header></Header>
     <table>
       <thead>
         <tr>
@@ -23,9 +24,13 @@
 
 <script>
 import { firestore, firestorage } from '../main'
+import Header from './components/Header'
 
 export default {
   name: 'CountTimeView',
+  components: {
+    Header
+  },
   mounted () {
     this.$binding("books", firestore.collection('books').orderBy('description', 'desc'))
     .then((books) => {

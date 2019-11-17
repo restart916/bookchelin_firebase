@@ -1,7 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import ListView from './views/ListView';
-import ContentsView from './views/ContentsView';
 import EditView from './views/EditView';
 import EditBannerView from './views/EditBannerView';
 import EditMainBookView from './views/EditMainBookView';
@@ -18,11 +17,6 @@ export default new Router({
       path: '/',
       name: 'ListView',
       component: ListView
-    },
-    {
-      path: '/contents/:key',
-      name: 'ContentsView',
-      component: ContentsView
     },
     {
       path: '/edit',
