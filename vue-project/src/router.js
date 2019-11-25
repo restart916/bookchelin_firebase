@@ -7,6 +7,7 @@ import EditMainBookView from './views/EditMainBookView';
 import EditSuggestBookView from './views/EditSuggestBookView';
 import CountView from './views/CountView';
 import CountTimeView from './views/CountTimeView';
+import EventCountView from './views/EventCountView';
 
 Vue.use(Router);
 
@@ -48,6 +49,11 @@ export default new Router({
       path: '/count-time',
       name: 'CountTimeView',
       component: CountTimeView
+    },
+    {
+      path: '/event-count',
+      name: 'EventCountView',
+      component: EventCountView
     }
   ]
 });

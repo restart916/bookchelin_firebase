@@ -20,6 +20,7 @@ var config = {
   messagingSenderId: "658686940034"
 };
 
+Vue.use(require('vue-moment'));
 Vue.use(Vuefire);
 Vue.use(VueFirestore);
 Vue.use(VueBlu);

@@ -13,9 +13,11 @@
     "vue": "^2.6.10",
     "vue-blu": "^0.1.9",
     "vue-firestore": "^0.3.21",
+    "vue-moment": "^4.0.0",
     "vue-router": "^3.0.6",
     "vue-table-component": "^1.9.2",
-    "vuefire": "^1.4.5"
+    "vuefire": "^1.4.5",
+    "vuejs-datepicker": "^1.6.2"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.7.0",
