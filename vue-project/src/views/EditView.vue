@@ -234,7 +234,7 @@ export default {
           this.book_id = book['.key']
           this.title = book['title']
           this.description = book['description']
-          this.toc = book['toc']
+          this.toc = 'toc' in book ? book['toc'] : ''
           this.image_url = book['image_url']
           this.firestore_url = book['firestore_url']
           this.category = 'hidden' in book ? book['category'] : 0
