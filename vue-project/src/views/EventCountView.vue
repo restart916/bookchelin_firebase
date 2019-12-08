@@ -88,7 +88,7 @@ export default {
                                         .where('datetime', '<', this.$moment(this.end_date).unix())
                                         .get()
 
-        datas[event_id]['click_buy_book_count'] = show_book_readers.docs.length
+        datas[event_id]['click_buy_book_count'] = click_buy_book_details.docs.length
         // console.log('click_buy_book_count', click_buy_book_details)
 
         const reviews = await firestore.collection('book_reviews')
