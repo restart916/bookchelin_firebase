@@ -10,9 +10,9 @@
       <div class='button' @click='refreshData'>조회하기 </div>
     </div>
     <div style="height: 100px"/>
-    <EventCountData title='얼리버드 도서' :datas="time_datas"/>
+    <EventCountData title='NEW 추천 도서' :datas="time_datas"/>
     <div style="height: 100px"/>
-    <EventCountData title='저스트텐미닛 도서' :datas="limit_datas"/>
+    <EventCountData title='위클리 10분 도서' :datas="limit_datas"/>
 
   </div>
 </template>
@@ -81,6 +81,15 @@ export default {
         datas[event_id]['show_reader_count'] = show_book_readers.docs.length
         // console.log('show_reader_count', show_book_readers)
 
+        const click_share_book_details = await firestore
+                                        .collection('click_share_book_detail')
+                                        .where('event_id', '==', event_id)
+                                        .where('datetime', '>', this.$moment(this.start_date).unix())
+                                        .where('datetime', '<', this.$moment(this.end_date).unix())
+                                        .get()
+
+        datas[event_id]['click_share_book_count'] = click_share_book_details.docs.length
+
         const click_buy_book_details = await firestore
                                         .collection('click_buy_book_detail')
                                         .where('event_id', '==', event_id)
@@ -89,7 +98,6 @@ export default {
                                         .get()
 
         datas[event_id]['click_buy_book_count'] = click_buy_book_details.docs.length
-        // console.log('click_buy_book_count', click_buy_book_details)
 
         const reviews = await firestore.collection('book_reviews')
                                       .where('book_id', '==', time_event_data['book_id'])
@@ -100,7 +108,7 @@ export default {
         for (let review of reviews.docs) {
           rating += review.data()['rating']
         }
-        datas[event_id]['average_review'] = reviews.docs.length ? (rating / reviews.docs.length) : 0
+        datas[event_id]['average_review'] = reviews.docs.length ? (rating / reviews.docs.length).toFixed(2) : 0
       }
 
       return datas

@@ -8,6 +8,8 @@ import EditSuggestBookView from './views/EditSuggestBookView';
 import CountView from './views/CountView';
 import CountTimeView from './views/CountTimeView';
 import EventCountView from './views/EventCountView';
+import EditTimeEventView from './views/EditTimeEventView';
+import EditLimitEventView from './views/EditLimitEventView';
 
 Vue.use(Router);
 
@@ -34,6 +36,16 @@ export default new Router({
       path: '/edit-main-book',
       name: 'EditMainBookView',
       component: EditMainBookView
+    },
+    {
+      path: '/edit-time-event',
+      name: 'EditTimeEventView',
+      component: EditTimeEventView
+    },
+    {
+      path: '/edit-limit-event',
+      name: 'EditLimitEventView',
+      component: EditLimitEventView
     },
     {
       path: '/edit-suggest-book',
