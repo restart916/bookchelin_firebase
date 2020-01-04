@@ -7,8 +7,8 @@
           <th>이벤트 ID</th>
           <th>도서 ID</th>
           <th>도서명</th>
-          <th>상세페이지 도달수</th>
-          <th>바로읽기 도달수</th>
+          <th>도서 상세페이지 접속자 수(클릭 수)</th>
+          <th>바로보기 접속자 수(클릭 수)</th>
           <th>공유버튼 클릭수</th>
           <th>구매버튼 클릭수</th>
           <th>리뷰평점 / 수</th>
@@ -19,8 +19,8 @@
           <td>{{ key }}</td>
           <td>{{ data['book_id'] }}</td>
           <td>{{ data['book_name'] }}</td>
-          <td>{{ data['show_detail_count'] }}</td>
-          <td>{{ data['show_reader_count'] }}</td>
+          <td>{{ data['show_detail_user_count'] }} ({{ data['show_detail_count'] }})</td>
+          <td>{{ data['show_reader_user_count'] }} ({{ data['show_reader_count'] }})</td>
           <td>{{ data['click_share_book_count'] }}</td>
           <td>{{ data['click_buy_book_count'] }}</td>
           <td>{{ data['average_review'] }} / {{ data['review_count'] }}</td>

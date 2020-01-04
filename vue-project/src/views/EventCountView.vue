@@ -68,8 +68,21 @@ export default {
                                         .where('datetime', '<', this.$moment(this.end_date).unix())
                                         .get()
 
+
         datas[event_id]['show_detail_count'] = show_book_details.docs.length
         // console.log('show_detail_count', show_book_details)
+
+        let show_book_users = []
+        for (let show_book_detail of show_book_details.docs) {
+          const user_uid = show_book_detail.data()['user_uid']
+          if (show_book_users.includes(user_uid) == false) {
+            show_book_users.push(user_uid)
+          }
+        }
+
+        datas[event_id]['show_detail_user_count'] = show_book_users.length
+        // console.log(show_book_details)
+        // console.log(show_book_users.length, show_book_users)
 
         const show_book_readers = await firestore
                                         .collection('show_book_reader')
@@ -79,6 +92,8 @@ export default {
                                         .get()
 
         datas[event_id]['show_reader_count'] = show_book_readers.docs.length
+        datas[event_id]['show_reader_user_count'] = time_event_data['read_history'].length
+
         // console.log('show_reader_count', show_book_readers)
 
         const click_share_book_details = await firestore
