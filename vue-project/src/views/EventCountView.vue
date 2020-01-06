@@ -44,6 +44,19 @@ export default {
       this.time_datas = await this.loadEventData('time_event');
       this.limit_datas = await this.loadEventData('limit_event');
     },
+    getTimeString(diff) {
+      let ms = diff * 1000
+
+      const hours = this.$moment.utc(ms).diff(0, 'hours')
+      ms -= hours * 1000 * 60 * 60
+
+      const minutes = this.$moment.utc(ms).diff(0, 'minutes')
+      ms -= minutes * 1000 * 60
+
+      const seconds = this.$moment.utc(ms).diff(0, 'seconds')
+
+      return `${hours}시간 ${minutes}분 ${seconds}초`
+    },
     async loadEventData(type) {
       const time_events = await firestore.collection(type).get()
       // console.log(time_events)
@@ -61,13 +74,21 @@ export default {
                                 .get()
         datas[event_id]['book_name'] = book_data.data()['title']
 
+        const show_new_main_books = await firestore
+                                        .collection('show_new_main_books')
+                                        .where('event_id', '==', event_id)
+                                        .where('datetime', '>', this.$moment(this.start_date).unix())
+                                        .where('datetime', '<', this.$moment(this.end_date).unix())
+                                        .get()
+
+        datas[event_id]['show_new_main_books'] = show_new_main_books.docs.length
+
         const show_book_details = await firestore
                                         .collection('show_book_detail')
                                         .where('event_id', '==', event_id)
                                         .where('datetime', '>', this.$moment(this.start_date).unix())
                                         .where('datetime', '<', this.$moment(this.end_date).unix())
                                         .get()
-
 
         datas[event_id]['show_detail_count'] = show_book_details.docs.length
         // console.log('show_detail_count', show_book_details)
@@ -94,6 +115,14 @@ export default {
         datas[event_id]['show_reader_count'] = show_book_readers.docs.length
         datas[event_id]['show_reader_user_count'] = time_event_data['read_history'].length
 
+        if (time_event_data['read_history'].length) {
+          let total_read_time = time_event_data['event_minute'] - time_event_data['remain_time'];
+          datas[event_id]['total_read_time'] = this.getTimeString(total_read_time)
+          datas[event_id]['avg_user_read_time'] = this.getTimeString(total_read_time / time_event_data['read_history'].length)
+        } else {
+          datas[event_id]['total_read_time'] = 0
+          datas[event_id]['avg_user_read_time'] = 0
+        }
         // console.log('show_reader_count', show_book_readers)
 
         const click_share_book_details = await firestore
