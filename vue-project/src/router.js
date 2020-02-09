@@ -10,6 +10,7 @@ import CountTimeView from './views/CountTimeView';
 import EventCountView from './views/EventCountView';
 import EditTimeEventView from './views/EditTimeEventView';
 import EditLimitEventView from './views/EditLimitEventView';
+import EditLinkSelectView from './views/EditLinkSelectView';
 
 Vue.use(Router);
 
@@ -66,6 +67,11 @@ export default new Router({
       path: '/event-count',
       name: 'EventCountView',
       component: EventCountView
+    },
+    {
+      path: '/edit-link-select',
+      name: 'EditLinkSelectView',
+      component: EditLinkSelectView
     }
   ]
 });
