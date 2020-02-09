@@ -29,11 +29,11 @@ export default {
     Header, EventCountData, Datepicker
   },
   async mounted () {
-    await this.refreshData();
+    // await this.refreshData();
   },
   data () {
     return {
-      start_date: this.$moment().subtract(30, 'days').toDate(),
+      start_date: this.$moment().subtract(7, 'days').toDate(),
       end_date: this.$moment().add(1, 'days').toDate(),
       time_datas: [],
       limit_datas: []
@@ -82,6 +82,14 @@ export default {
                                         .get()
 
         datas[event_id]['show_new_main_books'] = show_new_main_books.docs.length
+        let show_new_main_users = []
+        for (let show_new_main_detail of show_new_main_books.docs) {
+          const user_uid = show_new_main_detail.data()['user_uid']
+          if (show_new_main_users.includes(user_uid) == false) {
+            show_new_main_users.push(user_uid)
+          }
+        }
+        datas[event_id]['show_new_main_user_count'] = show_new_main_users.length
 
         const show_book_details = await firestore
                                         .collection('show_book_detail')
@@ -113,7 +121,15 @@ export default {
                                         .get()
 
         datas[event_id]['show_reader_count'] = show_book_readers.docs.length
-        datas[event_id]['show_reader_user_count'] = time_event_data['read_history'].length
+        let show_book_reader_users = []
+        for (let show_book_reader of show_book_readers.docs) {
+          const user_uid = show_book_reader.data()['user_uid']
+          if (show_book_reader_users.includes(user_uid) == false) {
+            show_book_reader_users.push(user_uid)
+          }
+        }
+        datas[event_id]['show_reader_user_count'] = show_book_reader_users.length
+        // datas[event_id]['show_reader_user_count'] = time_event_data['read_history'].length
 
         if (time_event_data['read_history'].length) {
           let total_read_time = time_event_data['event_minute'] - time_event_data['remain_time'];
