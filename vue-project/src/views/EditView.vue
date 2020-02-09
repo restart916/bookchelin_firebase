@@ -48,6 +48,24 @@
           <input type='text' class='input' v-model='order'>
         </div>
       </div>
+      <div>
+        <div>shop_yes24_link</div>
+        <div class='control'>
+          <input type='text' class='input' v-model='shop_yes24_link'>
+        </div>
+      </div>
+      <div>
+        <div>shop_bandi_link</div>
+        <div class='control'>
+          <input type='text' class='input' v-model='shop_bandi_link'>
+        </div>
+      </div>
+      <div>
+        <div>shop_inter_link</div>
+        <div class='control'>
+          <input type='text' class='input' v-model='shop_inter_link'>
+        </div>
+      </div>
       <div class="Row">
         <div class="Column">
           <div>카테고리 - 필수로 선택해주세요</div>
@@ -121,7 +139,10 @@ export default {
       uploadFile: null,
       category: 0,
       order: 0,
-      hidden: false
+      hidden: false,
+      shop_yes24_link: '',
+      shop_bandi_link: '',
+      shop_inter_link: '',
     }
   },
   methods: {
@@ -140,6 +161,9 @@ export default {
       this.category = 0
       this.order = 0
       this.hidden = false
+      this.shop_yes24_link = ''
+      this.shop_bandi_link = ''
+      this.shop_inter_link = ''
     },
     addBook () {
       if (this.category == 0) {
@@ -163,6 +187,9 @@ export default {
               category: this.category,
               order: this.order,
               hidden: this.hidden,
+              shop_yes24_link: this.shop_yes24_link,
+              shop_bandi_link: this.shop_bandi_link,
+              shop_inter_link: this.shop_inter_link,
             }
 
             firestore.collection('books').doc(this.book_id).update(data).then((docRef) => {
@@ -183,6 +210,9 @@ export default {
             category: this.category,
             order: this.order,
             hidden: this.hidden,
+            shop_yes24_link: this.shop_yes24_link,
+            shop_bandi_link: this.shop_bandi_link,
+            shop_inter_link: this.shop_inter_link,
           }
 
           firestore.collection('books').doc(this.book_id).update(data).then((docRef) => {
@@ -215,6 +245,9 @@ export default {
             category: this.category,
             order: this.order,
             hidden: this.hidden,
+            shop_yes24_link: this.shop_yes24_link,
+            shop_bandi_link: this.shop_bandi_link,
+            shop_inter_link: this.shop_inter_link,
           }
           firestore.collection('books').add(newDocument).then((docRef) => {
             console.log('Document written with ID: ', docRef.id)
@@ -240,6 +273,9 @@ export default {
           this.category = 'hidden' in book ? book['category'] : 0
           this.order = 'hidden' in book ? book['order'] : 0
           this.hidden = 'hidden' in book ? book['hidden'] : false
+          this.shop_yes24_link = book['shop_yes24_link'] || ''
+          this.shop_bandi_link = book['shop_bandi_link'] || ''
+          this.shop_inter_link = book['shop_inter_link'] || ''
         }
       }
     },
