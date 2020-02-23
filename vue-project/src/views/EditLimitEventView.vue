@@ -138,7 +138,7 @@ export default {
           this.limitEvent_id = limitEvent['.key']
           this.book_id = limitEvent['book_id']
           this.limit_seconds = limitEvent['limit_seconds']
-          this.is_active = timeEvent['is_active']
+          this.is_active = limitEvent['is_active']
         }
       }
     },
