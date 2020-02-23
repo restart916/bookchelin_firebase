@@ -11,6 +11,7 @@ import EventCountView from './views/EventCountView';
 import EditTimeEventView from './views/EditTimeEventView';
 import EditLimitEventView from './views/EditLimitEventView';
 import EditLinkSelectView from './views/EditLinkSelectView';
+import EditReviewView from './views/EditReviewView';
 
 Vue.use(Router);
 
@@ -72,6 +73,11 @@ export default new Router({
       path: '/edit-link-select',
       name: 'EditLinkSelectView',
       component: EditLinkSelectView
+    },
+    {
+      path: '/edit-review',
+      name: 'EditReviewView',
+      component: EditReviewView
     }
   ]
 });
