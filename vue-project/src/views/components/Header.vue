@@ -4,7 +4,7 @@
     <router-link to="/edit-banner">공지 이벤트</router-link>
     <router-link to="/edit-time-event">NEW 추천 책 등록</router-link>
     <router-link to="/edit-main-book">NEW 추천 롤링 베너</router-link>
-    <router-link to="/edit-limit-event">위클리 10분 책 등록</router-link>
+    <router-link to="/edit-limit-event">프리뷰 책 등록</router-link>
     <router-link to="/edit-suggest-book">기획전</router-link>
     <router-link to="/edit-link-select">링크셀렉트</router-link>
     <router-link to="/count-time">읽은 기록</router-link>
