@@ -109,9 +109,9 @@ export default {
       if (this.limitEvent_id) {
         let data = {
           book_id: this.book_id,
-          limit_seconds: this.limit_seconds,
+          limit_seconds: Number(this.limit_seconds),
           is_active: this.is_active,
-          time_event_user_count: this.time_event_user_count
+          time_event_user_count: Number(this.time_event_user_count)
         }
 
         firestore.collection('limit_event').doc(this.limitEvent_id).update(data).then((docRef) => {
@@ -126,9 +126,9 @@ export default {
       } else {
         let newDocument = {
           book_id: this.book_id,
-          limit_seconds: this.limit_seconds,
+          limit_seconds: Number(this.limit_seconds),
           is_active: this.is_active,
-          time_event_user_count: this.time_event_user_count,
+          time_event_user_count: Number(this.time_event_user_count),
           read_history: []
         }
         firestore.collection('limit_event').add(newDocument).then((docRef) => {
