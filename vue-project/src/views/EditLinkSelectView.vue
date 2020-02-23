@@ -15,9 +15,9 @@
         </div>
       </div>
       <div>
-        <div>image_file</div>
+        <div>image_url</div>
         <div class='control'>
-          <input type='file' class='input' @change='onChangeFile'>
+          <input type='text' class='input' v-model='image_url'>
         </div>
       </div>
       <div>
@@ -39,6 +39,13 @@
           </textarea>
         </div>
       </div>
+      <div class="Column">
+        <div>숨김여부 - 체크시 NewMain에서 보이지 않게 됩니다</div>
+        <div class='control'>
+          <input type="checkbox" id="checkbox" v-model="hidden">
+          <label for="checkbox">숨기기</label>
+        </div>
+      </div>
       <div>
         <div class='button' @click='addLinkSelect'>Add</div>
       </div>
@@ -49,6 +56,7 @@
           <div class='notification'>
             <div>
               <h1>{{ link_select.link_url }}</h1>
+              <h1>{{ link_select.title }}</h1>
               <img :src='link_select.image_url' style="height: 80px"/>
             </div>
             <div class='button' @click="selectLinkSelect(link_select['.key'])">수정하기</div>
@@ -87,99 +95,47 @@ export default {
       link_select_id: '',
       image_url: '',
       link_url: '',
-      uploadFile: null,
       title: '',
       description: '',
+      hidden: false,
     }
   },
   methods: {
-    onChangeFile(event) {
-      console.log('changeFile: ', event.target.files)
-      this.uploadFile = event.target.files[0]
-    },
     clearInput() {
       this.link_select_id = ''
       this.image_url = ''
       this.link_url = ''
-      this.uploadFile = null
       this.title = ''
       this.description = ''
+      this.hidden = false
     },
     addLinkSelect () {
+      let data = {
+        image_url: this.image_url,
+        link_url: this.link_url,
+        title: this.title,
+        description: this.description,
+        hidden: this.hidden,
+      }
+
       if (this.link_select_id) {
-        if (this.uploadFile) {
-          let filepath = 'link_select_image/'+this.uploadFile.name
-          let upload_ref = firestorage.ref().child(filepath)
-          upload_ref.put(this.uploadFile).then(async(snapshot) => {
-            console.log('Uploaded file!', snapshot);
-
-            let url = await snapshot.getDownloadURL();
-
-            console.log('Uploaded file url', url);
-
-            let data = {
-              image_url: url,
-              link_url: this.link_url,
-              title: this.title,
-              description: this.description,
-            }
-
-            firestore.collection('link_select').doc(this.link_select_id).update(data).then((docRef) => {
-              console.log('update link_select with file')
-              alert('수정 성공')
-              this.clearInput()
-            }).catch((error) => {
-              console.error('Error adding document: ', error)
-              alert('수정 실패')
-            })
-          });
-        } else {
-          let data = {
-            link_url: this.link_url,
-            title: this.title,
-            description: this.description,
-          }
-
-          firestore.collection('link_select').doc(this.link_select_id).update(data).then((docRef) => {
-            console.log('update link_select without file')
-            alert('수정 성공')
-            this.clearInput()
-          }).catch((error) => {
-            console.error('Error adding document: ', error)
-            alert('수정 실패')
-          })
-        }
-
+        firestore.collection('link_select').doc(this.link_select_id).update(data).then((docRef) => {
+          console.log('update link_select')
+          alert('수정 성공')
+          this.clearInput()
+        }).catch((error) => {
+          console.error('Error adding document: ', error)
+          alert('수정 실패')
+        })
       } else {
-        if (this.uploadFile == null) {
-          alert('퍄일을 등록해주세요')
-          return
-        }
-
-        let filepath = 'link_select_image/'+this.uploadFile.name
-        let upload_ref = firestorage.ref().child(filepath)
-        upload_ref.put(this.uploadFile).then(async(snapshot) => {
-          console.log('Uploaded file!', snapshot);
-
-          let url = await upload_ref.getDownloadURL();
-
-          console.log('Uploaded file url', url);
-
-          let newDocument = {
-            image_url: url,
-            link_url: this.link_url,
-            title: this.title,
-            description: this.description,
-          }
-          firestore.collection('link_select').add(newDocument).then((docRef) => {
-            console.log('Document written with ID: ', docRef.id)
-            alert('추가 성공')
-            this.clearInput()
-          }).catch((error) => {
-            console.error('Error adding document: ', error)
-            alert('추가 실패')
-          })
-        });
+        firestore.collection('link_select').add(data).then((docRef) => {
+          console.log('Document written with ID: ', docRef.id)
+          alert('추가 성공')
+          this.clearInput()
+        }).catch((error) => {
+          console.error('Error adding document: ', error)
+          alert('추가 실패')
+        })
       }
     },
     selectLinkSelect (key) {
@@ -191,6 +147,7 @@ export default {
           this.image_url = link_select['image_url']
           this.title = link_select['title'],
           this.description = link_select['description']
+          this.hidden = 'hidden' in link_select ? link_select['hidden'] : false
         }
       }
     },
