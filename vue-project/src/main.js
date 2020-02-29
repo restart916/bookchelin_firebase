@@ -20,7 +20,11 @@ var config = {
   messagingSenderId: "658686940034"
 };
 
-Vue.use(require('vue-moment'));
+// Vue.use(require('vue-moment'));
+import moment from 'moment-timezone'
+moment.tz.setDefault('Asia/Seoul')
+Vue.prototype.$moment = moment
+
 Vue.use(Vuefire);
 Vue.use(VueFirestore);
 Vue.use(VueBlu);

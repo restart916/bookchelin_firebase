@@ -10,6 +10,7 @@
   "dependencies": {
     "firebase": "^5.11.1",
     "moment": "^2.24.0",
+    "moment-timezone": "^0.5.28",
     "vue": "^2.6.10",
     "vue-blu": "^0.1.9",
     "vue-firestore": "^0.3.21",
