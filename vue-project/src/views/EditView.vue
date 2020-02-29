@@ -92,6 +92,12 @@
         </div>
       </div>
       <div>
+        <div>pdf_file</div>
+        <div class='control'>
+          <input type='file' class='input' @change='onChangePdfFile'>
+        </div>
+      </div>
+      <div>
         <div class='button' @click='addBook'>Add</div>
       </div>
     </section>
@@ -137,6 +143,7 @@ export default {
       epub_file: '',
       firestore_url: '',
       uploadFile: null,
+      uploadPdfFile: null,
       category: 0,
       order: 0,
       hidden: false,
@@ -150,6 +157,10 @@ export default {
       console.log('changeFile: ', event.target.files)
       this.uploadFile = event.target.files[0]
     },
+    onChangePdfFile(event) {
+      console.log('changeFile: ', event.target.files)
+      this.uploadPdfFile = event.target.files[0]
+    },
     clearInput() {
       this.book_id = ''
       this.title = ''
@@ -158,6 +169,7 @@ export default {
       this.image_url = ''
       this.firestore_url = ''
       this.uploadFile = null
+      this.uploadPdfFile = null
       this.category = 0
       this.order = 0
       this.hidden = false
@@ -172,9 +184,15 @@ export default {
       }
 
       if (this.book_id) {
-        if (this.uploadFile) {
-          let filepath = 'epub/'+this.uploadFile.name
+        if (this.uploadFile || this.uploadPdfFile) {
+          let filepath = null
+          if (this.uploadFile) {
+            filepath = 'epub/'+this.uploadFile.name
+          } else {
+            filepath = 'pdf/'+this.uploadPdfFile.name
+          }
           let upload_ref = firestorage.ref().child(filepath)
+
           upload_ref.put(this.uploadFile).then((snapshot) => {
             console.log('Uploaded file!');
 
