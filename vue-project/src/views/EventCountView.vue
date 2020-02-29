@@ -61,6 +61,9 @@ export default {
       const time_events = await firestore.collection(type).get()
       // console.log(time_events)
 
+      const start_time_unix = this.$moment(this.start_date).unix();
+      const end_time_unix = this.$moment(this.end_date).unix();
+
       let datas = {}
       for (let time_event of time_events.docs) {
         // console.log('time_event.data()', time_event.data())
@@ -77,8 +80,8 @@ export default {
         const show_new_main_books = await firestore
                                         .collection('show_new_main_books')
                                         .where('event_id', '==', event_id)
-                                        .where('datetime', '>', this.$moment(this.start_date).unix())
-                                        .where('datetime', '<', this.$moment(this.end_date).unix())
+                                        .where('datetime', '>', start_time_unix)
+                                        .where('datetime', '<', end_time_unix)
                                         .get()
 
         datas[event_id]['show_new_main_books'] = show_new_main_books.docs.length
@@ -94,8 +97,8 @@ export default {
         const show_book_details = await firestore
                                         .collection('show_book_detail')
                                         .where('event_id', '==', event_id)
-                                        .where('datetime', '>', this.$moment(this.start_date).unix())
-                                        .where('datetime', '<', this.$moment(this.end_date).unix())
+                                        .where('datetime', '>', start_time_unix)
+                                        .where('datetime', '<', end_time_unix)
                                         .get()
 
         datas[event_id]['show_detail_count'] = show_book_details.docs.length
@@ -116,8 +119,8 @@ export default {
         const show_book_readers = await firestore
                                         .collection('show_book_reader')
                                         .where('event_id', '==', event_id)
-                                        .where('datetime', '>', this.$moment(this.start_date).unix())
-                                        .where('datetime', '<', this.$moment(this.end_date).unix())
+                                        .where('datetime', '>', start_time_unix)
+                                        .where('datetime', '<', end_time_unix)
                                         .get()
 
         datas[event_id]['show_reader_count'] = show_book_readers.docs.length
@@ -144,8 +147,8 @@ export default {
         const click_share_book_details = await firestore
                                         .collection('click_share_book_detail')
                                         .where('event_id', '==', event_id)
-                                        .where('datetime', '>', this.$moment(this.start_date).unix())
-                                        .where('datetime', '<', this.$moment(this.end_date).unix())
+                                        .where('datetime', '>', start_time_unix)
+                                        .where('datetime', '<', end_time_unix)
                                         .get()
 
         datas[event_id]['click_share_book_count'] = click_share_book_details.docs.length
@@ -153,8 +156,8 @@ export default {
         const click_buy_book_details = await firestore
                                         .collection('click_buy_book_detail')
                                         .where('event_id', '==', event_id)
-                                        .where('datetime', '>', this.$moment(this.start_date).unix())
-                                        .where('datetime', '<', this.$moment(this.end_date).unix())
+                                        .where('datetime', '>', start_time_unix)
+                                        .where('datetime', '<', end_time_unix)
                                         .get()
 
         datas[event_id]['click_buy_book_count'] = click_buy_book_details.docs.length
