@@ -245,9 +245,10 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   const show_new_main_books = await db
                                   .collection('show_new_main_books')
                                   .where('event_id', '==', event_id)
-                                  .where('datetime', '>', moment(start_date).unix())
+                                  .where('datetime', '>=', moment(start_date).unix())
                                   .where('datetime', '<', moment(end_date).unix())
                                   .get();
+
 
   datas[event_id]['show_new_main_books'] = show_new_main_books.docs.length;
   let show_new_main_users = [];
@@ -262,7 +263,7 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   const show_book_details = await db
                                   .collection('show_book_detail')
                                   .where('event_id', '==', event_id)
-                                  .where('datetime', '>', moment(start_date).unix())
+                                  .where('datetime', '>=', moment(start_date).unix())
                                   .where('datetime', '<', moment(end_date).unix())
                                   .get();
 
@@ -284,7 +285,7 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   const show_book_readers = await db
                                   .collection('show_book_reader')
                                   .where('event_id', '==', event_id)
-                                  .where('datetime', '>', moment(start_date).unix())
+                                  .where('datetime', '>=', moment(start_date).unix())
                                   .where('datetime', '<', moment(end_date).unix())
                                   .get();
 
@@ -320,7 +321,7 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   const click_share_book_details = await db
                                   .collection('click_share_book_detail')
                                   .where('event_id', '==', event_id)
-                                  .where('datetime', '>', moment(start_date).unix())
+                                  .where('datetime', '>=', moment(start_date).unix())
                                   .where('datetime', '<', moment(end_date).unix())
                                   .get();
 
@@ -329,7 +330,7 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   const click_buy_book_details = await db
                                   .collection('click_buy_book_detail')
                                   .where('event_id', '==', event_id)
-                                  .where('datetime', '>', moment(start_date).unix())
+                                  .where('datetime', '>=', moment(start_date).unix())
                                   .where('datetime', '<', moment(end_date).unix())
                                   .get();
 
