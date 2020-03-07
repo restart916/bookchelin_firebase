@@ -29,20 +29,22 @@ export default {
     Header, EventCountData, Datepicker
   },
   async mounted () {
-    // await this.refreshData();
+    await this.refreshData();
   },
   data () {
     return {
       start_date: this.$moment().subtract(7, 'days').toDate(),
       end_date: this.$moment().add(1, 'days').toDate(),
-      time_datas: [],
-      limit_datas: []
+      time_datas: {},
+      limit_datas: {}
     }
   },
   methods: {
     async refreshData() {
-      this.time_datas = await this.loadEventData('time_event');
-      this.limit_datas = await this.loadEventData('limit_event');
+      this.time_datas = {};
+      this.limit_datas = {};
+
+      await this.loadEventData()
     },
     getTimeString(diff) {
       let ms = diff * 1000
@@ -57,124 +59,72 @@ export default {
 
       return `${hours}시간 ${minutes}분 ${seconds}초`
     },
-    async loadEventData(type) {
-      const time_events = await firestore.collection(type).get()
-      // console.log(time_events)
+    async loadEventData() {
+      let start = this.$moment(this.start_date)
+      const end = this.$moment(this.end_date)
 
-      const start_time_unix = this.$moment(this.start_date).unix();
-      const end_time_unix = this.$moment(this.end_date).unix();
+      let time_datas = {};
+      let limit_datas = {};
 
-      let datas = {}
-      for (let time_event of time_events.docs) {
-        // console.log('time_event.data()', time_event.data())
-        const event_id = time_event['id']
-        const time_event_data = time_event.data()
-        datas[event_id] = {'book_id': time_event_data['book_id']}
+      while(start < end){
+        console.log(start.format('YYYY-MM-DD'))
 
-        const book_data = await firestore
-                                .collection('books')
-                                .doc(time_event_data['book_id'])
-                                .get()
-        datas[event_id]['book_name'] = book_data.data()['title']
+        const dayly_event_counts = await firestore.collection('dayly_event_count')
+        .doc(start.format('YYYY-MM-DD'))
+        .get()
 
-        const show_new_main_books = await firestore
-                                        .collection('show_new_main_books')
-                                        .where('event_id', '==', event_id)
-                                        .where('datetime', '>', start_time_unix)
-                                        .where('datetime', '<', end_time_unix)
-                                        .get()
-
-        datas[event_id]['show_new_main_books'] = show_new_main_books.docs.length
-        let show_new_main_users = []
-        for (let show_new_main_detail of show_new_main_books.docs) {
-          const user_uid = show_new_main_detail.data()['user_uid']
-          if (show_new_main_users.includes(user_uid) == false) {
-            show_new_main_users.push(user_uid)
-          }
-        }
-        datas[event_id]['show_new_main_user_count'] = show_new_main_users.length
-
-        const show_book_details = await firestore
-                                        .collection('show_book_detail')
-                                        .where('event_id', '==', event_id)
-                                        .where('datetime', '>', start_time_unix)
-                                        .where('datetime', '<', end_time_unix)
-                                        .get()
-
-        datas[event_id]['show_detail_count'] = show_book_details.docs.length
-        // console.log('show_detail_count', show_book_details)
-
-        let show_book_users = []
-        for (let show_book_detail of show_book_details.docs) {
-          const user_uid = show_book_detail.data()['user_uid']
-          if (show_book_users.includes(user_uid) == false) {
-            show_book_users.push(user_uid)
-          }
+        console.log(dayly_event_counts.data());
+        if (!dayly_event_counts.data()) {
+          start = this.$moment(start).add(1, 'days')
+          continue;
         }
 
-        datas[event_id]['show_detail_user_count'] = show_book_users.length
-        // console.log(show_book_details)
-        // console.log(show_book_users.length, show_book_users)
+        this.time_datas = this.updateData(time_datas, dayly_event_counts.data()['time_datas'])
+        this.limit_datas = this.updateData(limit_datas, dayly_event_counts.data()['limit_datas'])
 
-        const show_book_readers = await firestore
-                                        .collection('show_book_reader')
-                                        .where('event_id', '==', event_id)
-                                        .where('datetime', '>', start_time_unix)
-                                        .where('datetime', '<', end_time_unix)
-                                        .get()
+        start = this.$moment(start).add(1, 'days')
+      }
+    },
+    updateData(mainData, datas) {
+      for (let key in datas) {
+        const data = datas[key]
 
-        datas[event_id]['show_reader_count'] = show_book_readers.docs.length
-        let show_book_reader_users = []
-        for (let show_book_reader of show_book_readers.docs) {
-          const user_uid = show_book_reader.data()['user_uid']
-          if (show_book_reader_users.includes(user_uid) == false) {
-            show_book_reader_users.push(user_uid)
-          }
-        }
-        datas[event_id]['show_reader_user_count'] = show_book_reader_users.length
-        // datas[event_id]['show_reader_user_count'] = time_event_data['read_history'].length
+        if (key in mainData) {
+          // show recent data
+          mainData[key]['total_read_time'] = data['total_read_time'];
+          mainData[key]['avg_user_read_time'] = data['avg_user_read_time'];
+          mainData[key]['average_review'] = data['average_review'];
+          mainData[key]['review_count'] = data['review_count'];
 
-        if (time_event_data['read_history'].length) {
-          let total_read_time = time_event_data['event_minute'] - time_event_data['remain_time'];
-          datas[event_id]['total_read_time'] = this.getTimeString(total_read_time)
-          datas[event_id]['avg_user_read_time'] = this.getTimeString(total_read_time / time_event_data['read_history'].length)
+          mainData[key]['click_buy_book_count'] += data['click_buy_book_count'];
+          mainData[key]['click_share_book_count'] += data['click_share_book_count'];
+          mainData[key]['show_detail_count'] += data['show_detail_count'];
+          mainData[key]['show_detail_user_count'] += data['show_detail_user_count'];
+          mainData[key]['show_new_main_books'] += data['show_new_main_books'];
+          mainData[key]['show_new_main_user_count'] += data['show_new_main_user_count'];
+          mainData[key]['show_reader_count'] += data['show_reader_count'];
+          mainData[key]['show_reader_user_count'] += data['show_reader_user_count'];
         } else {
-          datas[event_id]['total_read_time'] = 0
-          datas[event_id]['avg_user_read_time'] = 0
+          mainData[key] = {
+            'average_review': data['average_review'],
+            'avg_user_read_time': data['avg_user_read_time'],
+            'book_id': data['book_id'],
+            'book_name': data['book_name'],
+            'click_buy_book_count': data['click_buy_book_count'],
+            'click_share_book_count': data['click_share_book_count'],
+            'review_count': data['review_count'],
+            'show_detail_count': data['show_detail_count'],
+            'show_detail_user_count': data['show_detail_user_count'],
+            'show_new_main_books': data['show_new_main_books'],
+            'show_new_main_user_count': data['show_new_main_user_count'],
+            'show_reader_count': data['show_reader_count'],
+            'show_reader_user_count': data['show_reader_user_count'],
+            'total_read_time': data['total_read_time'],
+          };
         }
-        // console.log('show_reader_count', show_book_readers)
-
-        const click_share_book_details = await firestore
-                                        .collection('click_share_book_detail')
-                                        .where('event_id', '==', event_id)
-                                        .where('datetime', '>', start_time_unix)
-                                        .where('datetime', '<', end_time_unix)
-                                        .get()
-
-        datas[event_id]['click_share_book_count'] = click_share_book_details.docs.length
-
-        const click_buy_book_details = await firestore
-                                        .collection('click_buy_book_detail')
-                                        .where('event_id', '==', event_id)
-                                        .where('datetime', '>', start_time_unix)
-                                        .where('datetime', '<', end_time_unix)
-                                        .get()
-
-        datas[event_id]['click_buy_book_count'] = click_buy_book_details.docs.length
-
-        const reviews = await firestore.collection('book_reviews')
-                                      .where('book_id', '==', time_event_data['book_id'])
-                                      .get()
-
-        datas[event_id]['review_count'] = reviews.docs.length
-        let rating = 0
-        for (let review of reviews.docs) {
-          rating += review.data()['rating']
-        }
-        datas[event_id]['average_review'] = reviews.docs.length ? (rating / reviews.docs.length).toFixed(2) : 0
       }
 
-      return datas
+      return mainData;
     }
   }
 }

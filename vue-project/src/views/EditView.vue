@@ -193,7 +193,7 @@ export default {
           }
           let upload_ref = firestorage.ref().child(filepath)
 
-          upload_ref.put(this.uploadFile).then((snapshot) => {
+          upload_ref.put(this.uploadFile || this.uploadPdfFile).then((snapshot) => {
             console.log('Uploaded file!');
 
             let data = {
@@ -244,14 +244,18 @@ export default {
         }
 
       } else {
-        if (this.uploadFile == null) {
+        let filepath = null
+        if (this.uploadFile) {
+          filepath = 'epub/'+this.uploadFile.name
+        } else if (this.uploadPdfFile) {
+          filepath = 'pdf/'+this.uploadPdfFile.name
+        } else {
           alert('퍄일을 등록해주세요')
           return
         }
 
-        let filepath = 'epub/'+this.uploadFile.name
         let upload_ref = firestorage.ref().child(filepath)
-        upload_ref.put(this.uploadFile).then((snapshot) => {
+        upload_ref.put(this.uploadFile || this.uploadPdfFile).then((snapshot) => {
           console.log('Uploaded file!');
 
           let newDocument = {

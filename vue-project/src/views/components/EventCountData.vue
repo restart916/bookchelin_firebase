@@ -25,8 +25,8 @@
           <td>{{ data['show_new_main_user_count'] }} ({{ data['show_new_main_books'] }})</td>
           <td>{{ data['show_detail_user_count'] }} ({{ data['show_detail_count'] }})</td>
           <td>{{ data['show_reader_user_count'] }} ({{ data['show_reader_count'] }})</td>
-          <td>{{ data['total_read_time'] }}</td>
-          <td>{{ data['avg_user_read_time'] }}</td>
+          <td>{{ getTimeString(data['total_read_time']) }}</td>
+          <td>{{ getTimeString(data['avg_user_read_time']) }}</td>
           <td>{{ data['click_share_book_count'] }}</td>
           <td>{{ data['click_buy_book_count'] }}</td>
           <td>{{ data['average_review'] }} / {{ data['review_count'] }}</td>
@@ -46,6 +46,22 @@ export default {
     return {}
   },
   methods: {
+    getTimeString(diff) {
+      let ms = diff * 1000
+
+      const hours = this.$moment.utc(ms).diff(0, 'hours')
+      ms -= hours * 1000 * 60 * 60
+
+      const minutes = this.$moment.utc(ms).diff(0, 'minutes')
+      ms -= minutes * 1000 * 60
+
+      const seconds = this.$moment.utc(ms).diff(0, 'seconds')
+
+      return `${hours}시간 ${minutes}분 ${seconds}초`
+    },
+  },
+  computed: {
+
   }
 }
 </script>
