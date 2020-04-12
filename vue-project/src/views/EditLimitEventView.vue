@@ -29,6 +29,12 @@
           <input type='text' class='input' v-model='time_event_user_count'>
         </div>
       </div>
+      <div>
+        <div>등록날짜</div>
+        <div class='control'>
+          <input type='text' class='input' v-model='create_time'>
+        </div>
+      </div>
       <div class="Column">
         <div>활성화여부 - 기본이 켜진상태입니다.</div>
         <div class='control'>
@@ -87,6 +93,7 @@ export default {
       limit_seconds: 600,
       is_active: true,
       time_event_user_count: 0,
+      create_time: ''
     }
   },
   methods: {
@@ -104,6 +111,7 @@ export default {
       this.limit_seconds = 600
       this.is_active = true
       this.time_event_user_count = 0
+      this.create_time = ''
     },
     addBanner () {
       if (this.limitEvent_id) {
@@ -111,7 +119,8 @@ export default {
           book_id: this.book_id,
           limit_seconds: Number(this.limit_seconds),
           is_active: this.is_active,
-          time_event_user_count: Number(this.time_event_user_count)
+          time_event_user_count: Number(this.time_event_user_count),
+          create_time: this.create_time
         }
 
         firestore.collection('limit_event').doc(this.limitEvent_id).update(data).then((docRef) => {
@@ -129,6 +138,7 @@ export default {
           limit_seconds: Number(this.limit_seconds),
           is_active: this.is_active,
           time_event_user_count: Number(this.time_event_user_count),
+          create_time: this.create_time,
           read_history: []
         }
         firestore.collection('limit_event').add(newDocument).then((docRef) => {
@@ -150,6 +160,7 @@ export default {
           this.limit_seconds = limitEvent['limit_seconds']
           this.is_active = limitEvent['is_active']
           this.time_event_user_count = limitEvent['time_event_user_count'] || 0
+          this.create_time = timeEvent['create_time']
         }
       }
     },

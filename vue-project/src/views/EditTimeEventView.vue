@@ -29,6 +29,12 @@
           <input type='text' class='input' v-model='remain_time'>
         </div>
       </div>
+      <div>
+        <div>등록날짜</div>
+        <div class='control'>
+          <input type='text' class='input' v-model='create_time'>
+        </div>
+      </div>
       <div class="Column">
         <div>활성화여부 - 기본이 켜진상태입니다.</div>
         <div class='control'>
@@ -86,7 +92,8 @@ export default {
       book_id: '',
       event_minute: 360000,
       remain_time: 360000,
-      is_active: true
+      is_active: true,
+      create_time: ''
     }
   },
   methods: {
@@ -104,6 +111,7 @@ export default {
       this.event_minute = 360000
       this.remain_time = 360000
       this.is_active = true
+      this.create_time = ''
     },
     addBanner () {
       if (this.timeEvent_id) {
@@ -111,7 +119,8 @@ export default {
           book_id: this.book_id,
           event_minute: this.event_minute,
           remain_time: this.remain_time,
-          is_active: this.is_active
+          is_active: this.is_active,
+          create_time: this.create_time
         }
 
         firestore.collection('time_event').doc(this.timeEvent_id).update(data).then((docRef) => {
@@ -129,6 +138,7 @@ export default {
           event_minute: this.event_minute,
           remain_time: this.remain_time,
           is_active: this.is_active,
+          create_time: this.create_time,
           read_history: []
         }
         firestore.collection('time_event').add(newDocument).then((docRef) => {
@@ -150,6 +160,7 @@ export default {
           this.event_minute = timeEvent['event_minute']
           this.remain_time = timeEvent['remain_time']
           this.is_active = timeEvent['is_active']
+          this.create_time = timeEvent['create_time']
         }
       }
     },
