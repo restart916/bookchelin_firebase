@@ -96,6 +96,8 @@ export default {
           mainData[key]['average_review'] = data['average_review'];
           mainData[key]['review_count'] = data['review_count'];
 
+          mainData[key]['create_time'] = mainData[key]['create_time'] || data['create_time'] ;
+
           mainData[key]['click_buy_book_count'] += data['click_buy_book_count'];
           mainData[key]['click_share_book_count'] += data['click_share_book_count'];
           mainData[key]['show_detail_count'] += data['show_detail_count'];
@@ -109,6 +111,7 @@ export default {
             'average_review': data['average_review'],
             'avg_user_read_time': data['avg_user_read_time'],
             'book_id': data['book_id'],
+            'create_time': data['create_time'],
             'book_name': data['book_name'],
             'click_buy_book_count': data['click_buy_book_count'],
             'click_share_book_count': data['click_share_book_count'],

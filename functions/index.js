@@ -240,6 +240,7 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
                           .doc(time_event_data['book_id'])
                           .get();
   datas[event_id]['book_name'] = book_data.data()['title'];
+  datas[event_id]['create_time'] = book_data.data()['create_time'];
 
   // console.log('datas', datas);
   const show_new_main_books = await db
