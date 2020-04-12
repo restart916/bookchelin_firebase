@@ -5,7 +5,7 @@ const functions = require('firebase-functions');
 // Moments library to format dates.
 // const moment = require('moment');
 const moment = require('moment-timezone');
-moment.tz.setDefault('Asia/Seoul')
+// moment.tz.setDefault('utc')
 
 // CORS Express middleware to enable CORS Requests.
 const cors = require('cors')({
@@ -414,16 +414,30 @@ const runtimeOpts = {
   timeoutSeconds: 300
 }
 
+exports.daily_job = functions.runWith(runtimeOpts)
+  .pubsub
+  .topic('daily-tick')
+  .onPublish(async (message) => {
+  console.log("This job is run every day!");
+
+  await updateReadLog();    // 하루에 그 책 몇번 읽었는지
+  await updateReadTimeLog();    // 하루에 그 책 몇시간 읽었는지 (유저당으로도)
+  await updateSummary();    // 유저 통계용 데이터 삽입
+  await updateEventSummary();   // 출판사 통계 데이터
+
+  return true;
+});
+
 exports.hourly_job = functions.runWith(runtimeOpts)
   .pubsub
   .topic('hourly-tick')
   .onPublish(async (message) => {
   console.log("This job is run every hour!");
 
-  await updateReadLog();    // 하루에 그 책 몇번 읽었는지
-  await updateReadTimeLog();    // 하루에 그 책 몇시간 읽었는지 (유저당으로도)
-  await updateSummary();    // 유저 통계용 데이터 삽입
-  await updateEventSummary();   // 출판사 통계 데이터
+  // await updateReadLog();    // 하루에 그 책 몇번 읽었는지
+  // await updateReadTimeLog();    // 하루에 그 책 몇시간 읽었는지 (유저당으로도)
+  // await updateSummary();    // 유저 통계용 데이터 삽입
+  // await updateEventSummary();   // 출판사 통계 데이터
 
   return true;
 });
