@@ -240,7 +240,7 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
                           .doc(time_event_data['book_id'])
                           .get();
   datas[event_id]['book_name'] = book_data.data()['title'];
-  datas[event_id]['create_time'] = book_data.data()['create_time'];
+  datas[event_id]['create_time'] = time_event_data['create_time'] || '';
 
   // console.log('datas', datas);
   const show_new_main_books = await db
@@ -402,7 +402,12 @@ exports.add_time_read_time_logs = functions.firestore
   }, {merge: true});
 });
 
-exports.test = functions.https.onRequest((req, res) => {
+const runtimeOpts = {
+  timeoutSeconds: 300,
+  memory: '1GB'
+}
+
+exports.test = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
   return cors(req, res, async () => {
 
     await updateEventSummary();   // 출판사 통계 데이터
@@ -410,10 +415,6 @@ exports.test = functions.https.onRequest((req, res) => {
     res.status(200).send('successful');
   });
 });
-
-const runtimeOpts = {
-  timeoutSeconds: 300
-}
 
 exports.daily_job = functions.runWith(runtimeOpts)
   .pubsub
@@ -434,11 +435,6 @@ exports.hourly_job = functions.runWith(runtimeOpts)
   .topic('hourly-tick')
   .onPublish(async (message) => {
   console.log("This job is run every hour!");
-
-  // await updateReadLog();    // 하루에 그 책 몇번 읽었는지
-  // await updateReadTimeLog();    // 하루에 그 책 몇시간 읽었는지 (유저당으로도)
-  // await updateSummary();    // 유저 통계용 데이터 삽입
-  // await updateEventSummary();   // 출판사 통계 데이터
 
   return true;
 });
