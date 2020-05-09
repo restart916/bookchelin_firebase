@@ -78,6 +78,16 @@
           </select>
         </div>
         <div class="Column">
+          <div>출판사 - optional</div>
+          <select v-model="publisher">
+            <option value="">선택 없음</option>
+            <option v-for="publisher in publishers" :key="publisher.key"
+              :value="publisher.code">
+              {{ publisher.name }}
+            </option>
+          </select>
+        </div>
+        <div class="Column">
           <div>숨김여부 - 체크시 앱에서 보이지 않게 됩니다</div>
           <div class='control'>
             <input type="checkbox" id="checkbox" v-model="hidden">
@@ -127,7 +137,8 @@ export default {
   firestore () {
     return {
       books: firestore.collection('books').orderBy('title', 'asc'),
-      book_category: firestore.collection('book_category').orderBy('id', 'desc')
+      book_category: firestore.collection('book_category').orderBy('id', 'desc'),
+      publishers: firestore.collection('publisher')
     }
   },
   mounted () {
@@ -145,6 +156,7 @@ export default {
       uploadFile: null,
       uploadPdfFile: null,
       category: 0,
+      publisher: '',
       order: 0,
       hidden: false,
       shop_yes24_link: '',
@@ -171,6 +183,7 @@ export default {
       this.uploadFile = null
       this.uploadPdfFile = null
       this.category = 0
+      this.publisher = ''
       this.order = 0
       this.hidden = false
       this.shop_yes24_link = ''
@@ -203,6 +216,7 @@ export default {
               image_url: this.image_url,
               firestore_url: filepath,
               category: this.category,
+              publisher: this.publisher,
               order: this.order,
               hidden: this.hidden,
               shop_yes24_link: this.shop_yes24_link,
@@ -226,6 +240,7 @@ export default {
             toc: this.toc,
             image_url: this.image_url,
             category: this.category,
+            publisher: this.publisher,
             order: this.order,
             hidden: this.hidden,
             shop_yes24_link: this.shop_yes24_link,
@@ -265,6 +280,7 @@ export default {
             image_url: this.image_url,
             firestore_url: filepath,
             category: this.category,
+            publisher: this.publisher,
             order: this.order,
             hidden: this.hidden,
             shop_yes24_link: this.shop_yes24_link,
@@ -293,6 +309,7 @@ export default {
           this.image_url = book['image_url']
           this.firestore_url = book['firestore_url']
           this.category = 'hidden' in book ? book['category'] : 0
+          this.publisher = 'publisher' in book ? book['publisher'] : ''
           this.order = 'hidden' in book ? book['order'] : 0
           this.hidden = 'hidden' in book ? book['hidden'] : false
           this.shop_yes24_link = book['shop_yes24_link'] || ''

@@ -13,6 +13,9 @@ import EditLimitEventView from './views/EditLimitEventView';
 import EditLinkSelectView from './views/EditLinkSelectView';
 import EditReviewView from './views/EditReviewView';
 
+import PublisherLogin from './views/PublisherLogin';
+import EventCountViewByPublisher from './views/EventCountViewByPublisher';
+
 Vue.use(Router);
 
 export default new Router({
@@ -78,6 +81,16 @@ export default new Router({
       path: '/edit-review',
       name: 'EditReviewView',
       component: EditReviewView
+    },
+    {
+      path: '/publisher',
+      name: 'PublisherLogin',
+      component: PublisherLogin
+    },
+    {
+      path: '/publisher/detail/:publisher_id',
+      name: 'EventCountViewByPublisher',
+      component: EventCountViewByPublisher
     }
   ]
 });
