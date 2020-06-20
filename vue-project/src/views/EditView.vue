@@ -55,7 +55,7 @@
         </div>
       </div>
       <div>
-        <div>shop_bandi_link</div>
+        <div>shop_kyobo_link</div>
         <div class='control'>
           <input type='text' class='input' v-model='shop_bandi_link'>
         </div>

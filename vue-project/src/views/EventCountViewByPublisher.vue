@@ -1,6 +1,9 @@
 
 <template>
   <div class="Root">
+    <div class="Header">
+      <router-link to="/publisher">돌아가기</router-link>
+    </div>
     <div class="Row Border">
       <!-- <div class="Column">
         출판사 코드
@@ -18,13 +21,24 @@
         <div class='button' @click='refreshData'>조회하기 </div>
       </div>
     </div>
-    <!-- <div style="height: 100px"/>
-    <EventCountData title='NEW 추천 도서' :datas="time_datas" hide_detail="1"/> -->
-    <div style="height: 100px"/>
-    <EventCountData title='프리뷰 도서' :datas="limit_datas" hide_detail="1"/>
 
+    <div style="height: 100px"/>
+    <EventCountData title='NEW 추천 도서'
+                    :datas="time_datas"
+                    hide_detail="1"
+                    v-show='showTimeData'
+                    />
+
+    <div style="height: 100px"/>
+    <EventCountData title='프리뷰 도서'
+                    :datas="limit_datas"
+                    hide_detail="1"
+                    v-show='!is_loading'
+                    />
+
+    <circle2 class="Loading" v-show='is_loading'></circle2>
     <div class="Description">
-      * 노출 인원 수 : 앱에서 출판사의 도서 이미지가 노출된 인원 수<br>
+      * 노출 인원 수 : 앱에서 출판사의 도서 이미지가 노출된 인원 수 (수치가 0인경우, 최상단 배너에 노출x)<br>
       * 상세페이지 인원 수 : 도서 정보 및 목차가 기재된 페이지에 접속한 인원 수<br>
       * 바로보기 인원 수 : 바로보기를 눌러 실제로 도서를 구독한 인원 수<br>
       * 1인당 평균 구독 시간 : 바로보기를 통해 1인당 도서를 읽은 평균 시간<br>
@@ -40,11 +54,12 @@ import { firestore, firestorage } from '../main'
 import Header from './components/Header'
 import EventCountData from './components/EventCountData'
 import Datepicker from 'vuejs-datepicker'
+import {Circle2} from 'vue-loading-spinner'
 
 export default {
   name: 'EventCountViewByPublisher',
   components: {
-    Header, EventCountData, Datepicker
+    Header, EventCountData, Datepicker, Circle2
   },
   async mounted () {
     let publisher_id = this.$route.params.publisher_id
@@ -65,16 +80,27 @@ export default {
       time_datas: {},
       limit_datas: {},
       publisher_code: '',
+
+      is_loading: false,
+    }
+  },
+  computed: {
+    showTimeData() {
+        console.log(this.time_datas.length)
+        return !this.is_loading && Object.keys(this.time_datas).length
     }
   },
   methods: {
     async refreshData() {
+      this.is_loading = true;
       this.time_datas = {};
       this.limit_datas = {};
 
       if (this.publisher_code) {
           await this.loadEventData()
       }
+
+      this.is_loading = false;
     },
     getTimeString(diff) {
       let ms = diff * 1000
@@ -119,11 +145,14 @@ export default {
           continue;
         }
 
-        this.time_datas = this.updateData(book_ids, time_datas, dayly_event_counts.data()['time_datas'])
-        this.limit_datas = this.updateData(book_ids, limit_datas, dayly_event_counts.data()['limit_datas'])
+        time_datas = this.updateData(book_ids, time_datas, dayly_event_counts.data()['time_datas'])
+        limit_datas = this.updateData(book_ids, limit_datas, dayly_event_counts.data()['limit_datas'])
 
         start = this.$moment(start).add(1, 'days')
       }
+
+      this.time_datas = time_datas
+      this.limit_datas = limit_datas
     },
     updateData(book_ids, mainData, datas) {
       for (let key in datas) {
@@ -179,6 +208,13 @@ export default {
 
 <!-- Add 'scoped' attribute to limit CSS to this component only -->
 <style scoped>
+.Header {
+  display: flex;
+  margin-bottom: 20px;
+}
+.Loading {
+  margin-left: 200px;
+}
 .Root {
   margin-left: 10px;
 }
