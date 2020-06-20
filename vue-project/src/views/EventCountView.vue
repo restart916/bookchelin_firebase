@@ -12,7 +12,7 @@
     <div style="height: 100px"/>
     <EventCountData title='NEW 추천 도서' :datas="time_datas"/>
     <div style="height: 100px"/>
-    <EventCountData title='위클리 10분 도서' :datas="limit_datas"/>
+    <EventCountData title='프리뷰 도서' :datas="limit_datas"/>
 
   </div>
 </template>
