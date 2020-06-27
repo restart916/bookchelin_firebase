@@ -88,7 +88,7 @@ export default {
   },
   firestore () {
     return {
-      link_selects: firestore.collection('link_select'),
+      link_selects: firestore.collection('link_select').orderBy('timestamp', 'desc'),
       link_select_click: firestore.collection('link_select_click'),
     }
   },
@@ -139,7 +139,10 @@ export default {
           alert('수정 실패')
         })
       } else {
-        firestore.collection('link_select').add(data).then((docRef) => {
+        firestore.collection('link_select').add({
+          timestamp: this.$moment().unix(),
+          ...data
+        }).then((docRef) => {
           console.log('Document written with ID: ', docRef.id)
           alert('추가 성공')
           this.clearInput()
@@ -189,13 +192,27 @@ export default {
       })
     },
     click_count(key) {
+      // for (let link_select of this.link_selects) {
+      //   if (link_select['.key'] == key) {
+      //     if (!('timestamp' in link_select)) {
+      //       console.log('wow?')
+      //       firestore.collection('link_select').doc(key).update({
+      //         timestamp: this.$moment().unix(),
+      //       }).then((docRef) => {
+      //         console.log('successfully tt!')
+      //       }).catch((error) => {
+      //         console.log('error tt!')
+      //       })
+      //     }
+      //   }
+      // }
+
       if (key in this.link_select_click_by_key) {
         return this.link_select_click_by_key[key]
       }
       let count = 0;
 
       for (let item of this.link_select_click) {
-        // console.log('link_select_id', item.link_select_id, key)
         if (item.link_select_id == key) {
           count++;
         }
