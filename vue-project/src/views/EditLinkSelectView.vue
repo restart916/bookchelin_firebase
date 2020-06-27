@@ -57,8 +57,9 @@
              :key="link_select['.key']">
           <div class='notification' :class="{hidden: link_select.hidden}">
             <div>
-              <h1>{{ link_select.link_url }}</h1>
+              <h2>{{ link_select.link_url }}</h2>
               <h1>{{ link_select.title }}</h1>
+              <h2>{{ click_count(link_select['.key']) }}</h2>
               <img :src='link_select.image_url' style="height: 80px"/>
             </div>
             <div class='button' @click="selectLinkSelect(link_select['.key'])">수정하기</div>
@@ -88,6 +89,7 @@ export default {
   firestore () {
     return {
       link_selects: firestore.collection('link_select'),
+      link_select_click: firestore.collection('link_select_click'),
     }
   },
   mounted () {
@@ -106,6 +108,7 @@ export default {
       title: '',
       description: '',
       hidden: false,
+      link_select_click_by_key: {},
     }
   },
   methods: {
@@ -184,7 +187,24 @@ export default {
         console.error('Error removing document: ', error)
         alert('삭제 실패')
       })
-    }
+    },
+    click_count(key) {
+      if (key in this.link_select_click_by_key) {
+        return this.link_select_click_by_key[key]
+      }
+      let count = 0;
+
+      for (let item of this.link_select_click) {
+        // console.log('link_select_id', item.link_select_id, key)
+        if (item.link_select_id == key) {
+          count++;
+        }
+      }
+      if (count > 0) {
+        this.link_select_click_by_key[key] = count
+      }
+      return count
+    },
   }
 }
 </script>
