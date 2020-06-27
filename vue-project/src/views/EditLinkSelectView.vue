@@ -52,8 +52,10 @@
     </section>
     <section class='section'>
       <div class='container'>
-        <div class='columns' v-for='link_select in link_selects' :key="link_select['.key']">
-          <div class='notification'>
+        <div class='columns'
+             v-for='link_select in link_selects'
+             :key="link_select['.key']">
+          <div class='notification' :class="{hidden: link_select.hidden}">
             <div>
               <h1>{{ link_select.link_url }}</h1>
               <h1>{{ link_select.title }}</h1>
@@ -61,6 +63,12 @@
             </div>
             <div class='button' @click="selectLinkSelect(link_select['.key'])">수정하기</div>
             <div class='button' @click="deleteLinkSelect(link_select['.key'])">삭제</div>
+            <div v-if="link_select.hidden">
+              <div class='button' @click="showLinkSelect(link_select['.key'])">보여주기</div>
+            </div>
+            <div v-else>
+              <div class='button' @click="hideLinkSelect(link_select['.key'])">숨기기</div>
+            </div>
           </div>
         </div>
       </div>
@@ -151,6 +159,23 @@ export default {
         }
       }
     },
+    hideLinkSelect (key) {
+      this.updateHiddenLinkSelect(key, true)
+    },
+    showLinkSelect (key) {
+      this.updateHiddenLinkSelect(key, false)
+    },
+    updateHiddenLinkSelect(key, hidden) {
+      firestore.collection('link_select').doc(key).update({
+        hidden: hidden
+      }).then((docRef) => {
+        alert('수정 성공')
+        this.clearInput()
+      }).catch((error) => {
+        console.error('Error : ', error)
+        alert('수정 실패')
+      })
+    },
     deleteLinkSelect (key) {
       firestore.collection('link_select').doc(key).delete().then(() => {
         console.log('Document successfully deleted!')
@@ -166,5 +191,7 @@ export default {
 
 <!-- Add 'scoped' attribute to limit CSS to this component only -->
 <style scoped>
-
+.hidden {
+  background-color: red;
+}
 </style>
