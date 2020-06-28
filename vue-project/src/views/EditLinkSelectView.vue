@@ -53,22 +53,26 @@
     <section class='section'>
       <div class='container'>
         <div class='columns'
-             v-for='link_select in link_selects'
-             :key="link_select['.key']">
-          <div class='notification' :class="{hidden: link_select.hidden}">
-            <div>
-              <h2>{{ link_select.link_url }}</h2>
-              <h1>{{ link_select.title }}</h1>
-              <h2>{{ click_count(link_select['.key']) }}</h2>
-              <img :src='link_select.image_url' style="height: 80px"/>
-            </div>
-            <div class='button' @click="selectLinkSelect(link_select['.key'])">수정하기</div>
-            <div class='button' @click="deleteLinkSelect(link_select['.key'])">삭제</div>
-            <div v-if="link_select.hidden">
-              <div class='button' @click="showLinkSelect(link_select['.key'])">보여주기</div>
-            </div>
-            <div v-else>
-              <div class='button' @click="hideLinkSelect(link_select['.key'])">숨기기</div>
+             v-for='chunk_link_select in chunk_link_selects'
+             >
+          <div v-for='link_select in chunk_link_select'
+               :key="link_select['.key']"
+               class="Row">
+            <div class='notification Column' :class="{active: !link_select.hidden}">
+              <div>
+                <h2 class="longLink">{{ link_select.link_url }}</h2>
+                <h1>{{ link_select.title }}</h1>
+                <h2>{{ click_count(link_select['.key']) }}</h2>
+                <img :src='link_select.image_url' style="height: 80px"/>
+              </div>
+              <div class='button' @click="selectLinkSelect(link_select['.key'])">수정하기</div>
+              <div class='button' @click="deleteLinkSelect(link_select['.key'])">삭제</div>
+              <div v-if="link_select.hidden">
+                <div class='button' @click="showLinkSelect(link_select['.key'])">보여주기</div>
+              </div>
+              <div v-else>
+                <div class='button' @click="hideLinkSelect(link_select['.key'])">숨기기</div>
+              </div>
             </div>
           </div>
         </div>
@@ -80,6 +84,7 @@
 <script>
 import { firestore, firestorage, fireauth } from '../main'
 import Header from './components/Header'
+import _ from 'lodash'
 
 export default {
   name: 'EditLinkSelectView',
@@ -109,6 +114,11 @@ export default {
       description: '',
       hidden: false,
       link_select_click_by_key: {},
+    }
+  },
+  computed: {
+    chunk_link_selects() {
+      return _.chunk(this.link_selects, 3)
     }
   },
   methods: {
@@ -228,7 +238,16 @@ export default {
 
 <!-- Add 'scoped' attribute to limit CSS to this component only -->
 <style scoped>
-.hidden {
-  background-color: red;
+.notification {
+  width: 400px;                   /* IE6 needs any width */
+}
+.longLink {
+  white-space: nowrap;
+  overflow: hidden;              /* "overflow" value must be different from  visible"*/
+  -o-text-overflow: ellipsis;
+  text-overflow:    ellipsis;
+}
+.active {
+  background-color: #5FDBA7;
 }
 </style>
