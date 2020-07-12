@@ -414,7 +414,7 @@ loadImage = async (title, image_url) => {
   try {
     let response = await axios.get(image_url)
 
-    if (response.status == 200) {
+    if (response.status === 200) {
       if (response.headers['content-length'] > 700000) {
         console.log(title, image_url, response.headers['content-length']);
       }
@@ -438,29 +438,29 @@ checkImageSize = async() => {
   //   await loadImage(title, image_url)
   // }
 
-  console.log('start main_books')
-  const main_books = await db.collection('main_books').get();
-  for (let main_book of main_books.docs) {
-    let title = main_book.data()['book_id']
-    let image_url = main_book.data()['firestore_url']
-    await loadImage(title, image_url)
-  }
-
-  console.log('start link_select')
-  const link_selects = await db.collection('link_select').get();
-  for (let link_select of link_selects.docs) {
-    let title = link_select.data()['title']
-    let image_url = link_select.data()['image_url']
-    await loadImage(title, image_url)
-  }
-
-  console.log('start banners')
-  const banners = await db.collection('banners').get();
-  for (let banner of banners.docs) {
-    let title = banner.data()['link_url']
-    let image_url = banner.data()['firestore_url']
-    await loadImage(title, image_url)
-  }
+  // console.log('start main_books')
+  // const main_books = await db.collection('main_books').get();
+  // for (let main_book of main_books.docs) {
+  //   let title = main_book.data()['book_id']
+  //   let image_url = main_book.data()['firestore_url']
+  //   await loadImage(title, image_url)
+  // }
+  //
+  // console.log('start link_select')
+  // const link_selects = await db.collection('link_select').get();
+  // for (let link_select of link_selects.docs) {
+  //   let title = link_select.data()['title']
+  //   let image_url = link_select.data()['image_url']
+  //   await loadImage(title, image_url)
+  // }
+  //
+  // console.log('start banners')
+  // const banners = await db.collection('banners').get();
+  // for (let banner of banners.docs) {
+  //   let title = banner.data()['link_url']
+  //   let image_url = banner.data()['firestore_url']
+  //   await loadImage(title, image_url)
+  // }
 }
 
 exports.test = functions.runWith(runtimeOpts).https.onRequest((req, res) => {

@@ -47,7 +47,9 @@ export default {
       this.$binding("dayly_total_time", firestore.collection('dayly_total_time'))
       .then((dayly_total_time) => {
         dayly_total_time.forEach(total => {
-          let date = total['.key']
+          // let date = total['.key']
+          let date = this.$moment(total['.key']).format('YYYY-M')
+
           let count_list = total.total_count
           this.data.forEach(item => {item[date] = 0})
 
