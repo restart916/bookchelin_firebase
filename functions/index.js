@@ -14,6 +14,7 @@ const cors = require('cors')({
 const admin = require('firebase-admin');
 admin.initializeApp();
 
+const axios = require('axios').default;
 // admin.initializeApp({
 //   credential: admin.credential.applicationDefault()
 // });
@@ -407,10 +408,67 @@ const runtimeOpts = {
   memory: '1GB'
 }
 
+loadImage = async (title, image_url) => {
+  if (!image_url) return
+
+  try {
+    let response = await axios.get(image_url)
+
+    if (response.status == 200) {
+      if (response.headers['content-length'] > 700000) {
+        console.log(title, image_url, response.headers['content-length']);
+      }
+
+    } else {
+      console.log("load error :", title, image_url);
+    }
+  } catch (error) {
+    console.log("load error :", title, image_url);
+    console.log(error);
+  }
+};
+
+checkImageSize = async() => {
+
+  // console.log('start books')
+  // const book_datas = await db.collection('books').get();
+  // for (let book_data of book_datas.docs) {
+  //   let title = book_data.data()['title']
+  //   let image_url = book_data.data()['image_url']
+  //   await loadImage(title, image_url)
+  // }
+
+  console.log('start main_books')
+  const main_books = await db.collection('main_books').get();
+  for (let main_book of main_books.docs) {
+    let title = main_book.data()['book_id']
+    let image_url = main_book.data()['firestore_url']
+    await loadImage(title, image_url)
+  }
+
+  console.log('start link_select')
+  const link_selects = await db.collection('link_select').get();
+  for (let link_select of link_selects.docs) {
+    let title = link_select.data()['title']
+    let image_url = link_select.data()['image_url']
+    await loadImage(title, image_url)
+  }
+
+  console.log('start banners')
+  const banners = await db.collection('banners').get();
+  for (let banner of banners.docs) {
+    let title = banner.data()['link_url']
+    let image_url = banner.data()['firestore_url']
+    await loadImage(title, image_url)
+  }
+}
+
 exports.test = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
   return cors(req, res, async () => {
 
-    await updateEventSummary();   // 출판사 통계 데이터
+    // await updateEventSummary();   // 출판사 통계 데이터
+
+    await checkImageSize();
 
     res.status(200).send('successful');
   });
