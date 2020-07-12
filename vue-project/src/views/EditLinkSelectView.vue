@@ -60,7 +60,6 @@
                class="Row">
             <div class='notification Column' :class="{active: !link_select.hidden}">
               <div>
-                <h2 class="longLink">{{ link_select.link_url }}</h2>
                 <h1>{{ link_select.title }}</h1>
                 <h2>{{ click_count(link_select['.key']) }}</h2>
                 <img :src='link_select.image_url' style="height: 80px"/>
