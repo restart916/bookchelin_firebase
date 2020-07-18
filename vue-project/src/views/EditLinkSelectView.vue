@@ -62,6 +62,7 @@
               <div>
                 <h1>{{ link_select.title }}</h1>
                 <h2>{{ click_count(link_select['.key']) }}</h2>
+                <h2>{{ datetime_string(link_select.timestamp) }}</h2>
                 <img :src='link_select.image_url' style="height: 80px"/>
               </div>
               <div class='button' @click="selectLinkSelect(link_select['.key'])">수정하기</div>
@@ -199,6 +200,10 @@ export default {
         console.error('Error removing document: ', error)
         alert('삭제 실패')
       })
+    },
+    datetime_string (timestamp) {
+      // console.log(timestamp)
+      return this.$moment.unix(timestamp).format('YYYY-MM-DD HH:mm:ss')
     },
     click_count(key) {
       // for (let link_select of this.link_selects) {
