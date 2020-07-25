@@ -31,49 +31,48 @@ export default {
   components: {
     Header
   },
-  mounted () {
-    this.$binding("books", firestore.collection('books').orderBy('description', 'desc'))
-    .then((books) => {
-      // console.log(books)
+  async mounted () {
+    let books = await firestore.collection('books').orderBy('order', 'desc').get()
 
-      this.data = []
-      for (let book of books) {
-        // console.log(book)
-        this.data.push({
-          bookTitle: book.title, bookId: book['.key'], count: 0
-        })
+    this.data = []
+    for (let book of books.docs) {
+      // console.log(book)
+      this.data.push({
+        bookTitle: book.data()['title'], bookId: book.id, count: 0
+      })
+    }
+
+    let daily_total_time = await firestore.collection('dayly_total_time').get()
+    daily_total_time.docs.forEach(total => {
+      // let date = total.id
+      let date = this.$moment(total.id).format('YYYY-M')
+
+      let count_list = total.data()['total_count']
+      this.data.forEach(item => {
+        if (date in item) {
+
+        } else {
+          item[date] = 0
+        }
+      })
+
+      if (!(this.date_list.includes(date))) {
+        this.date_list.push(date)
       }
 
-      this.$binding("dayly_total_time", firestore.collection('dayly_total_time'))
-      .then((dayly_total_time) => {
-        dayly_total_time.forEach(total => {
-          // let date = total['.key']
-          let date = this.$moment(total['.key']).format('YYYY-M')
+      for (let key in count_list) {
+        let data_info = this.data.find(item => item.bookId == key)
 
-          let count_list = total.total_count
-          this.data.forEach(item => {item[date] = 0})
+        if (data_info) {
+          data_info[date] = count_list[key]
+          data_info['count'] += count_list[key]
+        } else {
 
-          if (!(this.date_list.includes(date))) {
-            this.date_list.push(date)
-          }
-
-          for (let key in count_list) {
-
-            let data_info = this.data.find(item => item.bookId == key)
-            // console.log(key, data_info)
-            if (data_info) {
-              data_info[date] = count_list[key]
-              data_info['count'] += count_list[key]
-            }
-          }
-
-        })
-
-        console.log(this.date_list)
-        // console.log(this.data)
-
-      })
+        }
+      }
     })
+
+    // console.log(this.date_list)
   },
   data () {
     return {
