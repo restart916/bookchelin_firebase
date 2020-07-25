@@ -36,7 +36,10 @@ export default {
 
     this.data = []
     for (let book of books.docs) {
-      // console.log(book)
+      // if (book.data()['title'].includes('창업, 오늘 안하면 내일도 못한다') == false) {
+      //   continue
+      // }
+
       this.data.push({
         bookTitle: book.data()['title'], bookId: book.id, count: 0
       })
@@ -64,7 +67,7 @@ export default {
         let data_info = this.data.find(item => item.bookId == key)
 
         if (data_info) {
-          data_info[date] = count_list[key]
+          data_info[date] += count_list[key]
           data_info['count'] += count_list[key]
         } else {
 
