@@ -46,7 +46,7 @@
     <section class='section'>
       <div class='container'>
         <div class='columns' v-for='mainBook in mainBooks' :key="mainBook['.key']">
-          <div class='notification'>
+          <div class='notification' :class="{active: !mainBook.hidden}">
             <div>
               <h1>{{ mainBook.book_id }}</h1>
               <img :src='mainBook.firestore_url' style="height: 80px"/>
@@ -209,5 +209,7 @@ export default {
 
 <!-- Add 'scoped' attribute to limit CSS to this component only -->
 <style scoped>
-
+.active {
+  background-color: #5FDBA7;
+}
 </style>
