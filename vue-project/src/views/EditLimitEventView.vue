@@ -49,13 +49,20 @@
     <section class='section'>
       <div class='container'>
         <div class='columns' v-for='limitEvent in limitEvents' :key="limitEvent['.key']">
-          <div class='notification'>
+          <div class='notification' :class="{active: limitEvent.is_active}">
             <div>
               <h1>{{ limitEvent.book_id }}</h1>
               <h1>{{ bookName(limitEvent.book_id) }}</h1>
+              <h1 :class="{warning: history_count(limitEvent) > 3000}">{{ history_count(limitEvent) }}</h1>
             </div>
             <div class='button' @click="selectBanner(limitEvent['.key'])">수정하기</div>
             <div class='button' @click="deleteBanner(limitEvent['.key'])">삭제</div>
+            <div v-if="limitEvent.is_active == false">
+              <div class='button' @click="showEvent(limitEvent['.key'])">활성화</div>
+            </div>
+            <div v-else>
+              <div class='button' @click="hideEvent(limitEvent['.key'])">비활성화</div>
+            </div>
           </div>
         </div>
       </div>
@@ -75,7 +82,7 @@ export default {
   firestore () {
     return {
       books: firestore.collection('books'),
-      limitEvents: firestore.collection('limit_event'),
+      limitEvents: firestore.collection('limit_event').orderBy('is_active', 'desc'),
     }
   },
   mounted () {
@@ -97,6 +104,13 @@ export default {
     }
   },
   methods: {
+    history_count(limitEvent) {
+      let count = 0;
+      for (let item of limitEvent.read_history) {
+        count += item.logs.length;
+      }
+      return count
+    },
     bookName(bookId) {
       for (let book of this.books) {
         if (book['.key'] === bookId) {
@@ -113,7 +127,7 @@ export default {
       this.time_event_user_count = 0
       this.create_time = ''
     },
-    addBanner () {
+    async addBanner () {
       if (this.limitEvent_id) {
         let data = {
           book_id: this.book_id,
@@ -123,14 +137,16 @@ export default {
           create_time: this.create_time
         }
 
-        firestore.collection('limit_event').doc(this.limitEvent_id).update(data).then((docRef) => {
-          console.log('update limitEvent without file')
-          alert('수정 성공')
-          this.clearInput()
-        }).catch((error) => {
-          console.error('Error adding document: ', error)
+        try {
+          await firestore.collection('limit_event').doc(this.limitEvent_id).update(data)
+        } catch (e) {
+          console.error('Error adding document: ', e)
           alert('수정 실패')
-        })
+          return
+        }
+        console.log('update limitEvent without file')
+        alert('수정 성공')
+        this.clearInput()
 
       } else {
         let newDocument = {
@@ -151,6 +167,24 @@ export default {
         })
       }
     },
+    async hideEvent(key) {
+      await this.updateHidden(key, false)
+    },
+    async showEvent(key) {
+      await this.updateHidden(key, true)
+    },
+    async updateHidden(key, is_active) {
+      try {
+        await firestore.collection('limit_event').doc(key).update({
+          is_active: is_active
+        })
+      } catch (e) {
+        console.error('Error : ', error)
+        alert('수정 실패')
+        return
+      }
+      alert('수정 성공')
+    },
     selectBanner (key) {
       for (let limitEvent of this.limitEvents) {
         if (limitEvent['.key'] == key) {
@@ -160,7 +194,7 @@ export default {
           this.limit_seconds = limitEvent['limit_seconds']
           this.is_active = limitEvent['is_active']
           this.time_event_user_count = limitEvent['time_event_user_count'] || 0
-          this.create_time = timeEvent['create_time']
+          this.create_time = limitEvent['create_time']
         }
       }
     },
@@ -179,5 +213,10 @@ export default {
 
 <!-- Add 'scoped' attribute to limit CSS to this component only -->
 <style scoped>
-
+.active {
+  background-color: #5FDBA7;
+}
+.warning {
+  background-color: red;
+}
 </style>
