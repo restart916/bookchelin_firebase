@@ -474,7 +474,10 @@ exports.test = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
   });
 });
 
-exports.get_limit_events = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
+exports.get_limit_events = functions.runWith({
+  timeoutSeconds: 10,
+  memory: '512MB'
+}).https.onRequest((req, res) => {
   return cors(req, res, async () => {
 
     let result = []
