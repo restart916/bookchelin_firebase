@@ -513,6 +513,44 @@ exports.get_limit_events = functions.runWith({
 });
 
 
+exports.get_limit_events_asia = functions.runWith({
+  timeoutSeconds: 10,
+  memory: '512MB'
+}).region('asia-northeast1').https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+
+    let result = []
+    const limitEvents = await db.collection('limit_event').where('is_active', '==', true).get();
+    for (let limitEvent of limitEvents.docs) {
+      let read_history = limitEvent.data()['read_history']
+      let total_time = limitEvent.data()['limit_seconds']
+      let book_id = limitEvent.data()['book_id']
+      let time_event_user_count = limitEvent.data()['time_event_user_count']
+      let read_time = 0
+
+      if (req.query.user_id) {
+        for (let history of read_history) {
+          if (history.user_uid === req.query.user_id) {
+            read_time = history.total_time
+            break
+          }
+        }
+      }
+
+      result.push({
+        id: limitEvent.id,
+        book_id: book_id,
+        read_count: read_history.length + time_event_user_count,
+        total_time: total_time,
+        remain_time: total_time - read_time,
+        user_id: req.query.user_id,
+      })
+    }
+
+    return res.status(200).send(result);
+  });
+});
+
 exports.daily_job = functions.runWith(runtimeOpts)
   .pubsub
   .topic('daily-tick')
