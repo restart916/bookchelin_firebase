@@ -22,8 +22,9 @@
       </div>
       <div>
         <div>book id</div>
-        <div v-for="(book_id, index) in books">
+        <div v-for="(book_id, index) in books" class="box">
           <div>{{ book_id }}</div>
+          <div>{{ getBookName(book_id) }}</div>
           <div>
             <div class='button' @click='removeBook(index)'>x</div>
           </div>
@@ -44,8 +45,8 @@
         <div class='columns' v-for='suggest in suggest_groups' :key="suggest['.key']">
           <div class='notification'>
             <div>
-              <h1>{{ suggest.link_url }}</h1>
-              <img :src='suggest.firestore_url' style="height: 80px"/>
+              <h1>{{ suggest.title }}</h1>
+              <h1>count: {{ suggest.books.length }}</h1>
             </div>
             <div class='button' @click="selectSuggest(suggest['.key'])">수정하기</div>
             <div class='button' @click="deleteSuggest(suggest['.key'])">삭제</div>
@@ -67,6 +68,7 @@ export default {
   },
   firestore () {
     return {
+      book_datas: firestore.collection('books'),
       suggest_groups: firestore.collection('suggest_group').orderBy('order', 'asc'),
     }
   },
@@ -94,6 +96,14 @@ export default {
       this.books = []
       this.order = 0
       this.book_id = ''
+    },
+    getBookName (book_id) {
+      let book = this.book_datas.find(d => d['.key'] == book_id);
+      if (book) {
+        return book.title;
+      }
+
+      return '';
     },
     addBook () {
       this.books.push(this.book_id);
@@ -162,5 +172,8 @@ export default {
 
 <!-- Add 'scoped' attribute to limit CSS to this component only -->
 <style scoped>
-
+.box {
+  width: 320px;
+  padding: 2px;
+}
 </style>
