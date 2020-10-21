@@ -117,8 +117,8 @@ export default {
       if (this.timeEvent_id) {
         let data = {
           book_id: this.book_id,
-          event_minute: this.event_minute,
-          remain_time: this.remain_time,
+          event_minute: Number(this.event_minute),
+          remain_time: Number(this.remain_time),
           is_active: this.is_active,
           create_time: this.create_time
         }
@@ -135,8 +135,8 @@ export default {
       } else {
         let newDocument = {
           book_id: this.book_id,
-          event_minute: this.event_minute,
-          remain_time: this.remain_time,
+          event_minute: Number(this.event_minute),
+          remain_time: Number(this.remain_time),
           is_active: this.is_active,
           create_time: this.create_time,
           read_history: []
