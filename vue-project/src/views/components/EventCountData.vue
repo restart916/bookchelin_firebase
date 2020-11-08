@@ -20,7 +20,7 @@
       </thead>
       <tbody>
         <tr v-for="(data, key) in datas" :key="key">
-          <td v-if='hide_detail != "1"'>{{ key }}</td>
+          <td v-if='hide_detail != "1"'>{{ data['event_id'].join(', ') }}</td>
           <td v-if='hide_detail != "1"'>{{ data['book_id'] }}</td>
           <td>{{ data['create_time'] }}</td>
           <td>{{ data['book_name'] }}</td>

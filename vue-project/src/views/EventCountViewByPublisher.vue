@@ -86,7 +86,7 @@ export default {
   },
   computed: {
     showTimeData() {
-        console.log(this.time_datas.length)
+        // console.log(this.time_datas.length)
         return !this.is_loading && Object.keys(this.time_datas).length
     }
   },
@@ -162,28 +162,37 @@ export default {
           continue
         }
 
-        if (key in mainData) {
+        let bookId = data['book_id'];
+        let findData = _.find(mainData, (v) => v['book_id'] == bookId);
+
+        if (findData) {
+          if (findData['event_id'].includes(key) === false) {
+            findData['event_id'].push(key)
+          }
+
           // show recent data
-          mainData[key]['total_read_time'] = data['total_read_time'];
-          mainData[key]['avg_user_read_time'] = data['avg_user_read_time'];
-          mainData[key]['average_review'] = data['average_review'];
-          mainData[key]['review_count'] = data['review_count'];
+          findData['total_read_time'] = data['total_read_time'];
+          findData['avg_user_read_time'] = data['avg_user_read_time'];
+          findData['average_review'] = data['average_review'];
+          findData['review_count'] = data['review_count'];
 
-          mainData[key]['create_time'] = mainData[key]['create_time'] || data['create_time'] ;
+          findData['create_time'] = findData['create_time'] || data['create_time'] ;
 
-          mainData[key]['click_buy_book_count'] += data['click_buy_book_count'];
-          mainData[key]['click_share_book_count'] += data['click_share_book_count'];
-          mainData[key]['show_detail_count'] += data['show_detail_count'];
-          mainData[key]['show_detail_user_count'] += data['show_detail_user_count'];
-          mainData[key]['show_new_main_books'] += data['show_new_main_books'];
-          mainData[key]['show_new_main_user_count'] += data['show_new_main_user_count'];
-          mainData[key]['show_reader_count'] += data['show_reader_count'];
-          mainData[key]['show_reader_user_count'] += data['show_reader_user_count'];
+          findData['click_buy_book_count'] += data['click_buy_book_count'];
+          findData['click_share_book_count'] += data['click_share_book_count'];
+          findData['show_detail_count'] += data['show_detail_count'];
+          findData['show_detail_user_count'] += data['show_detail_user_count'];
+          findData['show_new_main_books'] += data['show_new_main_books'];
+          findData['show_new_main_user_count'] += data['show_new_main_user_count'];
+          findData['show_reader_count'] += data['show_reader_count'];
+          findData['show_reader_user_count'] += data['show_reader_user_count'];
         } else {
-          mainData[key] = {
+          mainData[bookId] = {
+            'event_id': [key],
+            'book_id': data['book_id'],
+
             'average_review': data['average_review'],
             'avg_user_read_time': data['avg_user_read_time'],
-            'book_id': data['book_id'],
             'create_time': data['create_time'],
             'book_name': data['book_name'],
             'click_buy_book_count': data['click_buy_book_count'],

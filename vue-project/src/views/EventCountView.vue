@@ -22,6 +22,7 @@ import { firestore, firestorage } from '../main'
 import Header from './components/Header'
 import EventCountData from './components/EventCountData'
 import Datepicker from 'vuejs-datepicker'
+import _ from 'lodash';
 
 export default {
   name: 'EventCountView',
@@ -67,13 +68,13 @@ export default {
       let limit_datas = {};
 
       while(start < end){
-        console.log(start.format('YYYY-MM-DD'))
+        // console.log(start.format('YYYY-MM-DD'))
 
         const dayly_event_counts = await firestore.collection('dayly_event_count')
         .doc(start.format('YYYY-MM-DD'))
         .get()
 
-        console.log(dayly_event_counts.data());
+        // console.log(dayly_event_counts.data());
         if (!dayly_event_counts.data()) {
           start = this.$moment(start).add(1, 'days')
           continue;
@@ -89,28 +90,37 @@ export default {
       for (let key in datas) {
         const data = datas[key]
 
-        if (key in mainData) {
+        let bookId = data['book_id'];
+        let findData = _.find(mainData, (v) => v['book_id'] == bookId);
+
+        if (findData) {
+          if (findData['event_id'].includes(key) === false) {
+            findData['event_id'].push(key)
+          }
+
           // show recent data
-          mainData[key]['total_read_time'] = data['total_read_time'];
-          mainData[key]['avg_user_read_time'] = data['avg_user_read_time'];
-          mainData[key]['average_review'] = data['average_review'];
-          mainData[key]['review_count'] = data['review_count'];
+          findData['total_read_time'] = data['total_read_time'];
+          findData['avg_user_read_time'] = data['avg_user_read_time'];
+          findData['average_review'] = data['average_review'];
+          findData['review_count'] = data['review_count'];
 
-          mainData[key]['create_time'] = mainData[key]['create_time'] || data['create_time'] ;
+          findData['create_time'] = findData['create_time'] || data['create_time'] ;
 
-          mainData[key]['click_buy_book_count'] += data['click_buy_book_count'];
-          mainData[key]['click_share_book_count'] += data['click_share_book_count'];
-          mainData[key]['show_detail_count'] += data['show_detail_count'];
-          mainData[key]['show_detail_user_count'] += data['show_detail_user_count'];
-          mainData[key]['show_new_main_books'] += data['show_new_main_books'];
-          mainData[key]['show_new_main_user_count'] += data['show_new_main_user_count'];
-          mainData[key]['show_reader_count'] += data['show_reader_count'];
-          mainData[key]['show_reader_user_count'] += data['show_reader_user_count'];
+          findData['click_buy_book_count'] += data['click_buy_book_count'];
+          findData['click_share_book_count'] += data['click_share_book_count'];
+          findData['show_detail_count'] += data['show_detail_count'];
+          findData['show_detail_user_count'] += data['show_detail_user_count'];
+          findData['show_new_main_books'] += data['show_new_main_books'];
+          findData['show_new_main_user_count'] += data['show_new_main_user_count'];
+          findData['show_reader_count'] += data['show_reader_count'];
+          findData['show_reader_user_count'] += data['show_reader_user_count'];
         } else {
-          mainData[key] = {
+          mainData[bookId] = {
+            'event_id': [key],
+            'book_id': data['book_id'],
+
             'average_review': data['average_review'],
             'avg_user_read_time': data['avg_user_read_time'],
-            'book_id': data['book_id'],
             'create_time': data['create_time'],
             'book_name': data['book_name'],
             'click_buy_book_count': data['click_buy_book_count'],
