@@ -54,6 +54,7 @@
               <h1>{{ limitEvent.book_id }}</h1>
               <h1>{{ bookName(limitEvent.book_id) }}</h1>
               <h1 :class="{warning: history_count(limitEvent) > 3000}">{{ history_count(limitEvent) }}</h1>
+              <h1>{{ history_user_count(limitEvent) }} </h1>
             </div>
             <div class='button' @click="selectBanner(limitEvent['.key'])">수정하기</div>
             <div class='button' @click="deleteBanner(limitEvent['.key'])">삭제</div>
@@ -73,6 +74,7 @@
 <script>
 import { firestore, firestorage, fireauth } from '../main'
 import Header from './components/Header'
+import _ from 'lodash';
 
 export default {
   name: 'EditLimitEventView',
@@ -110,6 +112,11 @@ export default {
         count += item.logs.length;
       }
       return count
+    },
+    history_user_count(limitEvent) {
+      let current_count = _.map(limitEvent.read_history, 'user_id').length || 0;
+      let sum = current_count + limitEvent.time_event_user_count;
+      return `${limitEvent.time_event_user_count} + ${current_count} = ${sum}`;
     },
     bookName(bookId) {
       for (let book of this.books) {
