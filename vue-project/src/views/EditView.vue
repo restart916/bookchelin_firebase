@@ -118,6 +118,14 @@
             <h1 class='title Column'>{{ book.title }}</h1>
             <div class='button Column' @click="selectBook(book['.key'])">수정하기</div>
             <div class='button Column' @click="deleteBook(book['.key'])">삭제</div>
+            <select v-model="book.category" @change="onChangeBookCategory(book)">
+              <option disabled value="0">선택해주세요</option>
+              <option v-for="category in book_category" :key="category.key"
+                :value="category.id">
+                {{ category.name }}
+              </option>
+            </select>
+
           </div>
         </div>
       </div>
@@ -172,6 +180,17 @@ export default {
     onChangePdfFile(event) {
       console.log('changeFile: ', event.target.files)
       this.uploadPdfFile = event.target.files[0]
+    },
+    onChangeBookCategory(book) {
+      console.log('onChangeBookCategory: ', book, book.category)
+
+      firestore.collection('books').doc(book['.key']).update({category: book.category}).then((docRef) => {
+        alert(`${book.title} 수정 성공`)
+        this.clearInput()
+      }).catch((error) => {
+        alert(`${book.title} 수정 실패`)
+      })
+
     },
     clearInput() {
       this.book_id = ''
