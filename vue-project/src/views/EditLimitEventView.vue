@@ -114,7 +114,9 @@ export default {
       return count
     },
     history_user_count(limitEvent) {
-      let current_count = _.map(limitEvent.read_history, 'user_id').length || 0;
+      let user_uids = _.map(limitEvent.read_history, 'user_uid')
+      user_uids = _.uniq(user_uids)
+      let current_count = user_uids.length || 0;
       let sum = current_count + limitEvent.time_event_user_count;
       return `${limitEvent.time_event_user_count} + ${current_count} = ${sum}`;
     },
