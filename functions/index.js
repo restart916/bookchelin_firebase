@@ -223,7 +223,7 @@ updateEventSummaryByDay = async (start_moment) => {
 
 updateEventSummary = async () => {
   const results = [];
-  for (let i = 0; i < 2; i++){
+  for (let i = 0; i < 3; i++){
     let start_moment = moment().add(-(i), 'days');
     console.log('----------------', i, start_moment)
     results.push(updateEventSummaryByDay(start_moment));
@@ -404,7 +404,7 @@ exports.add_time_read_time_logs = functions.firestore
 });
 
 const runtimeOpts = {
-  timeoutSeconds: 300,
+  timeoutSeconds: 540,
   memory: '1GB'
 }
 
@@ -466,9 +466,9 @@ checkImageSize = async() => {
 exports.test = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
   return cors(req, res, async () => {
 
-    // await updateEventSummary();   // 출판사 통계 데이터
+    await updateEventSummary();   // 출판사 통계 데이터
 
-    await checkImageSize();
+    // await checkImageSize();
 
     res.status(200).send('successful');
   });
@@ -559,7 +559,7 @@ exports.daily_job = functions.runWith(runtimeOpts)
 
   await updateReadLog();    // 하루에 그 책 몇번 읽었는지
   await updateReadTimeLog();    // 하루에 그 책 몇시간 읽었는지 (유저당으로도)
-  await updateSummary();    // 유저 통계용 데이터 삽입
+  // await updateSummary();    // 유저 통계용 데이터 삽입
   await updateEventSummary();   // 출판사 통계 데이터
 
   return true;
