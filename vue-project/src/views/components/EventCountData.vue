@@ -10,7 +10,8 @@
           <th>도서명</th>
           <th>노출 인원 수(노출 수)</th>
           <th>상세페이지 인원 수(클릭 수)</th>
-          <th>바로보기 누적 인원 수(클릭 수)</th>
+          <th>바로보기 인원 수(클릭 수)</th>
+          <!-- <th>바로보기 누적 인원 수(클릭 수)</th> -->
           <th>총 구독 시간</th>
           <th>1인당 평균 구독 시간</th>
           <th>공유버튼 클릭수</th>
@@ -27,6 +28,7 @@
           <td>{{ data['show_new_main_user_count'] }} ({{ data['show_new_main_books'] }})</td>
           <td>{{ data['show_detail_user_count'] }} ({{ data['show_detail_count'] }})</td>
           <td>{{ data['show_reader_user_count'] }} ({{ data['show_reader_count'] }})</td>
+          <!-- <td>{{ data['show_reader_user_count'] }} ({{ data['show_reader_count'] }})</td> -->
           <td>{{ getTimeString(data['total_read_time']) }}</td>
           <td>{{ getTimeString(data['avg_user_read_time']) }}</td>
           <td>{{ data['click_share_book_count'] }}</td>

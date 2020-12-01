@@ -154,41 +154,41 @@ export default {
       this.time_datas = time_datas
       this.limit_datas = limit_datas
 
-      const limitEvents = await firestore.collection('limit_event').get();
-      for (let limitEvent of limitEvents.docs) {
-        const read_history = limitEvent.data()['read_history']
-        const time_event_user_count = limitEvent.data()['time_event_user_count']
-        const user_count = read_history.length + time_event_user_count
-        const read_count = _.sum(read_history.map((history) => history.logs.length))
-
-        let book_id = limitEvent.data()['book_id']
-
-        let data = _.find(this.limit_datas, (v) => v['book_id'] == book_id);
-        if (data) {
-          data['show_reader_user_count'] = Math.max(user_count, data['show_reader_user_count'])
-          data['show_reader_count'] += read_count
-
-          console.log('limitEvent', data['show_reader_user_count'], data['show_reader_count'])
-        }
-      }
-
-      const timeEvents = await firestore.collection('time_event').get();
-      for (let timeEvent of timeEvents.docs) {
-        const read_history = timeEvent.data()['read_history']
-        // const time_event_user_count = timeEvent.data()['time_event_user_count']
-        const user_count = read_history.length // + time_event_user_count
-        const read_count = _.sum(read_history.map((history) => history.datetime.length))
-
-        let book_id = timeEvent.data()['book_id']
-
-        let data = _.find(this.time_datas, (v) => v['book_id'] == book_id);
-        if (data) {
-          data['show_reader_user_count'] = Math.max(user_count, data['show_reader_user_count'])
-          data['show_reader_count'] += read_count
-
-          console.log('timeEvent', data['show_reader_user_count'], data['show_reader_count'])
-        }
-      }
+      // const limitEvents = await firestore.collection('limit_event').get();
+      // for (let limitEvent of limitEvents.docs) {
+      //   const read_history = limitEvent.data()['read_history']
+      //   const time_event_user_count = limitEvent.data()['time_event_user_count']
+      //   const user_count = read_history.length + time_event_user_count
+      //   const read_count = _.sum(read_history.map((history) => history.logs.length))
+      //
+      //   let book_id = limitEvent.data()['book_id']
+      //
+      //   let data = _.find(this.limit_datas, (v) => v['book_id'] == book_id);
+      //   if (data) {
+      //     data['show_reader_user_count'] = Math.max(user_count, data['show_reader_user_count'])
+      //     data['show_reader_count'] += read_count
+      //
+      //     console.log('limitEvent', data['show_reader_user_count'], data['show_reader_count'])
+      //   }
+      // }
+      //
+      // const timeEvents = await firestore.collection('time_event').get();
+      // for (let timeEvent of timeEvents.docs) {
+      //   const read_history = timeEvent.data()['read_history']
+      //   // const time_event_user_count = timeEvent.data()['time_event_user_count']
+      //   const user_count = read_history.length // + time_event_user_count
+      //   const read_count = _.sum(read_history.map((history) => history.datetime.length))
+      //
+      //   let book_id = timeEvent.data()['book_id']
+      //
+      //   let data = _.find(this.time_datas, (v) => v['book_id'] == book_id);
+      //   if (data) {
+      //     data['show_reader_user_count'] = Math.max(user_count, data['show_reader_user_count'])
+      //     data['show_reader_count'] += read_count
+      //
+      //     console.log('timeEvent', data['show_reader_user_count'], data['show_reader_count'])
+      //   }
+      // }
     },
     updateData(book_ids, mainData, datas) {
       for (let key in datas) {
@@ -220,8 +220,8 @@ export default {
           findData['show_detail_user_count'] += data['show_detail_user_count'];
           findData['show_new_main_books'] += data['show_new_main_books'];
           findData['show_new_main_user_count'] += data['show_new_main_user_count'];
-          // findData['show_reader_count'] += data['show_reader_count'];
-          // findData['show_reader_user_count'] += data['show_reader_user_count'];
+          findData['show_reader_count'] += data['show_reader_count'];
+          findData['show_reader_user_count'] += data['show_reader_user_count'];
         } else {
           mainData[bookId] = {
             'event_id': [key],
@@ -238,10 +238,10 @@ export default {
             'show_detail_user_count': data['show_detail_user_count'],
             'show_new_main_books': data['show_new_main_books'],
             'show_new_main_user_count': data['show_new_main_user_count'],
-            // 'show_reader_count': data['show_reader_count'],
-            // 'show_reader_user_count': data['show_reader_user_count'],
-            'show_reader_count': 0,
-            'show_reader_user_count': 0,
+            'show_reader_count': data['show_reader_count'],
+            'show_reader_user_count': data['show_reader_user_count'],
+            // 'show_reader_count': 0,
+            // 'show_reader_user_count': 0,
             'total_read_time': data['total_read_time'],
           };
         }
