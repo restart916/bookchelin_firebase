@@ -12,6 +12,7 @@ import EditTimeEventView from './views/EditTimeEventView';
 import EditLimitEventView from './views/EditLimitEventView';
 import EditLinkSelectView from './views/EditLinkSelectView';
 import EditReviewView from './views/EditReviewView';
+import BookExport from './views/BookExport';
 
 import PublisherLogin from './views/PublisherLogin';
 import EventCountViewByPublisher from './views/EventCountViewByPublisher';
@@ -91,6 +92,11 @@ export default new Router({
       path: '/publisher/detail/:publisher_id',
       name: 'EventCountViewByPublisher',
       component: EventCountViewByPublisher
-    }
+    },
+    {
+      path: '/export',
+      name: 'BookExport',
+      component: BookExport
+    },
   ]
 });
