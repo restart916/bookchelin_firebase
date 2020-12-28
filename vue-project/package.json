@@ -9,6 +9,7 @@
     "deploy": "npm run build && cd .. && firebase deploy && cd vue-project"
   },
   "dependencies": {
+    "epubjs": "^0.3.88",
     "firebase": "^5.11.1",
     "lodash": "^4.17.20",
     "moment": "^2.24.0",

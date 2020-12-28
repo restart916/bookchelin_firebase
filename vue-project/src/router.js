@@ -13,6 +13,7 @@ import EditLimitEventView from './views/EditLimitEventView';
 import EditLinkSelectView from './views/EditLinkSelectView';
 import EditReviewView from './views/EditReviewView';
 import BookExport from './views/BookExport';
+import EpubViewer from './views/EpubViewer';
 
 import PublisherLogin from './views/PublisherLogin';
 import EventCountViewByPublisher from './views/EventCountViewByPublisher';
@@ -97,6 +98,11 @@ export default new Router({
       path: '/export',
       name: 'BookExport',
       component: BookExport
+    },
+    {
+      path: '/epub-viewer/:book_id',
+      name: 'EpubViewer',
+      component: EpubViewer
     },
   ]
 });
