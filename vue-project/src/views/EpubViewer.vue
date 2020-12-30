@@ -14,8 +14,8 @@
       :addNew="addNew"
       :addMore="addMore"
       :hasMore="hasMore"
-      :lableUp="lableUp"
-      :lableDown="lableDown"
+      :propsLableUp="lableUp"
+      :propsLableDown="lableDown"
       ref="pulltorefresh"
       >
       <div v-if="loading == false">
@@ -108,22 +108,30 @@ export default {
     //   e.preventDefault();
     // }, false);
     this.rendition.on("touchstart", (e) => {
+      e.preventDefault();
       // console.log('rendition touchstart', e);
       this.$refs.pulltorefresh.touchStart(e);
     });
 
     this.rendition.on("touchmove", (e) => {
+      e.preventDefault();
       // console.log('rendition touchmove', e);
       this.$refs.pulltorefresh.touchMove(e);
     });
 
     this.rendition.on("touchend", (e) => {
+      e.preventDefault();
       // console.log('rendition touchend', e);
       this.$refs.pulltorefresh.touchEnd(e);
     });
 
     this.rendition.on("relocated", function(location){
-      console.log('relocated', location);
+      console.log('relocated', location, location.start.cfi);
+      window.scrollTo(0,0);
+
+      if (window.flutter_webview) {
+        window.flutter_webview.postMessage(`relocated:${location.start.cfi}`);
+      }
     });
 
     this.rendition.on("rendered", function(section){
@@ -131,7 +139,9 @@ export default {
       var nextSection = section.next();
       var prevSection = section.prev();
 
-      window.flutter_webview.postMessage(`rendered`);
+      // if (window.flutter_webview) {
+      //   window.flutter_webview.postMessage(`rendered`);
+      // }
 
       // if(nextSection) {
       //   let nextNav = this.epubBook.navigation.get(nextSection.href);
