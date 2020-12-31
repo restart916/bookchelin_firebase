@@ -7,7 +7,6 @@
       :top-config="topConfig"
       :bottom-config="bottomConfig"> -->
 
-
     <PullToRefresh
       :down="1"
       :up="1"
@@ -34,7 +33,10 @@
 
     <BottomBar>
       <div class="bottom-bar">
-        fdsfs
+        <button @click="fontSizeDown"> 가- </button>
+        <button @click="fontSizeUp"> 가+ </button>
+        <button @click="changeThmem('normal')"> 노말 </button>
+        <button @click="changeThmem('dark')"> 다크 </button>
       </div>
     </BottomBar>
 
@@ -106,17 +108,6 @@ export default {
       console.log('this.epubBook.loaded.navigation', toc);
     });
 
-    // var next = document.getElementById("next");
-    // next.addEventListener("click", function(e){
-    //   this.rendition.next();
-    //   e.preventDefault();
-    // }, false);
-    //
-    // var prev = document.getElementById("prev");
-    // prev.addEventListener("click", function(e){
-    //   this.rendition.prev();
-    //   e.preventDefault();
-    // }, false);
     this.rendition.on("touchstart", (e) => {
       e.preventDefault();
       // console.log('rendition touchstart', e);
@@ -180,6 +171,34 @@ export default {
       // }
     });
 
+    this.rendition.themes.register(
+      "normal",
+      {
+        "body": { "background-color": "inherit" },
+        "html": { "-webkit-filter": "inherit", "filter": "inherit" },
+        "img": {
+          "-webkit-filter": "inherit",
+          "filter": "inherit",
+          "max-width": "100% !important;",
+          "max-height": "100% !important;"
+        }
+      }
+    );
+
+    this.rendition.themes.register(
+      "dark",
+      {
+        "body": { "background-color": "#111111" },
+        "html": { "-webkit-filter": "invert(1) hue-rotate(180deg)", "filter": "invert(1) hue-rotate(180deg)" },
+        "img": {
+          "-webkit-filter": "invert(1) hue-rotate(180deg)",
+          "filter": "invert(1) hue-rotate(180deg)",
+          "max-width": "100% !important;",
+          "max-height": "100% !important;"
+        }
+      }
+    );
+
     this.message = `end`
   },
   data () {
@@ -201,6 +220,7 @@ export default {
         loading: '로딩중',
         complete: '로딩완료',
       },
+      fontSize: 100
     }
   },
   methods: {
@@ -238,6 +258,24 @@ export default {
     },
     hasMore() {
       return true;
+    },
+    fontSizeUp() {
+      this.fontSize += 10
+      this.updateFontSize()
+    },
+    fontSizeDown() {
+      this.fontSize -= 10
+      this.updateFontSize()
+    },
+    updateFontSize() {
+      if (this.rendition) {
+        this.rendition.themes.default({ "p": { "font-size": `${this.fontSize}% !important`}})
+        console.log(`this.rendition ${this.rendition.width}`);
+      }
+    },
+    changeThmem(theme) {
+      this.rendition.themes.select(theme);
+      this.rendition.start()
     }
   }
 }
