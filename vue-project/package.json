@@ -9,6 +9,7 @@
     "deploy": "npm run build && cd .. && firebase deploy && cd vue-project"
   },
   "dependencies": {
+    "@nagoos/vue-bottom-bar": "^1.0.1",
     "epubjs": "^0.3.88",
     "firebase": "^5.11.1",
     "lodash": "^4.17.20",

@@ -7,7 +7,6 @@ import VueBlu from 'vue-blu'
 import 'vue-blu/dist/css/vue-blu.min.css'
 import Firebase from 'firebase'
 import router from './router'
-// import { TableComponent, TableColumn } from 'vue-table-component';
 
 Vue.config.productionTip = false
 

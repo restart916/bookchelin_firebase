@@ -6,6 +6,8 @@
       :bottom-load-method="gotoNext"
       :top-config="topConfig"
       :bottom-config="bottomConfig"> -->
+
+
     <PullToRefresh
       :down="1"
       :up="1"
@@ -29,20 +31,28 @@
         <a id="next" href="#next" class="navlink"></a>
       </div> -->
     </PullToRefresh>
+
+    <BottomBar>
+      <div class="bottom-bar">
+        fdsfs
+      </div>
+    </BottomBar>
+
   </div>
 </template>
 
 <script>
 import { fireauth, firestore, firestorage } from '../main'
-// import PullTo from 'vue-pull-to'
 import PullToRefresh from 'pulltorefresh-vue';
 import ePub from 'epubjs'
+import BottomBar from "@nagoos/vue-bottom-bar";
+import "@nagoos/vue-bottom-bar/dist/vue-bottom-bar.css";
 
 export default {
   name: 'EpubViewer',
   components: {
-    // PullTo,
-    PullToRefresh
+    PullToRefresh,
+    BottomBar
   },
   async mounted () {
     let user = await fireauth.signInAnonymously();
@@ -234,11 +244,19 @@ export default {
 </script>
 
 <!-- Add 'scoped' attribute to limit CSS to this component only -->
-<style scoped>
+<style>
+html { height: 100%; overflow:auto; }
+body { height: 100%; }
+
 .nav-btn {
   margin: 20px 0px;
 }
 .viewer {
   margin-top: 50px;
+}
+
+.bottom-bar {
+  padding: 10px 0px;
+  background-color: lightcoral
 }
 </style>
