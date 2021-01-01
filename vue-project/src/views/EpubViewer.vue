@@ -324,8 +324,8 @@ export default {
         }
       );
 
-      this.updateSideMargin()
       this.updateFontSize()
+      this.updateSideMargin()
     }
   }
 }
