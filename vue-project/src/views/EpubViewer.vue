@@ -300,7 +300,8 @@ export default {
         "normal",
         {
           "body": { "background-color": "inherit" },
-          "html": { "-webkit-filter": "inherit", "filter": "inherit" },
+          "p": { "color": "inherit"},
+          // "html": { "-webkit-filter": "inherit", "filter": "inherit" },
           "img": {
             "-webkit-filter": "inherit",
             "filter": "inherit",
@@ -313,8 +314,9 @@ export default {
       this.rendition.themes.register(
         "dark",
         {
-          "body": { "background-color": "#111111" },
-          "html": { "-webkit-filter": "invert(1) hue-rotate(180deg)", "filter": "invert(1) hue-rotate(180deg)" },
+          "body": { "background-color": "#141414" },
+          "p": { "color": "#FFFFFF"},
+          // "html": { "-webkit-filter": "invert(1) hue-rotate(180deg)", "filter": "invert(1) hue-rotate(180deg)" },
           "img": {
             "-webkit-filter": "invert(1) hue-rotate(180deg)",
             "filter": "invert(1) hue-rotate(180deg)",
