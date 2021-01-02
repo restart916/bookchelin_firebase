@@ -10,6 +10,8 @@
             <div class="chapter" @click="clickChapter(chapter)">
               {{ chapter.label }}
             </div>
+            <div class="line">
+            </div>
           </div>
         </div>
       </div>
@@ -85,7 +87,7 @@ export default {
 }
 .close {
   background-color: rgb(0, 0, 0);
-  font-size: 42px;
+  font-size: 32px;
   border: 0px;
   text-shadow: none;
   position: fixed;
@@ -114,7 +116,19 @@ export default {
 }
 
 .chapter {
-  margin-top: 10px;
+  margin: 10px 0px;
   color: white;
+  text-align: left;
+  padding-left: 40px;
+  padding-right: 20px;
+
+  text-overflow: ellipsis;;
+  overflow: hidden;
+  width: 100%;
+  white-space: normal;
+}
+.line {
+  background-color: white;
+  height: 1px;
 }
 </style>

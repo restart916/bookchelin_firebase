@@ -12,14 +12,21 @@
       :propsLableDown="lableDown"
       ref="pulltorefresh"
       v-show="isShow"
+      class="root"
+      :class="theme"
       >
-      <div v-if="loading == false">
-        로딩 중입니다. - {{ message }}
+
+      <div class="loading" v-if="loading == false">
+        <!-- 로딩 중입니다. - {{ message }} -->
+        <div class="half-circle-spinner">
+          <div class="circle circle-1"></div>
+          <div class="circle circle-2"></div>
+        </div>
       </div>
       <!-- <div class="nav-btn">
         <a id="prev" href="#prev" class="navlink"></a>
       </div> -->
-      <div id="viewer"></div>
+      <div id="viewer" class="viewer"></div>
       <!-- <div class="nav-btn">
         <a id="next" href="#next" class="navlink"></a>
       </div> -->
@@ -68,6 +75,8 @@ export default {
     BottomBar
   },
   async mounted () {
+    this.$refs.pulltorefresh.hide()
+
     let user = await fireauth.signInAnonymously();
     console.log('fireauth', user)
 
@@ -145,6 +154,7 @@ export default {
       fontSize: 100,
       sideMargin: 20,
       cfi: undefined,
+      theme: 'normal'
     }
   },
   methods: {
@@ -215,6 +225,8 @@ export default {
       if (this.rendition) {
         this.rendition.themes.select(theme);
         this.rendition.start()
+
+        this.theme = theme;
       }
     },
     showTocModal() {
@@ -225,13 +237,6 @@ export default {
     },
     clickChapter(chapter) {
       console.log('clickChapter', chapter);
-      // let section = this.book.spine.get(chapter.href)
-      // if(section) {
-      //   currentSection = section;
-      //   section.render().then(html => {
-      //     $viewer.innerHTML = html;
-      //   })
-      // }
       this.rendition.display(chapter.href)
     },
     changeFlow(flow) {
@@ -281,9 +286,10 @@ export default {
         this.$refs.pulltorefresh.touchEnd(e);
       });
 
-      this.rendition.on("relocated", function(location){
+      this.rendition.on("relocated", (location) => {
         this.cfi = location.end.cfi;
         console.log('relocated', location, this.cfi);
+        // this.$refs.pulltorefresh.show()
 
         if (this.isShow) {
           window.scrollTo(0,0);
@@ -299,34 +305,8 @@ export default {
         var nextSection = section.next();
         var prevSection = section.prev();
 
-        // if (window.flutter_webview) {
-        //   window.flutter_webview.postMessage(`rendered`);
-        // }
-
         // if(nextSection) {
         //   let nextNav = this.epubBook.navigation.get(nextSection.href);
-        //   let nextLabel = "next";
-        //
-        //   if(nextNav) {
-        //     nextLabel = nextNav.label;
-        //   }
-        //
-        //   next.textContent = nextLabel + " »";
-        // } else {
-        //   next.textContent = "";
-        // }
-        //
-        // if(prevSection) {
-        //   let prevNav = this.epubBook.navigation.get(prevSection.href);
-        //   let prevLabel = "previous";
-        //
-        //   if(prevNav) {
-        //     prevLabel = prevNav.label;
-        //   }
-        //
-        //   prev.textContent = "« " + prevLabel;
-        // } else {
-        //   prev.textContent = "";
         // }
       });
 
@@ -334,8 +314,8 @@ export default {
         "normal",
         {
           "body": { "background-color": "inherit" },
-          "p": { "color": "inherit"},
-          // "html": { "-webkit-filter": "inherit", "filter": "inherit" },
+          // "*": { "color": "inherit", "font": "inherit"},
+          "html": { "-webkit-filter": "inherit", "filter": "inherit" },
           "img": {
             "-webkit-filter": "inherit",
             "filter": "inherit",
@@ -349,8 +329,8 @@ export default {
         "dark",
         {
           "body": { "background-color": "#141414" },
-          "p": { "color": "#FFFFFF"},
-          // "html": { "-webkit-filter": "invert(1) hue-rotate(180deg)", "filter": "invert(1) hue-rotate(180deg)" },
+          // "*": { "color": "#ffffff", "font": "1em 'KoPubWorld Batang_Pro Light'"},
+          "html": { "-webkit-filter": "invert(1) hue-rotate(180deg)", "filter": "invert(1) hue-rotate(180deg)" },
           "img": {
             "-webkit-filter": "invert(1) hue-rotate(180deg)",
             "filter": "invert(1) hue-rotate(180deg)",
@@ -376,11 +356,72 @@ body { height: 100%; }
   margin: 20px 0px;
 }
 .viewer {
-  margin-top: 50px;
+  padding-top: 90px;
+  padding-bottom: 270px;
+}
+
+.root.normal {
+  background-color: inherit;
+}
+
+.root.dark {
+  background-color: #141414;
 }
 
 .bottom-bar {
   padding: 10px 0px;
   background-color: lightcoral
+}
+
+
+.loading {
+  text-align: -webkit-center;
+  margin-top: 200px
+}
+
+
+@font-face {
+  font-family: "KoPubWorld Batang_Pro Light";
+  src: url('./../assets/fonts/KoPubWorld Batang_Pro Light.otf');
+}
+
+.half-circle-spinner, .half-circle-spinner * {
+  box-sizing: border-box;
+}
+
+.half-circle-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 100%;
+  position: relative;
+}
+
+.half-circle-spinner .circle {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 100%;
+  border: calc(30px / 10) solid transparent;
+}
+
+.half-circle-spinner .circle.circle-1 {
+  border-top-color: #ff1d5e;
+  animation: half-circle-spinner-animation 1s infinite;
+}
+
+.half-circle-spinner .circle.circle-2 {
+  border-bottom-color: #ff1d5e;
+  animation: half-circle-spinner-animation 1s infinite alternate;
+}
+
+@keyframes half-circle-spinner-animation {
+  0% {
+    transform: rotate(0deg);
+
+  }
+  100%{
+    transform: rotate(360deg);
+  }
 }
 </style>
