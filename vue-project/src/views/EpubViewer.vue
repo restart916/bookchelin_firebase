@@ -40,6 +40,8 @@
         <button @click="changeThmem('dark')"> 다크 </button>
         <button @click="marginDown"> 여백- </button>
         <button @click="marginUp"> 여백+ </button>
+        <!-- <button @click="changeFont('KoPubWorld Batang_Pro Medium')"> 기본체 </button> -->
+        <button @click="changeFont('KoPubWorld Batang_Pro Light')"> 바탕체 </button>
         <button @click="showTocModal"> 챕터 </button>
         <!-- <button @click="changeFlow('scrolled')"> 쭉 </button>
         <button @click="changeFlow('scrolled-doc')"> 챕터 </button> -->
@@ -229,6 +231,13 @@ export default {
         this.theme = theme;
       }
     },
+    changeFont(fontName) {
+      if (this.rendition) {
+        this.rendition.themes.default({ "p": { "font-family": `'${fontName}' !important`}})
+        // console.log(this.rendition);
+        // console.log(this.displayed);
+      }
+    },
     showTocModal() {
       this.showModal = true;
     },
@@ -383,6 +392,11 @@ body { height: 100%; }
 @font-face {
   font-family: "KoPubWorld Batang_Pro Light";
   src: url('./../assets/fonts/KoPubWorld Batang_Pro Light.otf');
+}
+
+@font-face {
+  font-family: "KoPubWorld Batang_Pro Medium";
+  src: url('./../assets/fonts/KoPubWorld Batang_Pro Medium.otf');
 }
 
 .half-circle-spinner, .half-circle-spinner * {
