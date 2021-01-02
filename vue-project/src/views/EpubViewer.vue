@@ -33,24 +33,38 @@
         <button @click="changeThmem('dark')"> 다크 </button>
         <button @click="marginDown"> 여백- </button>
         <button @click="marginUp"> 여백+ </button>
+        <button @click="showTocModal"> 챕터 </button>
         <!-- <button @click="changeFlow('scrolled')"> 쭉 </button>
         <button @click="changeFlow('scrolled-doc')"> 챕터 </button> -->
       </div>
     </BottomBar>
+
+    <div v-if="showModal">
+      <PopupModal :toc="toc"
+                  :closeBtn="true"
+                  @before-close="hideTocModal"
+                  @click-chapter="clickChapter">
+      </PopupModal>
+    </div>
+
+
   </div>
 </template>
 
 <script>
 import { fireauth, firestore, firestorage } from '../main'
+import PopupModal from './components/PopupModal'
 import PullToRefresh from 'pulltorefresh-vue';
 import ePub from 'epubjs'
 import BottomBar from "@nagoos/vue-bottom-bar";
 import "@nagoos/vue-bottom-bar/dist/vue-bottom-bar.css";
 
+
 export default {
   name: 'EpubViewer',
   components: {
     PullToRefresh,
+    PopupModal,
     BottomBar
   },
   async mounted () {
@@ -96,8 +110,9 @@ export default {
     // let rendition = this.epubBook.renderTo('viewer', { manager: "continuous", width: "100%", flow:"scrolled" });
 
     // Navigation loaded
-    this.epubBook.loaded.navigation.then(function(toc){
+    this.epubBook.loaded.navigation.then((toc) => {
       console.log('this.epubBook.loaded.navigation', toc);
+      this.toc = toc.toc
     });
 
     this.initRendition();
@@ -123,6 +138,8 @@ export default {
         complete: '로딩완료',
       },
 
+      showModal: false,
+      toc: [],
       isShow: true,
       renderTarget: 'viewer', // document.body
       fontSize: 100,
@@ -199,6 +216,23 @@ export default {
         this.rendition.themes.select(theme);
         this.rendition.start()
       }
+    },
+    showTocModal() {
+      this.showModal = true;
+    },
+    hideTocModal() {
+      this.showModal = false;
+    },
+    clickChapter(chapter) {
+      console.log('clickChapter', chapter);
+      // let section = this.book.spine.get(chapter.href)
+      // if(section) {
+      //   currentSection = section;
+      //   section.render().then(html => {
+      //     $viewer.innerHTML = html;
+      //   })
+      // }
+      this.rendition.display(chapter.href)
     },
     changeFlow(flow) {
       if (this.rendition) {
