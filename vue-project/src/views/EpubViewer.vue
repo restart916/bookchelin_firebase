@@ -110,6 +110,10 @@ export default {
     // cfi = "epubcfi(/6/18[ch01-text]!/4/14/1:136)"
     this.cfi = cfi;
 
+    this.fontSize = +this.$route.query.fontsize || this.fontSize;
+    this.sideMargin = +this.$route.query.margin || this.sideMargin;
+    this.theme = this.$route.query.theme || this.theme;
+
     console.log('mounted', book_id, cfi)
     this.message = `mounted ${book_id}, ${cfi}`
 
@@ -317,7 +321,7 @@ export default {
         this.$refs.pulltorefresh.touchMove(e);
 
         var container = document.querySelector("#viewer");
-        console.log(container.scrollTop, container.scrollHeight);
+        // console.log(container.scrollTop, container.scrollHeight);
         // container.scrollTop = container.scrollHeight;
         // console.log(this.rendition.location.start.cfi, this.rendition.location.end.cfi);
       });
@@ -349,6 +353,10 @@ export default {
         if (window.flutter_webview) {
           window.flutter_webview.postMessage(`relocated:${this.cfi}`);
         }
+
+        this.changeFont('KoPubWorld Batang_Pro Light')
+        this.updateFontSize()
+        this.updateSideMargin()
       });
 
       this.rendition.on("rendered", function(section){
@@ -391,9 +399,7 @@ export default {
         }
       );
 
-      this.changeFont('KoPubWorld Batang_Pro Light');
-      this.updateFontSize()
-      this.updateSideMargin()
+      this.changeThmem(this.theme)
     }
   }
 }
