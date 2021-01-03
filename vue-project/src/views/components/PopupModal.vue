@@ -2,16 +2,21 @@
   <div>
     <transition name="fade">
       <div class="overlay" v-if="modalVisible" @click.self="toggleModal(); beforeClose()">
-        <button class="close" v-if="closeBtn" @click.stop="toggleModal(); beforeClose()">
+        <!-- <button class="close" v-if="closeBtn" @click.stop="toggleModal(); beforeClose()">
           <i class="fa fa-close"></i>
-        </button>
+        </button> -->
         <div class="modal" v-if="modalVisible">
+          <div class="chapter chapter-padding">
+          </div>
+          <div class="line"></div>
           <div v-for="chapter in toc">
+
             <div class="chapter" @click="clickChapter(chapter)">
               {{ chapter.label }}
             </div>
-            <div class="line">
-            </div>
+            <div class="line"></div>
+          </div>
+          <div class="chapter chapter-padding">
           </div>
         </div>
       </div>
@@ -74,7 +79,8 @@ export default {
 }
 
 .overlay {
-  background-color: rgba(0, 0, 0, 0.8);
+  /* background-color: rgba(0, 0, 0, 0.8); */
+  /* background-color: white; */
   height: 100%;
   width: 100%;
   position: fixed;
@@ -83,6 +89,7 @@ export default {
   bottom: 0;
   right: 0;
   left: 0;
+  /* left: auto; */
   z-index: 9999;
 }
 .close {
@@ -103,7 +110,12 @@ export default {
 }
 .modal {
   display: block;
-  margin-top: 70px;
+  background-color: white;
+  /* margin-top: 70px; */
+  width: 50%;
+  left: auto;
+  border-left: solid 1px gray;
+  overflow: scroll;
 }
 /* //Transitions */
 .fade-enter-active,
@@ -117,7 +129,7 @@ export default {
 
 .chapter {
   margin: 10px 0px;
-  color: white;
+  /* color: white; */
   text-align: left;
   padding-left: 40px;
   padding-right: 20px;
@@ -127,8 +139,13 @@ export default {
   width: 100%;
   white-space: normal;
 }
+.chapter-padding {
+  height: 70px;
+  /* border-top: solid 1px gray;
+  border-bottom: solid 1px gray; */
+}
 .line {
-  background-color: white;
+  background-color: gray;
   height: 1px;
 }
 </style>

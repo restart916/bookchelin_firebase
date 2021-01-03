@@ -26,25 +26,28 @@
       <!-- <div class="nav-btn">
         <a id="prev" href="#prev" class="navlink"></a>
       </div> -->
-      <div id="viewer" class="viewer"></div>
+      <div id="viewer"
+           class="viewer"
+           :class="loading ? 'view-show' : 'view-hide'"
+           ref="viewer"></div>
       <!-- <div class="nav-btn">
         <a id="next" href="#next" class="navlink"></a>
       </div> -->
     </PullToRefresh>
 
-    <BottomBar>
+    <BottomBar class="bottom-bar-root">
       <div class="bottom-bar">
-        <button @click="fontSizeDown"> 가- </button>
-        <button @click="fontSizeUp"> 가+ </button>
-        <button @click="changeThmem('normal')"> 노말 </button>
-        <button @click="changeThmem('dark')"> 다크 </button>
-        <button @click="marginDown"> 여백- </button>
-        <button @click="marginUp"> 여백+ </button>
-        <!-- <button @click="changeFont('KoPubWorld Batang_Pro Medium')"> 기본체 </button> -->
-        <button @click="changeFont('KoPubWorld Batang_Pro Light')"> 바탕체 </button>
-        <button @click="showTocModal"> 챕터 </button>
-        <!-- <button @click="changeFlow('scrolled')"> 쭉 </button>
-        <button @click="changeFlow('scrolled-doc')"> 챕터 </button> -->
+        <a class="bar-menu" @click="fontSizeDown"> 가- </a>
+        <a class="bar-menu" @click="fontSizeUp"> 가+ </a>
+        <a class="bar-menu" @click="changeThmem('normal')"> 노말 </a>
+        <a class="bar-menu" @click="changeThmem('dark')"> 다크 </a>
+        <a class="bar-menu" @click="marginDown"> 여백- </a>
+        <a class="bar-menu" @click="marginUp"> 여백+ </a>
+        <!-- <a class="bar-menu" @click="changeFont('KoPubWorld Dotum_Pro Light')"> 돋움체 </a> -->
+        <!-- <a class="bar-menu" @click="changeFont('KoPubWorld Batang_Pro Light')"> 바탕체 </a> -->
+        <a class="bar-menu" @click="showTocModal"> 챕터 </a>
+        <!-- <a class="bar-menu" @click="changeFlow('scrolled')"> 쭉 </a>
+        <a class="bar-menu" @click="changeFlow('scrolled-doc')"> 챕터 </a> -->
       </div>
     </BottomBar>
 
@@ -67,7 +70,7 @@ import PullToRefresh from 'pulltorefresh-vue';
 import ePub from 'epubjs'
 import BottomBar from "@nagoos/vue-bottom-bar";
 import "@nagoos/vue-bottom-bar/dist/vue-bottom-bar.css";
-
+import InlineView from '../../node_modules/epubjs/lib/managers/views/inline'
 
 export default {
   name: 'EpubViewer',
@@ -116,7 +119,8 @@ export default {
       // manager: "continuous",
       width: "100%",
       // flow:"scrolled"
-      flow:"scrolled-doc"
+      flow: "scrolled-doc",
+      // view: InlineView,
     });
     // let rendition = this.epubBook.renderTo('viewer', { manager: "continuous", width: "100%", flow:"scrolled" });
 
@@ -176,18 +180,20 @@ export default {
     // },
     addNew() {
       console.log('addNew');
+      this.rendition.prev();
+      this.loading = false;
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          this.rendition.prev();
           resolve();
         }, 100)
       });
     },
     addMore() {
       console.log('addMore');
+      this.rendition.next();
+      this.loading = false;
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          this.rendition.next();
           resolve();
         }, 100)
       });
@@ -274,7 +280,9 @@ export default {
       this.displayed.then((renderer) => {
         // -- do stuff
         console.log('this.displayed.then');
-        this.loading = true;
+        setTimeout(() => {
+            this.loading = true;
+        }, 200);
       });
 
       this.rendition.on("touchstart", (e) => {
@@ -287,6 +295,11 @@ export default {
         e.preventDefault();
         // console.log('rendition touchmove', e);
         this.$refs.pulltorefresh.touchMove(e);
+
+        var container = document.querySelector("#viewer");
+        console.log(container.scrollTop, container.scrollHeight);
+        // container.scrollTop = container.scrollHeight;
+        // console.log(this.rendition.location.start.cfi, this.rendition.location.end.cfi);
       });
 
       this.rendition.on("touchend", (e) => {
@@ -300,8 +313,17 @@ export default {
         console.log('relocated', location, this.cfi);
         // this.$refs.pulltorefresh.show()
 
+        this.loading = true;
+
         if (this.isShow) {
-          window.scrollTo(0,0);
+          // window.scrollTo(0,0);
+          this.$nextTick(() => {
+            var container = document.querySelector("#viewer");
+            console.log(container == this.$refs.viewer);
+            console.log(container.scrollTop, container.scrollHeight);
+            // container.scrollTop = container.scrollHeight;
+          });
+
         }
 
         if (window.flutter_webview) {
@@ -349,6 +371,7 @@ export default {
         }
       );
 
+      this.changeFont('KoPubWorld Batang_Pro Light');
       this.updateFontSize()
       this.updateSideMargin()
     }
@@ -377,26 +400,51 @@ body { height: 100%; }
   background-color: #141414;
 }
 
-.bottom-bar {
-  padding: 10px 0px;
-  background-color: lightcoral
+.bottom-bar-root {
+  padding: 0px !important;
 }
 
+.bottom-bar {
+  padding: 10px 0px;
+  border-top: 1px solid #777;
+  background-color: #fff;
+  text-align: right;
+}
+
+a {
+    color: #212121;
+}
+a:-webkit-any-link {
+    color: -webkit-link;
+    cursor: pointer;
+    text-decoration: underline;
+}
+a:link, a:visited, a:hover {
+  color: #212121;
+  text-decoration: none;
+}
+
+.bar-menu {
+  margin-right: 6px;
+}
 
 .loading {
   text-align: -webkit-center;
   margin-top: 200px
 }
 
+.view-show {
+  opacity: 1;
+}
+
+.view-hide {
+  opacity: 0;
+}
+
 
 @font-face {
   font-family: "KoPubWorld Batang_Pro Light";
   src: url('./../assets/fonts/KoPubWorld Batang_Pro Light.otf');
-}
-
-@font-face {
-  font-family: "KoPubWorld Batang_Pro Medium";
-  src: url('./../assets/fonts/KoPubWorld Batang_Pro Medium.otf');
 }
 
 .half-circle-spinner, .half-circle-spinner * {
