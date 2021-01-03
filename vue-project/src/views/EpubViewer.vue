@@ -36,16 +36,36 @@
     </PullToRefresh>
 
     <BottomBar class="bottom-bar-root">
-      <div class="bottom-bar">
-        <a class="bar-menu" @click="fontSizeDown"> 가- </a>
-        <a class="bar-menu" @click="fontSizeUp"> 가+ </a>
-        <a class="bar-menu" @click="changeThmem('normal')"> 노말 </a>
-        <a class="bar-menu" @click="changeThmem('dark')"> 다크 </a>
-        <a class="bar-menu" @click="marginDown"> 여백- </a>
-        <a class="bar-menu" @click="marginUp"> 여백+ </a>
+      <div class="bottom-bar" style="display: flex; justify-content: flex-end; align-items: center;">
+        <div class="">
+          <a class="bar-menu" @click="fontSizeDown"> 가- </a>
+        </div>
+        <div class="">
+          <a class="bar-menu" @click="fontSizeUp"> 가+ </a>
+        </div>
+        <div class="">
+          <a class="bar-menu" @click="changeThmem('normal')"> 노말 </a>
+        </div>
+        <div class="">
+          <a class="bar-menu" @click="changeThmem('dark')"> 다크 </a>
+        </div>
+        <div class="">
+          <a class="bar-menu" @click="marginDown"> 여백- </a>
+        </div>
+        <div class="">
+          <a class="bar-menu" @click="marginUp"> 여백+ </a>
+        </div>
+        <div style="display: inline-flex">
+          <a class="bar-menu" @click="showTocModal">
+            <div class="btn-toc"></div>
+          </a>
+        </div>
+
         <!-- <a class="bar-menu" @click="changeFont('KoPubWorld Dotum_Pro Light')"> 돋움체 </a> -->
         <!-- <a class="bar-menu" @click="changeFont('KoPubWorld Batang_Pro Light')"> 바탕체 </a> -->
-        <a class="bar-menu" @click="showTocModal"> 챕터 </a>
+
+        <!-- <img src="@/assets/icon_finder.png" class="btn-toc" /> -->
+
         <!-- <a class="bar-menu" @click="changeFlow('scrolled')"> 쭉 </a>
         <a class="bar-menu" @click="changeFlow('scrolled-doc')"> 챕터 </a> -->
       </div>
@@ -345,8 +365,8 @@ export default {
         "normal",
         {
           "body": { "background-color": "inherit" },
-          // "*": { "color": "inherit", "font": "inherit"},
-          "html": { "-webkit-filter": "inherit", "filter": "inherit" },
+          "p": { "color": "inherit"},
+          // "html": { "-webkit-filter": "inherit", "filter": "inherit" },
           "img": {
             "-webkit-filter": "inherit",
             "filter": "inherit",
@@ -360,8 +380,8 @@ export default {
         "dark",
         {
           "body": { "background-color": "#141414" },
-          // "*": { "color": "#ffffff", "font": "1em 'KoPubWorld Batang_Pro Light'"},
-          "html": { "-webkit-filter": "invert(1) hue-rotate(180deg)", "filter": "invert(1) hue-rotate(180deg)" },
+          "p": { "color": "#ffffff"},
+          // "html": { "-webkit-filter": "invert(1) hue-rotate(180deg)", "filter": "invert(1) hue-rotate(180deg)" },
           "img": {
             "-webkit-filter": "invert(1) hue-rotate(180deg)",
             "filter": "invert(1) hue-rotate(180deg)",
@@ -405,7 +425,7 @@ body { height: 100%; }
 }
 
 .bottom-bar {
-  padding: 10px 0px;
+  padding: 6px 0px;
   border-top: 1px solid #777;
   background-color: #fff;
   text-align: right;
@@ -425,7 +445,13 @@ a:link, a:visited, a:hover {
 }
 
 .bar-menu {
-  margin-right: 6px;
+  margin-right: 12px;
+}
+.btn-toc {
+  background-image: url('../assets/icon_finder.png');
+  width: 30px;
+  height: 30px;
+  background-size: contain;
 }
 
 .loading {
