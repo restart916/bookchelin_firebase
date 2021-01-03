@@ -227,10 +227,12 @@ export default {
     },
     fontSizeUp() {
       this.fontSize += 10
+      this.flutterNotify('fontsize', this.fontSize)
       this.updateFontSize()
     },
     fontSizeDown() {
       this.fontSize -= 10
+      this.flutterNotify('fontsize', this.fontSize)
       this.updateFontSize()
     },
     updateFontSize() {
@@ -240,12 +242,13 @@ export default {
     },
     marginUp() {
       this.sideMargin += 10
+      this.flutterNotify('margin', this.sideMargin)
       this.updateSideMargin()
     },
     marginDown() {
       this.sideMargin = Math.max(0, this.sideMargin - 10)
+      this.flutterNotify('margin', this.sideMargin)
       this.updateSideMargin()
-      console.log('marginDown');
     },
     updateSideMargin() {
       if (this.rendition) {
@@ -259,6 +262,7 @@ export default {
         this.rendition.start()
 
         this.theme = theme;
+        this.flutterNotify('theme', this.theme)
       }
     },
     changeFont(fontName) {
@@ -347,12 +351,9 @@ export default {
             console.log(container.scrollTop, container.scrollHeight);
             // container.scrollTop = container.scrollHeight;
           });
-
         }
 
-        if (window.flutter_webview) {
-          window.flutter_webview.postMessage(`relocated:${this.cfi}`);
-        }
+        this.flutterNotify('relocated', this.cfi)
 
         this.changeFont('KoPubWorld Batang_Pro Light')
         this.updateFontSize()
@@ -400,6 +401,11 @@ export default {
       );
 
       this.changeThmem(this.theme)
+    },
+    flutterNotify(key, value) {
+      if (window.flutter_webview) {
+        window.flutter_webview.postMessage(`${key}:${value}`);
+      }
     }
   }
 }
