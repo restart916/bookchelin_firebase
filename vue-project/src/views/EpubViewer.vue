@@ -43,10 +43,10 @@
         <div class="">
           <a class="bar-menu" @click="fontSizeUp"> 가+ </a>
         </div>
-        <div class="">
-          <a class="bar-menu" @click="changeThmem('normal')"> 노말 </a>
+        <div class="" v-if="theme != 'normal'">
+          <a class="bar-menu" @click="changeThmem('normal')"> 라이트 </a>
         </div>
-        <div class="">
+        <div class="" v-if="theme != 'dark'">
           <a class="bar-menu" @click="changeThmem('dark')"> 다크 </a>
         </div>
         <div class="">
@@ -448,7 +448,7 @@ a:link, a:visited, a:hover {
   margin-right: 12px;
 }
 .btn-toc {
-  background-image: url('../assets/icon_finder.png');
+  background-image: url('../assets/icon_finder_2.png');
   width: 30px;
   height: 30px;
   background-size: contain;

@@ -9,6 +9,10 @@
           <div class="chapter chapter-padding">
           </div>
           <div class="line"></div>
+          <div class="chapter chapter-title">
+            목차
+          </div>
+          <div class="line"></div>
           <div v-for="chapter in toc">
 
             <div class="chapter" @click="clickChapter(chapter)">
@@ -91,6 +95,7 @@ export default {
   left: 0;
   /* left: auto; */
   z-index: 9999;
+
 }
 .close {
   background-color: rgb(0, 0, 0);
@@ -116,6 +121,7 @@ export default {
   left: auto;
   border-left: solid 1px gray;
   overflow: scroll;
+  margin-bottom: 43px;
 }
 /* //Transitions */
 .fade-enter-active,
@@ -129,18 +135,23 @@ export default {
 
 .chapter {
   margin: 10px 0px;
-  /* color: white; */
   text-align: left;
-  padding-left: 40px;
-  padding-right: 20px;
+  padding-left: 20px;
+  padding-right: 10px;
+  font-size: 12px;
 
   text-overflow: ellipsis;;
   overflow: hidden;
   width: 100%;
   white-space: normal;
 }
+.chapter-title {
+  font-weight: 800;
+  /* border-top: solid 1px gray;
+  border-bottom: solid 1px gray; */
+}
 .chapter-padding {
-  height: 70px;
+  height: 40px;
   /* border-top: solid 1px gray;
   border-bottom: solid 1px gray; */
 }
