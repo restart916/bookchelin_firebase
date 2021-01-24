@@ -5,8 +5,8 @@
       :up="1"
       :pulldownOffset="100"
       :pullupOffset="100"
-      :addNew="addNew"
-      :addMore="addMore"
+      :addNew="gotoPrev"
+      :addMore="gotoNext"
       :hasMore="hasMore"
       :propsLableUp="lableUp"
       :propsLableDown="lableDown"
@@ -14,6 +14,7 @@
       v-show="isShow"
       class="root"
       :class="theme"
+      @scroll="test"
       >
 
       <div class="loading" v-if="loading == false">
@@ -184,38 +185,32 @@ export default {
       fontSize: 100,
       sideMargin: 20,
       cfi: undefined,
-      theme: 'normal'
+      theme: 'normal',
+
+      scrollBody: undefined,
+      movePrev: false,
     }
   },
   methods: {
-    test() {
+    test(e) {
+      this.scrollBody = e.target
     },
-    // gotoPrev(loaded) {
-    //   console.log('gotoPrev');
-    //   setTimeout(() => {
-    //     loaded('done');
-    //   }, 1000)
-    // },
-    // gotoNext(loaded) {
-    //   console.log('gotoNext');
-    //   setTimeout(() => {
-    //     loaded('done');
-    //   }, 1000)
-    // },
-    addNew() {
-      console.log('addNew');
+    gotoPrev() {
+      console.log('gotoPrev');
       this.rendition.prev();
       this.loading = false;
+      this.movePrev = true;
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           resolve();
         }, 100)
       });
     },
-    addMore() {
-      console.log('addMore');
+    gotoNext() {
+      console.log('gotoNext');
       this.rendition.next();
       this.loading = false;
+      this.movePrev = false;
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           resolve();
@@ -346,10 +341,13 @@ export default {
         if (this.isShow) {
           // window.scrollTo(0,0);
           this.$nextTick(() => {
-            var container = document.querySelector("#viewer");
-            console.log(container == this.$refs.viewer);
-            console.log(container.scrollTop, container.scrollHeight);
-            // container.scrollTop = container.scrollHeight;
+            if (this.scrollBody) {
+              if (this.movePrev) {
+                this.scrollBody.scrollTo(0, this.scrollBody.scrollHeight + 270)
+              } else {
+                this.scrollBody.scrollTo(0, 0)
+              }
+            }
           });
         }
 
