@@ -2,6 +2,11 @@
 
 This README would normally document whatever steps are necessary to get your application up and running.
 
+인증관련
+```
+export GOOGLE_APPLICATION_CREDENTIALS="/Users/yongsanglee/Code/bookchelin_firebase/bookchelin-firebase-adminsdk-crofb-331e0d969b.json"
+```
+
 ### What is this repository for? ###
 
 * Quick summary

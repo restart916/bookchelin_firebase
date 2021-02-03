@@ -234,6 +234,11 @@ updateEventSummary = async () => {
 loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   const event_id = time_event.id;
   const time_event_data = time_event.data();
+  if (!time_event_data['book_id']) {
+    console.log('time_event_data', time_event_data['book_id'], time_event_data['create_time'], time_event_data['is_active'], time_event_data['remain_time']);
+    return;
+  }
+
   datas[event_id] = {'book_id': time_event_data['book_id']};
 
   const book_data = await db
