@@ -73,6 +73,13 @@
               <div v-else>
                 <div class='button' @click="hideLinkSelect(link_select['.key'])">숨기기</div>
               </div>
+              <select v-model="link_select.category" @change="onChangeBookCategory(link_select)">
+              <option disabled value="0">선택해주세요</option>
+              <option v-for="category in book_category" :key="category.key"
+                :value="category.id">
+                {{ category.name }}
+              </option>
+            </select>
             </div>
           </div>
         </div>
@@ -95,6 +102,7 @@ export default {
     return {
       link_selects: firestore.collection('link_select').orderBy('timestamp', 'desc'),
       link_select_click: firestore.collection('link_select_click'),
+      book_category: firestore.collection('book_category').orderBy('id', 'desc'),
     }
   },
   mounted () {
@@ -235,6 +243,19 @@ export default {
         this.link_select_click_by_key[key] = count
       }
       return count
+    },
+    onChangeBookCategory(link_select) {
+      console.log('onChangeBookCategory: ', link_select)
+
+      firestore.collection('link_select').doc(link_select['.key']).update({
+        category: link_select.category
+      }).then((docRef) => {
+        alert(`${link_select.title} 수정 성공`)
+        this.clearInput()
+      }).catch((error) => {
+        alert(`${link_select.title} 수정 실패`)
+      })
+
     },
   }
 }
