@@ -11,6 +11,7 @@ import EventCountView from './views/EventCountView';
 import EditTimeEventView from './views/EditTimeEventView';
 import EditLimitEventView from './views/EditLimitEventView';
 import EditLinkSelectView from './views/EditLinkSelectView';
+import EditLogSelectView from './views/EditLogSelectView';
 import EditReviewView from './views/EditReviewView';
 import BookExport from './views/BookExport';
 import EpubViewer from './views/EpubViewer';
@@ -78,6 +79,11 @@ export default new Router({
       path: '/edit-link-select',
       name: 'EditLinkSelectView',
       component: EditLinkSelectView
+    },
+    {
+      path: '/edit-log-select',
+      name: 'EditLogSelectView',
+      component: EditLogSelectView
     },
     {
       path: '/edit-review',
