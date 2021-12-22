@@ -50,7 +50,7 @@
           <div class='notification Column' :class="{active: !log_select.hidden}">
             <div>
               <h1>{{ log_select.title }}</h1>
-              <!-- <h2>{{ click_count(log_select['.key']) }}</h2> -->
+              
               <h2>{{ datetime_string(log_select.timestamp) }}</h2>
             </div>
             <div class='button' @click="selectLogSelect(log_select['.key'])">수정하기</div>
@@ -104,7 +104,6 @@ export default {
       title: '',
       description: '',
       hidden: false,
-      log_select_click_by_key: {},
     }
   },
   computed: {
@@ -190,25 +189,7 @@ export default {
       })
     },
     datetime_string (timestamp) {
-      // console.log(timestamp)
       return this.$moment.unix(timestamp).format('YYYY-MM-DD HH:mm:ss')
-    },
-    click_count(key) {
-
-      if (key in this.log_select_click_by_key) {
-        return this.log_select_click_by_key[key]
-      }
-      let count = 0;
-
-      for (let item of this.log_select_click) {
-        if (item.log_select_id == key) {
-          count++;
-        }
-      }
-      if (count > 0) {
-        this.log_select_click_by_key[key] = count
-      }
-      return count
     },
     onChangeBookCategory(log_select) {
       console.log('onChangeBookCategory: ', log_select)
@@ -230,7 +211,7 @@ export default {
 <!-- Add 'scoped' attribute to limit CSS to this component only -->
 <style scoped>
 .notification {
-  width: 400px;                   /* IE6 needs any width */
+  width: 100%;
 }
 .longLink {
   white-space: nowrap;
