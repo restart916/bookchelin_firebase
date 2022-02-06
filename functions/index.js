@@ -240,7 +240,10 @@ updateEventSummaryByDay = async (start_moment) => {
 
 updateEventSummary = async () => {
   const results = [];
-  for (let i = 0; i < 3; i++) {
+  const start = 0;
+  const count = 2;
+
+  for (let i = start; i < start + count; i++) {
     let start_moment = moment().add(-i, 'days');
     console.log('----------------', i, start_moment);
     results.push(updateEventSummaryByDay(start_moment));
@@ -268,7 +271,10 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
     .collection('books')
     .doc(time_event_data['book_id'])
     .get();
-  datas[event_id]['book_name'] = book_data.data()['title'];
+
+  datas[event_id]['book_name'] = book_data.data()
+    ? book_data.data()['title']
+    : '';
   datas[event_id]['create_time'] = time_event_data['create_time'] || '';
 
   // console.log('datas', datas);
@@ -511,15 +517,20 @@ checkImageSize = async () => {
   // }
 };
 
-exports.test = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
-  return cors(req, res, async () => {
-    await updateEventSummary(); // 출판사 통계 데이터
+exports.test = functions
+  .runWith({
+    timeoutSeconds: 540,
+    memory: '2GB',
+  })
+  .https.onRequest((req, res) => {
+    return cors(req, res, async () => {
+      await updateEventSummary(); // 출판사 통계 데이터
 
-    // await checkImageSize();
+      // await checkImageSize();
 
-    res.status(200).send('successful');
+      res.status(200).send('successful');
+    });
   });
-});
 
 exports.get_limit_events = functions
   .runWith({
@@ -607,7 +618,10 @@ exports.get_limit_events_asia = functions
   });
 
 exports.daily_job = functions
-  .runWith(runtimeOpts)
+  .runWith({
+    timeoutSeconds: 540,
+    memory: '2GB',
+  })
   .pubsub.topic('daily-tick')
   .onPublish(async (message) => {
     console.log('This job is run every day!');
