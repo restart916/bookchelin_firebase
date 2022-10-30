@@ -5,6 +5,8 @@ const functions = require('firebase-functions');
 // Moments library to format dates.
 // const moment = require('moment');
 const moment = require('moment-timezone');
+const fetch = require('node-fetch');
+const { parser } = require('html-metadata-parser');
 // moment.tz.setDefault('utc')
 
 // CORS Express middleware to enable CORS Requests.
@@ -39,15 +41,15 @@ exports.date = functions.https.onRequest((req, res) => {
   });
 });
 
-exports.addMessage = functions.https.onRequest(async (req, res) => {
-  const original = req.query.text;
+// exports.addMessage = functions.https.onRequest(async (req, res) => {
+//   const original = req.query.text;
 
-  const writeResult = await admin
-    .firestore()
-    .collection('messages')
-    .add({ original: original });
-  res.json({ result: `Message with ID: ${writeResult.id} added.` });
-});
+//   const writeResult = await admin
+//     .firestore()
+//     .collection('messages')
+//     .add({ original: original });
+//   res.json({ result: `Message with ID: ${writeResult.id} added.` });
+// });
 
 updateReadLog = async () => {
   let today = moment().format('YYYY-MM-DD');
@@ -413,6 +415,32 @@ loadEventData = async (type, start_moment) => {
   return datas;
 };
 
+exports.addMetadatas = functions.firestore
+  .document('log_select/{document_id}')
+  .onCreate(async (snap, context) => {
+    const newValue = snap.data();
+
+    if ('image_url' in newValue) return snap;
+
+    const url = newValuep['link_url'];
+
+    try {
+      new URL(url);
+
+      const result = await fetch(url);
+      console.log('result', result);
+    } catch (error) {
+      console.log('error', error);
+    }
+
+    // return snap.ref.set(
+    //   {
+    //     createdAt: context.timestamp,
+    //   },
+    //   { merge: true }
+    // );
+  });
+
 exports.addTimeStamp = functions.firestore
   .document('read_logs/{document_id}')
   .onCreate((snap, context) => {
@@ -524,7 +552,38 @@ exports.test = functions
   })
   .https.onRequest((req, res) => {
     return cors(req, res, async () => {
-      await updateEventSummary(); // 출판사 통계 데이터
+      // const url = 'https://blog.naver.com/gold-alchemist/222606457930';
+      // const url =
+      //   'https://iamsujinpark.medium.com/%EB%AF%B8%EA%B5%AD%EC%97%90-%EC%98%A4%EA%B8%B0-%EC%A0%84%EC%97%90-%EC%95%8C%EC%95%98%EC%9C%BC%EB%A9%B4-%EC%A2%8B%EC%95%98%EC%9D%84-%EA%B2%83%EB%93%A4-2-%EB%AF%B8%EA%B5%AD%EC%97%90%EC%84%9C-%EC%9D%BC%ED%95%98%EB%A0%A4%EB%A9%B4-%EC%96%BC%EB%A7%88%EB%82%98-%EC%98%81%EC%96%B4%EB%A5%BC-%EC%9E%98-%ED%95%B4%EC%95%BC-%ED%95%A0%EA%B9%8C-d1ea19930600';
+      const url = 'https://brunch.co.kr/@jasongx/21';
+
+      // 네이버 블로그 안됨
+      // medium 잘됨
+      // 브런치 잘됨
+
+      try {
+        new URL(url);
+
+        // var result = await parser(url);
+        // console.log(JSON.stringify(result, null, 3));
+
+        const ogs = require('open-graph-scraper');
+        const options = { url: url };
+        const data = await ogs(options);
+
+        const { error, result, response } = data;
+        // console.log('error:', error); // This returns true or false. True if there was an error. The error itself is inside the results object.
+        console.log('result:', result); // This contains all of the Open Graph results
+        // console.log('response:', response); // This contains the HTML of page
+
+        // const response = await fetch(url);
+        // const body = await response.text();
+        // console.log('body', body);
+      } catch (error) {
+        console.log('error', error);
+      }
+
+      // await updateEventSummary(); // 출판사 통계 데이터
 
       // await checkImageSize();
 
