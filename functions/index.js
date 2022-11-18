@@ -42,63 +42,73 @@ exports.date = functions.https.onRequest((req, res) => {
 exports.addMessage = functions.https.onRequest(async (req, res) => {
   const original = req.query.text;
 
-  const writeResult = await admin.firestore().collection('messages').add({original: original});
-  res.json({result: `Message with ID: ${writeResult.id} added.`});
+  const writeResult = await admin
+    .firestore()
+    .collection('messages')
+    .add({ original: original });
+  res.json({ result: `Message with ID: ${writeResult.id} added.` });
 });
 
 updateReadLog = async () => {
   let today = moment().format('YYYY-MM-DD');
-  let docs = await db.collection('read_logs').where("createdAt", ">=", today).get();
+  let docs = await db
+    .collection('read_logs')
+    .where('createdAt', '>=', today)
+    .get();
 
   let count_data = {};
   for (let doc of docs.docs) {
-      // console.log(doc.id, " => ", doc.data())
-      let read_info = doc.data();
-      let book_id = read_info.book_id;
-      if (book_id in count_data) {
-        count_data[book_id] += 1;
-      } else {
-        count_data[book_id] = 1;
-      }
+    // console.log(doc.id, " => ", doc.data())
+    let read_info = doc.data();
+    let book_id = read_info.book_id;
+    if (book_id in count_data) {
+      count_data[book_id] += 1;
+    } else {
+      count_data[book_id] = 1;
+    }
   }
 
-  db.collection('dayly_total').doc(today).set({total_count: count_data});
+  db.collection('dayly_total').doc(today).set({ total_count: count_data });
 };
 
 updateReadTimeLog = async () => {
   let today = moment().format('YYYY-MM-DD');
-  let docs = await db.collection('read_time_logs').where("createdAt", ">=", today).get();
+  let docs = await db
+    .collection('read_time_logs')
+    .where('createdAt', '>=', today)
+    .get();
 
   let count_data = {};
   let count_data_by_user = {};
   for (let doc of docs.docs) {
-      // console.log(doc.id, " => ", doc.data())
-      let read_info = doc.data();
-      let book_id = read_info.book_id;
-      if (book_id in count_data) {
-        count_data[book_id] += read_info.read_time;
-      } else {
-        count_data[book_id] = read_info.read_time;
-      }
+    // console.log(doc.id, " => ", doc.data())
+    let read_info = doc.data();
+    let book_id = read_info.book_id;
+    if (book_id in count_data) {
+      count_data[book_id] += read_info.read_time;
+    } else {
+      count_data[book_id] = read_info.read_time;
+    }
 
-      let user_uid = read_info.user_uid;
-      if (user_uid !== undefined) {
-          if (user_uid in count_data_by_user) {
-            count_data_by_user[user_uid] += read_info.read_time;
-          } else {
-            count_data_by_user[user_uid] = read_info.read_time;
-          }
+    let user_uid = read_info.user_uid;
+    if (user_uid !== undefined) {
+      if (user_uid in count_data_by_user) {
+        count_data_by_user[user_uid] += read_info.read_time;
+      } else {
+        count_data_by_user[user_uid] = read_info.read_time;
       }
+    }
   }
 
-  db.collection('dayly_total_time').doc(today).set({total_count: count_data});
+  db.collection('dayly_total_time').doc(today).set({ total_count: count_data });
   db.collection('dayly_total_time_by_user').doc(today).set({
-    data: count_data_by_user, time: new Date()
+    data: count_data_by_user,
+    time: new Date(),
   });
 };
 
 function addItem(user_uid, data) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     db.collection('total_time_by_user').doc(user_uid).set(data);
     setTimeout(resolve, 5);
   });
@@ -109,27 +119,29 @@ updateSummary = async () => {
 
   let count_data_by_user = {};
   for (let doc of docs.docs) {
-      // console.log(doc.id, " => ", doc.data());
-      let user_read_datas = doc.data().data;
-      let data_time = doc.data().time;
+    // console.log(doc.id, " => ", doc.data());
+    let user_read_datas = doc.data().data;
+    let data_time = doc.data().time;
 
-      for (let user_uid in user_read_datas) {
-          if (user_uid in count_data_by_user) {
-            count_data_by_user[user_uid].time += user_read_datas[user_uid];
+    for (let user_uid in user_read_datas) {
+      if (user_uid in count_data_by_user) {
+        count_data_by_user[user_uid].time += user_read_datas[user_uid];
 
-            count_data_by_user[user_uid].start = data_time.toMillis() < count_data_by_user[user_uid].start.toMillis() ? data_time : count_data_by_user[user_uid].start;
-          } else {
-            count_data_by_user[user_uid] = {
-              start: data_time,
-              time: user_read_datas[user_uid]
-            };
-          }
+        count_data_by_user[user_uid].start =
+          data_time.toMillis() < count_data_by_user[user_uid].start.toMillis()
+            ? data_time
+            : count_data_by_user[user_uid].start;
+      } else {
+        count_data_by_user[user_uid] = {
+          start: data_time,
+          time: user_read_datas[user_uid],
+        };
       }
+    }
   }
 
   /* eslint-disable no-await-in-loop */
   for (let user_uid in count_data_by_user) {
-
     let data = count_data_by_user[user_uid];
     start_time = data.start;
     diff = moment().diff(moment(start_time.toMillis()), 'days');
@@ -141,9 +153,12 @@ updateSummary = async () => {
   /* eslint-enable no-await-in-loop */
 };
 
-updateTimeEvent = async(book_id, user_uid, read_time, datetime) => {
+updateTimeEvent = async (book_id, user_uid, read_time, datetime) => {
   // const book_id = '02IEPKaGI0PrgxhfXbkz';
-  let docs = await db.collection('time_event').where("book_id", "==", book_id).get();
+  let docs = await db
+    .collection('time_event')
+    .where('book_id', '==', book_id)
+    .get();
   for (let doc of docs.docs) {
     // console.log('doc.data()', doc.data());
     let data = doc.data();
@@ -161,7 +176,11 @@ updateTimeEvent = async(book_id, user_uid, read_time, datetime) => {
     }
 
     if (!exists) {
-      data.read_history.push({'user_uid': user_uid, 'read_time': read_time, 'datetime': [datetime]});
+      data.read_history.push({
+        user_uid: user_uid,
+        read_time: read_time,
+        datetime: [datetime],
+      });
     }
 
     let sum = 0;
@@ -178,9 +197,11 @@ updateTimeEvent = async(book_id, user_uid, read_time, datetime) => {
   }
 };
 
-
-updateLimitEvent = async(book_id, user_uid, read_time, datetime) => {
-  let docs = await db.collection('limit_event').where("book_id", "==", book_id).get();
+updateLimitEvent = async (book_id, user_uid, read_time, datetime) => {
+  let docs = await db
+    .collection('limit_event')
+    .where('book_id', '==', book_id)
+    .get();
   for (let doc of docs.docs) {
     let data = doc.data();
     if (!('read_history' in data)) {
@@ -191,20 +212,16 @@ updateLimitEvent = async(book_id, user_uid, read_time, datetime) => {
     for (let read_history of data.read_history) {
       if (read_history.user_uid === user_uid) {
         read_history.total_time += read_time;
-        read_history.logs.push(
-          {'read_time': read_time, 'datetime': datetime}
-        );
+        read_history.logs.push({ read_time: read_time, datetime: datetime });
         exists = true;
       }
     }
 
     if (!exists) {
       data.read_history.push({
-        'user_uid': user_uid,
-        'logs':[
-          {'read_time': read_time, 'datetime': datetime}
-        ],
-        'total_time': read_time
+        user_uid: user_uid,
+        logs: [{ read_time: read_time, datetime: datetime }],
+        total_time: read_time,
       });
     }
 
@@ -218,14 +235,17 @@ updateEventSummaryByDay = async (start_moment) => {
 
   db.collection('dayly_event_count')
     .doc(start_moment.format('YYYY-MM-DD'))
-    .set({'time_datas': time_datas, 'limit_datas': limit_datas});
+    .set({ time_datas: time_datas, limit_datas: limit_datas });
 };
 
 updateEventSummary = async () => {
   const results = [];
-  for (let i = 0; i < 3; i++){
-    let start_moment = moment().add(-(i), 'days');
-    console.log('----------------', i, start_moment)
+  const start = 0;
+  const count = 2;
+
+  for (let i = start; i < start + count; i++) {
+    let start_moment = moment().add(-i, 'days');
+    console.log('----------------', i, start_moment);
     results.push(updateEventSummaryByDay(start_moment));
   }
   await Promise.all(results);
@@ -235,27 +255,35 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   const event_id = time_event.id;
   const time_event_data = time_event.data();
   if (!time_event_data['book_id']) {
-    console.log('time_event_data', time_event_data['book_id'], time_event_data['create_time'], time_event_data['is_active'], time_event_data['remain_time']);
+    console.log(
+      'time_event_data',
+      time_event_data['book_id'],
+      time_event_data['create_time'],
+      time_event_data['is_active'],
+      time_event_data['remain_time']
+    );
     return;
   }
 
-  datas[event_id] = {'book_id': time_event_data['book_id']};
+  datas[event_id] = { book_id: time_event_data['book_id'] };
 
   const book_data = await db
-                          .collection('books')
-                          .doc(time_event_data['book_id'])
-                          .get();
-  datas[event_id]['book_name'] = book_data.data()['title'];
+    .collection('books')
+    .doc(time_event_data['book_id'])
+    .get();
+
+  datas[event_id]['book_name'] = book_data.data()
+    ? book_data.data()['title']
+    : '';
   datas[event_id]['create_time'] = time_event_data['create_time'] || '';
 
   // console.log('datas', datas);
   const show_new_main_books = await db
-                                  .collection('show_new_main_books')
-                                  .where('event_id', '==', event_id)
-                                  .where('datetime', '>=', moment(start_date).unix())
-                                  .where('datetime', '<', moment(end_date).unix())
-                                  .get();
-
+    .collection('show_new_main_books')
+    .where('event_id', '==', event_id)
+    .where('datetime', '>=', moment(start_date).unix())
+    .where('datetime', '<', moment(end_date).unix())
+    .get();
 
   datas[event_id]['show_new_main_books'] = show_new_main_books.docs.length;
   let show_new_main_users = [];
@@ -268,13 +296,13 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   datas[event_id].show_new_main_user_count = show_new_main_users.length;
 
   const show_book_details = await db
-                                  .collection('show_book_detail')
-                                  .where('event_id', '==', event_id)
-                                  .where('datetime', '>=', moment(start_date).unix())
-                                  .where('datetime', '<', moment(end_date).unix())
-                                  .get();
+    .collection('show_book_detail')
+    .where('event_id', '==', event_id)
+    .where('datetime', '>=', moment(start_date).unix())
+    .where('datetime', '<', moment(end_date).unix())
+    .get();
 
-  datas[event_id].show_detail_count = show_book_details.docs.length
+  datas[event_id].show_detail_count = show_book_details.docs.length;
   // console.log('show_detail_count', show_book_details)
 
   let show_book_users = [];
@@ -290,11 +318,11 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   // console.log(show_book_users.length, show_book_users)
 
   const show_book_readers = await db
-                                  .collection('show_book_reader')
-                                  .where('event_id', '==', event_id)
-                                  .where('datetime', '>=', moment(start_date).unix())
-                                  .where('datetime', '<', moment(end_date).unix())
-                                  .get();
+    .collection('show_book_reader')
+    .where('event_id', '==', event_id)
+    .where('datetime', '>=', moment(start_date).unix())
+    .where('datetime', '<', moment(end_date).unix())
+    .get();
 
   datas[event_id]['show_reader_count'] = show_book_readers.docs.length;
   let show_book_reader_users = [];
@@ -307,17 +335,23 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   datas[event_id]['show_reader_user_count'] = show_book_reader_users.length;
   // datas[event_id]['show_reader_user_count'] = time_event_data['read_history'].length
 
-  if (time_event_data.read_history.length && 'event_minute' in time_event_data) {
-    let total_read_time = time_event_data['event_minute'] - time_event_data['remain_time'];
+  if (
+    time_event_data.read_history.length &&
+    'event_minute' in time_event_data
+  ) {
+    let total_read_time =
+      time_event_data['event_minute'] - time_event_data['remain_time'];
     datas[event_id]['total_read_time'] = total_read_time;
-    datas[event_id]['avg_user_read_time'] = total_read_time / time_event_data.read_history.length;
+    datas[event_id]['avg_user_read_time'] =
+      total_read_time / time_event_data.read_history.length;
   } else if (time_event_data.read_history.length) {
     let total_read_time = 0;
     for (let read_history of time_event_data.read_history) {
       total_read_time += read_history.total_time;
     }
     datas[event_id]['total_read_time'] = total_read_time;
-    datas[event_id]['avg_user_read_time'] = total_read_time / time_event_data.read_history.length;
+    datas[event_id]['avg_user_read_time'] =
+      total_read_time / time_event_data.read_history.length;
   } else {
     datas[event_id]['total_read_time'] = 0;
     datas[event_id]['avg_user_read_time'] = 0;
@@ -326,115 +360,131 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   // console.log('avg_user_read_time', datas[event_id]['avg_user_read_time'])
 
   const click_share_book_details = await db
-                                  .collection('click_share_book_detail')
-                                  .where('event_id', '==', event_id)
-                                  .where('datetime', '>=', moment(start_date).unix())
-                                  .where('datetime', '<', moment(end_date).unix())
-                                  .get();
+    .collection('click_share_book_detail')
+    .where('event_id', '==', event_id)
+    .where('datetime', '>=', moment(start_date).unix())
+    .where('datetime', '<', moment(end_date).unix())
+    .get();
 
-  datas[event_id]['click_share_book_count'] = click_share_book_details.docs.length
+  datas[event_id]['click_share_book_count'] =
+    click_share_book_details.docs.length;
 
   const click_buy_book_details = await db
-                                  .collection('click_buy_book_detail')
-                                  .where('event_id', '==', event_id)
-                                  .where('datetime', '>=', moment(start_date).unix())
-                                  .where('datetime', '<', moment(end_date).unix())
-                                  .get();
+    .collection('click_buy_book_detail')
+    .where('event_id', '==', event_id)
+    .where('datetime', '>=', moment(start_date).unix())
+    .where('datetime', '<', moment(end_date).unix())
+    .get();
 
-  datas[event_id]['click_buy_book_count'] = click_buy_book_details.docs.length
+  datas[event_id]['click_buy_book_count'] = click_buy_book_details.docs.length;
 
-  const reviews = await db.collection('book_reviews')
-                                .where('book_id', '==', time_event_data['book_id'])
-                                .get()
+  const reviews = await db
+    .collection('book_reviews')
+    .where('book_id', '==', time_event_data['book_id'])
+    .get();
 
-  datas[event_id]['review_count'] = reviews.docs.length
-  let rating = 0
+  datas[event_id]['review_count'] = reviews.docs.length;
+  let rating = 0;
   for (let review of reviews.docs) {
-    rating += review.data()['rating']
+    rating += review.data()['rating'];
   }
-  datas[event_id]['average_review'] = reviews.docs.length ? (rating / reviews.docs.length).toFixed(2) : 0
+  datas[event_id]['average_review'] = reviews.docs.length
+    ? (rating / reviews.docs.length).toFixed(2)
+    : 0;
 };
 
 loadEventData = async (type, start_moment) => {
   let start_date = moment(start_moment).format('YYYY-MM-DD');
-  let end_date = moment(start_moment).add(1,'days').format('YYYY-MM-DD');
+  let end_date = moment(start_moment).add(1, 'days').format('YYYY-MM-DD');
 
   const time_events = await db.collection(type).get();
   // console.log(time_events);
 
-  console.log('----------------', type, start_date, end_date)
+  console.log('----------------', type, start_date, end_date);
 
   const results = [];
   let datas = {};
   for (let time_event of time_events.docs) {
-    results.push(loadEventUnitData(datas, time_event, start_date, end_date))
+    results.push(loadEventUnitData(datas, time_event, start_date, end_date));
   }
   await Promise.all(results);
 
   // console.log(datas)
-  return datas
-}
+  return datas;
+};
 
 exports.addTimeStamp = functions.firestore
   .document('read_logs/{document_id}')
   .onCreate((snap, context) => {
+    const newValue = snap.data();
 
-  const newValue = snap.data();
+    if ('createdAt' in newValue) return snap;
 
-  if ('createdAt' in newValue) return snap;
-
-  return snap.ref.set({
-    createdAt: context.timestamp
-  }, {merge: true});
-});
+    return snap.ref.set(
+      {
+        createdAt: context.timestamp,
+      },
+      { merge: true }
+    );
+  });
 
 exports.add_time_read_time_logs = functions.firestore
   .document('read_time_logs/{document_id}')
-  .onCreate(async(snap, context) => {
+  .onCreate(async (snap, context) => {
+    const newValue = snap.data();
 
-  const newValue = snap.data();
+    const user_uid = newValue.user_uid || 'unknown';
 
-  const user_uid = newValue.user_uid || 'unknown';
+    await updateTimeEvent(
+      newValue.book_id,
+      user_uid,
+      newValue.read_time,
+      context.timestamp
+    );
+    await updateLimitEvent(
+      newValue.book_id,
+      user_uid,
+      newValue.read_time,
+      context.timestamp
+    );
 
-  await updateTimeEvent(newValue.book_id, user_uid, newValue.read_time, context.timestamp);
-  await updateLimitEvent(newValue.book_id, user_uid, newValue.read_time, context.timestamp);
+    if ('createdAt' in newValue) {
+      return snap;
+    }
 
-  if ('createdAt' in newValue) {
-    return snap;
-  }
-
-  return snap.ref.set({
-    createdAt: context.timestamp
-  }, {merge: true});
-});
+    return snap.ref.set(
+      {
+        createdAt: context.timestamp,
+      },
+      { merge: true }
+    );
+  });
 
 const runtimeOpts = {
   timeoutSeconds: 540,
-  memory: '1GB'
-}
+  memory: '1GB',
+};
 
 loadImage = async (title, image_url) => {
-  if (!image_url) return
+  if (!image_url) return;
 
   try {
-    let response = await axios.get(image_url)
+    let response = await axios.get(image_url);
 
     if (response.status === 200) {
       if (response.headers['content-length'] > 700000) {
         console.log(title, image_url, response.headers['content-length']);
       }
-
     } else {
-      console.log("load error :", title, image_url);
+      console.log('load error :', title, image_url);
     }
   } catch (error) {
-    console.log("load error :", title, image_url);
+    console.log('load error :', title, image_url);
     console.log(error);
   }
 };
 
-checkImageSize = async() => {
-
+checkImageSize = async () => {
   // console.log('start books')
   // const book_datas = await db.collection('books').get();
   // for (let book_data of book_datas.docs) {
@@ -442,7 +492,6 @@ checkImageSize = async() => {
   //   let image_url = book_data.data()['image_url']
   //   await loadImage(title, image_url)
   // }
-
   // console.log('start main_books')
   // const main_books = await db.collection('main_books').get();
   // for (let main_book of main_books.docs) {
@@ -466,125 +515,140 @@ checkImageSize = async() => {
   //   let image_url = banner.data()['firestore_url']
   //   await loadImage(title, image_url)
   // }
-}
+};
 
-exports.test = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
-  return cors(req, res, async () => {
+exports.test = functions
+  .runWith({
+    timeoutSeconds: 540,
+    memory: '2GB',
+  })
+  .https.onRequest((req, res) => {
+    return cors(req, res, async () => {
+      await updateEventSummary(); // 출판사 통계 데이터
 
-    await updateEventSummary();   // 출판사 통계 데이터
+      // await checkImageSize();
 
-    // await checkImageSize();
-
-    res.status(200).send('successful');
+      res.status(200).send('successful');
+    });
   });
-});
 
-exports.get_limit_events = functions.runWith({
-  timeoutSeconds: 10,
-  memory: '512MB'
-}).https.onRequest((req, res) => {
-  return cors(req, res, async () => {
+exports.get_limit_events = functions
+  .runWith({
+    timeoutSeconds: 10,
+    memory: '512MB',
+  })
+  .https.onRequest((req, res) => {
+    return cors(req, res, async () => {
+      let result = [];
+      const limitEvents = await db
+        .collection('limit_event')
+        .where('is_active', '==', true)
+        .get();
+      for (let limitEvent of limitEvents.docs) {
+        let read_history = limitEvent.data()['read_history'];
+        let total_time = limitEvent.data()['limit_seconds'];
+        let book_id = limitEvent.data()['book_id'];
+        let time_event_user_count = limitEvent.data()['time_event_user_count'];
+        let read_time = 0;
 
-    let result = []
-    const limitEvents = await db.collection('limit_event').where('is_active', '==', true).get();
-    for (let limitEvent of limitEvents.docs) {
-      let read_history = limitEvent.data()['read_history']
-      let total_time = limitEvent.data()['limit_seconds']
-      let book_id = limitEvent.data()['book_id']
-      let time_event_user_count = limitEvent.data()['time_event_user_count']
-      let read_time = 0
-
-      if (req.query.user_id) {
-        for (let history of read_history) {
-          if (history.user_uid === req.query.user_id) {
-            read_time = history.total_time
-            break
+        if (req.query.user_id) {
+          for (let history of read_history) {
+            if (history.user_uid === req.query.user_id) {
+              read_time = history.total_time;
+              break;
+            }
           }
         }
+
+        result.push({
+          id: limitEvent.id,
+          book_id: book_id,
+          read_count: read_history.length + time_event_user_count,
+          total_time: total_time,
+          remain_time: total_time - read_time,
+          user_id: req.query.user_id,
+        });
       }
 
-      result.push({
-        id: limitEvent.id,
-        book_id: book_id,
-        read_count: read_history.length + time_event_user_count,
-        total_time: total_time,
-        remain_time: total_time - read_time,
-        user_id: req.query.user_id,
-      })
-    }
-
-    return res.status(200).send(result);
+      return res.status(200).send(result);
+    });
   });
-});
 
+exports.get_limit_events_asia = functions
+  .runWith({
+    timeoutSeconds: 10,
+    memory: '512MB',
+  })
+  .region('asia-northeast1')
+  .https.onRequest((req, res) => {
+    return cors(req, res, async () => {
+      let result = [];
+      const limitEvents = await db
+        .collection('limit_event')
+        .where('is_active', '==', true)
+        .get();
+      for (let limitEvent of limitEvents.docs) {
+        let read_history = limitEvent.data()['read_history'];
+        let total_time = limitEvent.data()['limit_seconds'];
+        let book_id = limitEvent.data()['book_id'];
+        let time_event_user_count = limitEvent.data()['time_event_user_count'];
+        let read_time = 0;
 
-exports.get_limit_events_asia = functions.runWith({
-  timeoutSeconds: 10,
-  memory: '512MB'
-}).region('asia-northeast1').https.onRequest((req, res) => {
-  return cors(req, res, async () => {
-
-    let result = []
-    const limitEvents = await db.collection('limit_event').where('is_active', '==', true).get();
-    for (let limitEvent of limitEvents.docs) {
-      let read_history = limitEvent.data()['read_history']
-      let total_time = limitEvent.data()['limit_seconds']
-      let book_id = limitEvent.data()['book_id']
-      let time_event_user_count = limitEvent.data()['time_event_user_count']
-      let read_time = 0
-
-      if (req.query.user_id) {
-        for (let history of read_history) {
-          if (history.user_uid === req.query.user_id) {
-            read_time = history.total_time
-            break
+        if (req.query.user_id) {
+          for (let history of read_history) {
+            if (history.user_uid === req.query.user_id) {
+              read_time = history.total_time;
+              break;
+            }
           }
         }
+
+        result.push({
+          id: limitEvent.id,
+          book_id: book_id,
+          read_count: read_history.length + time_event_user_count,
+          total_time: total_time,
+          remain_time: total_time - read_time,
+          user_id: req.query.user_id,
+        });
       }
 
-      result.push({
-        id: limitEvent.id,
-        book_id: book_id,
-        read_count: read_history.length + time_event_user_count,
-        total_time: total_time,
-        remain_time: total_time - read_time,
-        user_id: req.query.user_id,
-      })
-    }
-
-    return res.status(200).send(result);
+      return res.status(200).send(result);
+    });
   });
-});
 
-exports.daily_job = functions.runWith(runtimeOpts)
-  .pubsub
-  .topic('daily-tick')
+exports.daily_job = functions
+  .runWith({
+    timeoutSeconds: 540,
+    memory: '2GB',
+  })
+  .pubsub.topic('daily-tick')
   .onPublish(async (message) => {
-  console.log("This job is run every day!");
+    console.log('This job is run every day!');
 
-  await updateReadLog();    // 하루에 그 책 몇번 읽었는지
-  await updateReadTimeLog();    // 하루에 그 책 몇시간 읽었는지 (유저당으로도)
-  // await updateSummary();    // 유저 통계용 데이터 삽입
-  await updateEventSummary();   // 출판사 통계 데이터
+    await updateReadLog(); // 하루에 그 책 몇번 읽었는지
+    await updateReadTimeLog(); // 하루에 그 책 몇시간 읽었는지 (유저당으로도)
+    // await updateSummary();    // 유저 통계용 데이터 삽입
+    await updateEventSummary(); // 출판사 통계 데이터
 
-  return true;
-});
+    return true;
+  });
 
-exports.hourly_job = functions.runWith(runtimeOpts)
-  .pubsub
-  .topic('hourly-tick')
+exports.hourly_job = functions
+  .runWith(runtimeOpts)
+  .pubsub.topic('hourly-tick')
   .onPublish(async (message) => {
-  console.log("This job is run every hour!");
+    console.log('This job is run every hour!');
 
-  return true;
-});
+    return true;
+  });
 
 exports.minutes_job = functions.pubsub
   .topic('minutes-tick')
   .onPublish(async (message) => {
-  console.log("This job is run every minutes! ver0.076");
+    console.log('This job is run every minutes! ver0.076');
 
-  return true;
-});
+    return true;
+  });
 
 // GOOGLE_APPLICATION_CREDENTIALS="/Users/yongsanglee/Code/bookchelin_firebase/bookchelin-firebase-adminsdk-crofb-331e0d969b.json" firebase emulators:start
