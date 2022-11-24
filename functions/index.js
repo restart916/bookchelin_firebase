@@ -576,7 +576,7 @@ exports.get_limit_events = functions
 
 exports.get_limit_events_asia = functions
   .runWith({
-    timeoutSeconds: 10,
+    timeoutSeconds: 30,
     memory: '512MB',
   })
   .region('asia-northeast1')
