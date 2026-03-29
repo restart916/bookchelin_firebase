@@ -69,3 +69,6 @@ node_modules/
 
 # dotenv environment variables file
 .env
+
+# Script-generated artifacts (verify-book-images 등)
+scripts/output/

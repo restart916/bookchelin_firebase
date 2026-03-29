@@ -1,0 +1,206 @@
+{
+  "note": "link_select 수동 등록용. Firestore: timestamp(unix), category, hidden:false 등은 앱에서 맞춰 넣으세요.",
+  "source": "교보 통합검색 1순위 + product 상세/검색 스니펫",
+  "generatedAt": "2026-03-29T07:38:43.243Z",
+  "count": 19,
+  "items": [
+    {
+      "title": "사랑이 있으니 살아집디다",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791187232629.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000219508068",
+      "description": "사랑이 있으니 살아집디다 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000219508068",
+      "s_code": "S000219508068",
+      "product_code": "9791187232629",
+      "search_used": "사랑이 있으니 살아집디다"
+    },
+    {
+      "title": "왕과 사는 남자 각본집",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791190738705.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000219519006",
+      "description": "왕과 사는 남자 각본집 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000219519006",
+      "s_code": "S000219519006",
+      "product_code": "9791190738705",
+      "search_used": "왕과 사는 남자 각본집"
+    },
+    {
+      "title": "괴테는 모든 것을 말했다",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791194530701.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000218438100",
+      "description": "괴테는 모든 것을 말했다 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000218438100",
+      "s_code": "S000218438100",
+      "product_code": "9791194530701",
+      "search_used": "괴테는 모든 것을 말했다"
+    },
+    {
+      "title": "완벽한 원시인",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791199383074.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000219310977",
+      "description": "완벽한 원시인 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000219310977",
+      "s_code": "S000219310977",
+      "product_code": "9791199383074",
+      "search_used": "완벽한 원시인"
+    },
+    {
+      "title": "인생을 위한 최소한의 생각",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791124248171.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000219182450",
+      "description": "인생을 위한 최소한의 생각 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000219182450",
+      "s_code": "S000219182450",
+      "product_code": "9791124248171",
+      "search_used": "인생을 위한 최소한의 생각"
+    },
+    {
+      "title": "부처님 말씀대로 살아보니",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791199496651.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000219145799",
+      "description": "부처님 말씀대로 살아보니 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000219145799",
+      "s_code": "S000219145799",
+      "product_code": "9791199496651",
+      "search_used": "부처님 말씀대로 살아보니"
+    },
+    {
+      "title": "나의 완벽한 장례식",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791124038192.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000218969272",
+      "description": "나의 완벽한 장례식 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000218969272",
+      "s_code": "S000218969272",
+      "product_code": "9791124038192",
+      "search_used": "나의 완벽한 장례식"
+    },
+    {
+      "title": "부의 자율주행 AI 머니",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791124370223.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000219521361",
+      "description": "부의 자율주행 AI 머니 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000219521361",
+      "s_code": "S000219521361",
+      "product_code": "9791124370223",
+      "search_used": "부의 자율주행 AI 머니"
+    },
+    {
+      "title": "모순 양귀자",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788998441012.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000001632467",
+      "description": "모순 양귀자 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000001632467",
+      "s_code": "S000001632467",
+      "product_code": "9788998441012",
+      "search_used": "모순 양귀자"
+    },
+    {
+      "title": "자몽살구클럽 한로로",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791199305304.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000217089705",
+      "description": "자몽살구클럽 한로로 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000217089705",
+      "s_code": "S000217089705",
+      "product_code": "9791199305304",
+      "search_used": "자몽살구클럽 한로로"
+    },
+    {
+      "title": "트라이브즈 세스 고딘",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791193262993.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000219488623",
+      "description": "트라이브즈 세스 고딘 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000219488623",
+      "s_code": "S000219488623",
+      "product_code": "9791193262993",
+      "search_used": "트라이브즈 세스 고딘"
+    },
+    {
+      "title": "무례한 세상에서 나를 지키는 법",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791199489530.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000219450826",
+      "description": "무례한 세상에서 나를 지키는 법 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000219450826",
+      "s_code": "S000219450826",
+      "product_code": "9791199489530",
+      "search_used": "무례한 세상에서 나를 지키는 법"
+    },
+    {
+      "title": "싯다르타 헤르만 헤세",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788937460586.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000000620195",
+      "description": "싯다르타 헤르만 헤세 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000000620195",
+      "s_code": "S000000620195",
+      "product_code": "9788937460586",
+      "search_used": "싯다르타 헤르만 헤세"
+    },
+    {
+      "title": "아르테미스 스폐셜 에디션 앤디 위어",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788925588711.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000000479331",
+      "description": "아르테미스 스폐셜 에디션 앤디 위어 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000000479331",
+      "s_code": "S000000479331",
+      "product_code": "9788925588711",
+      "search_used": "아르테미스 스폐셜 에디션 앤디 위어"
+    },
+    {
+      "title": "마션 스폐셜 에디션 앤디 위어",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788925588650.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000000479326",
+      "description": "마션 스폐셜 에디션 앤디 위어 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000000479326",
+      "s_code": "S000000479326",
+      "product_code": "9788925588650",
+      "search_used": "마션 스폐셜 에디션 앤디 위어"
+    },
+    {
+      "title": "박태웅의 AI 강의 2026",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791157848676.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000219446416",
+      "description": "박태웅의 AI 강의 2026 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000219446416",
+      "s_code": "S000219446416",
+      "product_code": "9791157848676",
+      "search_used": "박태웅의 AI 강의 2026"
+    },
+    {
+      "title": "프로젝트 헤일메리 강동혁",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788925588735.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000000479333",
+      "description": "프로젝트 헤일메리 강동혁 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000000479333",
+      "s_code": "S000000479333",
+      "product_code": "9788925588735",
+      "search_used": "프로젝트 헤일메리 강동혁"
+    },
+    {
+      "title": "물고기는 존재하지 않는다",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9791189327156.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000001925800",
+      "description": "물고기는 존재하지 않는다 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000001925800",
+      "s_code": "S000001925800",
+      "product_code": "9791189327156",
+      "search_used": "물고기는 존재하지 않는다"
+    },
+    {
+      "title": "전지적 독자 시점",
+      "image_url": "https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/9788934967583.jpg",
+      "link_url": "https://product.kyobobook.co.kr/book/preview/S000200551175",
+      "description": "전지적 독자 시점 — 교보문고 검색 1순위 상품",
+      "detail_url": "https://product.kyobobook.co.kr/detail/S000200551175",
+      "s_code": "S000200551175",
+      "product_code": "9788934967583",
+      "search_used": "전지적 독자 시점"
+    }
+  ],
+  "skipped": [
+    {
+      "searchQuery": "프로젝트 헤일메리 앤디 위어 2026",
+      "error": "S코드 또는 data-bid 없음",
+      "sid": "S000219446416",
+      "bid": null
+    }
+  ]
+}
