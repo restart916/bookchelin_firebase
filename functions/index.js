@@ -651,4 +651,4 @@ exports.minutes_job = functions.pubsub
     return true;
   });
 
-// GOOGLE_APPLICATION_CREDENTIALS="/Users/yongsanglee/Code/bookchelin_firebase/bookchelin-firebase-adminsdk-crofb-331e0d969b.json" firebase emulators:start
+// GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account.json" firebase emulators:start

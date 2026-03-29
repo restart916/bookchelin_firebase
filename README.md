@@ -2,9 +2,9 @@
 
 This README would normally document whatever steps are necessary to get your application up and running.
 
-인증관련
+인증관련 (로컬에 받은 서비스 계정 JSON 경로로 설정)
 ```
-export GOOGLE_APPLICATION_CREDENTIALS="/Users/yongsanglee/Code/bookchelin_firebase/bookchelin-firebase-adminsdk-crofb-331e0d969b.json"
+export GOOGLE_APPLICATION_CREDENTIALS="/절대/경로/your-service-account.json"
 ```
 
 ### What is this repository for? ###

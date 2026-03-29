@@ -1,6 +1,9 @@
 .DS_Store
 public/*
 
+# Firebase / GCP service account keys (never commit)
+*-adminsdk-*.json
+
 # Logs
 logs
 *.log
