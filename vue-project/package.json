@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build --modern",
+    "serve": "NODE_OPTIONS=--openssl-legacy-provider vue-cli-service serve",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider vue-cli-service build --modern",
     "lint": "vue-cli-service lint",
     "deploy": "npm run build && cd .. && firebase deploy && cd vue-project"
   },
@@ -28,6 +28,8 @@
     "vuejs-datepicker": "^1.6.2"
   },
   "devDependencies": {
+    "sass": "^1.69.5",
+    "sass-loader": "^8.0.2",
     "@vue/cli-plugin-babel": "^3.12.1",
     "@vue/cli-plugin-eslint": "^3.12.1",
     "@vue/cli-service": "^3.12.1",
@@ -59,5 +61,8 @@
     "> 1%",
     "last 2 versions",
     "not ie <= 8"
-  ]
+  ],
+  "overrides": {
+    "sass-loader": "^8.0.2"
+  }
 }
