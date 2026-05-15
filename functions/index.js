@@ -162,6 +162,64 @@ updateTimeEvent = async (book_id, user_uid, read_time, datetime) => {
   for (let doc of docs.docs) {
     // console.log('doc.data()', doc.data());
     let data = doc.data();
+
+    if (data.has_subcollection_history === true) {
+      // 새 구조: read_history 가 서브컬렉션에 있음. 트랜잭션으로 원자적 갱신.
+      let parentRef = doc.ref;
+      let userRef = parentRef.collection('read_history').doc(user_uid);
+      /* eslint-disable no-await-in-loop */
+      await db.runTransaction(async (tx) => {
+        let parentSnap = await tx.get(parentRef);
+        let userSnap = await tx.get(userRef);
+        let parentData = parentSnap.data() || {};
+        let eventMinute =
+          typeof parentData.event_minute === 'number'
+            ? parentData.event_minute
+            : 0;
+        let prevTotal =
+          typeof parentData.total_read_time === 'number'
+            ? parentData.total_read_time
+            : 0;
+        let prevUserCount =
+          typeof parentData.user_count === 'number' ? parentData.user_count : 0;
+
+        let newTotal = prevTotal + read_time;
+        let newUserCount = prevUserCount;
+
+        if (userSnap.exists) {
+          let userData = userSnap.data() || {};
+          let prevReadTime =
+            typeof userData.read_time === 'number' ? userData.read_time : 0;
+          let prevDatetime = Array.isArray(userData.datetime)
+            ? userData.datetime
+            : [];
+          tx.update(userRef, {
+            read_time: prevReadTime + read_time,
+            datetime: prevDatetime.concat([datetime]),
+          });
+        } else {
+          tx.set(userRef, {
+            read_time: read_time,
+            datetime: [datetime],
+          });
+          newUserCount = prevUserCount + 1;
+        }
+
+        let remain = eventMinute - newTotal;
+        if (remain < 0) remain = 0;
+
+        console.log('time', eventMinute, newTotal);
+
+        tx.update(parentRef, {
+          total_read_time: newTotal,
+          user_count: newUserCount,
+          remain_time: remain,
+        });
+      });
+      /* eslint-enable no-await-in-loop */
+      continue;
+    }
+
     if (!('read_history' in data)) {
       data.read_history = [];
     }
@@ -204,6 +262,54 @@ updateLimitEvent = async (book_id, user_uid, read_time, datetime) => {
     .get();
   for (let doc of docs.docs) {
     let data = doc.data();
+
+    if (data.has_subcollection_history === true) {
+      // 새 구조: read_history 가 서브컬렉션에 있음. 트랜잭션으로 원자적 갱신.
+      let parentRef = doc.ref;
+      let userRef = parentRef.collection('read_history').doc(user_uid);
+      /* eslint-disable no-await-in-loop */
+      await db.runTransaction(async (tx) => {
+        let parentSnap = await tx.get(parentRef);
+        let userSnap = await tx.get(userRef);
+        let parentData = parentSnap.data() || {};
+        let prevTotal =
+          typeof parentData.total_read_time === 'number'
+            ? parentData.total_read_time
+            : 0;
+        let prevUserCount =
+          typeof parentData.user_count === 'number' ? parentData.user_count : 0;
+
+        let newTotal = prevTotal + read_time;
+        let newUserCount = prevUserCount;
+
+        if (userSnap.exists) {
+          let userData = userSnap.data() || {};
+          let prevTotalTime =
+            typeof userData.total_time === 'number' ? userData.total_time : 0;
+          let prevLogs = Array.isArray(userData.logs) ? userData.logs : [];
+          tx.update(userRef, {
+            total_time: prevTotalTime + read_time,
+            logs: prevLogs.concat([
+              { read_time: read_time, datetime: datetime },
+            ]),
+          });
+        } else {
+          tx.set(userRef, {
+            total_time: read_time,
+            logs: [{ read_time: read_time, datetime: datetime }],
+          });
+          newUserCount = prevUserCount + 1;
+        }
+
+        tx.update(parentRef, {
+          total_read_time: newTotal,
+          user_count: newUserCount,
+        });
+      });
+      /* eslint-enable no-await-in-loop */
+      continue;
+    }
+
     if (!('read_history' in data)) {
       data.read_history = [];
     }
@@ -590,18 +696,42 @@ exports.get_limit_events = functions
         .collection('limit_event')
         .where('is_active', '==', true)
         .get();
+      /* eslint-disable no-await-in-loop */
       for (let limitEvent of limitEvents.docs) {
-        let read_history = limitEvent.data()['read_history'];
-        let total_time = limitEvent.data()['limit_seconds'];
-        let book_id = limitEvent.data()['book_id'];
-        let time_event_user_count = limitEvent.data()['time_event_user_count'];
+        let data = limitEvent.data();
+        let total_time = data['limit_seconds'];
+        let book_id = data['book_id'];
+        let time_event_user_count = data['time_event_user_count'] || 0;
         let read_time = 0;
+        let read_count = 0;
 
-        if (req.query.user_id) {
-          for (let history of read_history) {
-            if (history.user_uid === req.query.user_id) {
-              read_time = history.total_time;
-              break;
+        if (data.has_subcollection_history === true) {
+          let user_count =
+            typeof data.user_count === 'number' ? data.user_count : 0;
+          read_count = user_count + time_event_user_count;
+
+          if (req.query.user_id) {
+            let userSnap = await limitEvent.ref
+              .collection('read_history')
+              .doc(req.query.user_id)
+              .get();
+            if (userSnap.exists) {
+              let ud = userSnap.data() || {};
+              read_time = typeof ud.total_time === 'number' ? ud.total_time : 0;
+            }
+          }
+        } else {
+          let read_history = Array.isArray(data['read_history'])
+            ? data['read_history']
+            : [];
+          read_count = read_history.length + time_event_user_count;
+
+          if (req.query.user_id) {
+            for (let history of read_history) {
+              if (history.user_uid === req.query.user_id) {
+                read_time = history.total_time;
+                break;
+              }
             }
           }
         }
@@ -609,12 +739,13 @@ exports.get_limit_events = functions
         result.push({
           id: limitEvent.id,
           book_id: book_id,
-          read_count: read_history.length + time_event_user_count,
+          read_count: read_count,
           total_time: total_time,
           remain_time: total_time - read_time,
           user_id: req.query.user_id,
         });
       }
+      /* eslint-enable no-await-in-loop */
 
       return res.status(200).send(result);
     });
@@ -633,18 +764,42 @@ exports.get_limit_events_asia = functions
         .collection('limit_event')
         .where('is_active', '==', true)
         .get();
+      /* eslint-disable no-await-in-loop */
       for (let limitEvent of limitEvents.docs) {
-        let read_history = limitEvent.data()['read_history'];
-        let total_time = limitEvent.data()['limit_seconds'];
-        let book_id = limitEvent.data()['book_id'];
-        let time_event_user_count = limitEvent.data()['time_event_user_count'];
+        let data = limitEvent.data();
+        let total_time = data['limit_seconds'];
+        let book_id = data['book_id'];
+        let time_event_user_count = data['time_event_user_count'] || 0;
         let read_time = 0;
+        let read_count = 0;
 
-        if (req.query.user_id) {
-          for (let history of read_history) {
-            if (history.user_uid === req.query.user_id) {
-              read_time = history.total_time;
-              break;
+        if (data.has_subcollection_history === true) {
+          let user_count =
+            typeof data.user_count === 'number' ? data.user_count : 0;
+          read_count = user_count + time_event_user_count;
+
+          if (req.query.user_id) {
+            let userSnap = await limitEvent.ref
+              .collection('read_history')
+              .doc(req.query.user_id)
+              .get();
+            if (userSnap.exists) {
+              let ud = userSnap.data() || {};
+              read_time = typeof ud.total_time === 'number' ? ud.total_time : 0;
+            }
+          }
+        } else {
+          let read_history = Array.isArray(data['read_history'])
+            ? data['read_history']
+            : [];
+          read_count = read_history.length + time_event_user_count;
+
+          if (req.query.user_id) {
+            for (let history of read_history) {
+              if (history.user_uid === req.query.user_id) {
+                read_time = history.total_time;
+                break;
+              }
             }
           }
         }
@@ -652,12 +807,13 @@ exports.get_limit_events_asia = functions
         result.push({
           id: limitEvent.id,
           book_id: book_id,
-          read_count: read_history.length + time_event_user_count,
+          read_count: read_count,
           total_time: total_time,
           remain_time: total_time - read_time,
           user_id: req.query.user_id,
         });
       }
+      /* eslint-enable no-await-in-loop */
 
       return res.status(200).send(result);
     });
