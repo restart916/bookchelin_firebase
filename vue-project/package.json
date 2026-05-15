@@ -16,6 +16,7 @@
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.28",
     "pulltorefresh-vue": "git+ssh://git@github.com/restart916/pulltorefresh-vue.git",
+    "regenerator-runtime": "^0.14.1",
     "vue": "^2.6.11",
     "vue-blu": "^0.1.9",
     "vue-firestore": "^0.3.30",
@@ -28,14 +29,14 @@
     "vuejs-datepicker": "^1.6.2"
   },
   "devDependencies": {
-    "sass": "^1.69.5",
-    "sass-loader": "^8.0.2",
     "@vue/cli-plugin-babel": "^3.12.1",
     "@vue/cli-plugin-eslint": "^3.12.1",
     "@vue/cli-service": "^3.12.1",
     "babel-eslint": "^10.1.0",
     "eslint": "^5.16.0",
     "eslint-plugin-vue": "^5.2.3",
+    "sass": "^1.69.5",
+    "sass-loader": "^8.0.2",
     "vue-template-compiler": "^2.6.11"
   },
   "eslintConfig": {
