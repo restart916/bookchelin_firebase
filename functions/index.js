@@ -159,100 +159,69 @@ updateTimeEvent = async (book_id, user_uid, read_time, datetime) => {
     .collection('time_event')
     .where('book_id', '==', book_id)
     .get();
+  /* eslint-disable no-await-in-loop */
   for (let doc of docs.docs) {
     // console.log('doc.data()', doc.data());
     let data = doc.data();
 
-    if (data.has_subcollection_history === true) {
-      // 새 구조: read_history 가 서브컬렉션에 있음. 트랜잭션으로 원자적 갱신.
-      let parentRef = doc.ref;
-      let userRef = parentRef.collection('read_history').doc(user_uid);
-      /* eslint-disable no-await-in-loop */
-      await db.runTransaction(async (tx) => {
-        let parentSnap = await tx.get(parentRef);
-        let userSnap = await tx.get(userRef);
-        let parentData = parentSnap.data() || {};
-        let eventMinute =
-          typeof parentData.event_minute === 'number'
-            ? parentData.event_minute
-            : 0;
-        let prevTotal =
-          typeof parentData.total_read_time === 'number'
-            ? parentData.total_read_time
-            : 0;
-        let prevUserCount =
-          typeof parentData.user_count === 'number' ? parentData.user_count : 0;
-
-        let newTotal = prevTotal + read_time;
-        let newUserCount = prevUserCount;
-
-        if (userSnap.exists) {
-          let userData = userSnap.data() || {};
-          let prevReadTime =
-            typeof userData.read_time === 'number' ? userData.read_time : 0;
-          let prevDatetime = Array.isArray(userData.datetime)
-            ? userData.datetime
-            : [];
-          tx.update(userRef, {
-            read_time: prevReadTime + read_time,
-            datetime: prevDatetime.concat([datetime]),
-          });
-        } else {
-          tx.set(userRef, {
-            read_time: read_time,
-            datetime: [datetime],
-          });
-          newUserCount = prevUserCount + 1;
-        }
-
-        let remain = eventMinute - newTotal;
-        if (remain < 0) remain = 0;
-
-        console.log('time', eventMinute, newTotal);
-
-        tx.update(parentRef, {
-          total_read_time: newTotal,
-          user_count: newUserCount,
-          remain_time: remain,
-        });
-      });
-      /* eslint-enable no-await-in-loop */
+    if (data.has_subcollection_history !== true) {
+      console.warn('unmigrated time_event encountered: ' + doc.id);
       continue;
     }
 
-    if (!('read_history' in data)) {
-      data.read_history = [];
-    }
+    // read_history 는 서브컬렉션에 저장됨. 트랜잭션으로 원자적 갱신.
+    let parentRef = doc.ref;
+    let userRef = parentRef.collection('read_history').doc(user_uid);
+    await db.runTransaction(async (tx) => {
+      let parentSnap = await tx.get(parentRef);
+      let userSnap = await tx.get(userRef);
+      let parentData = parentSnap.data() || {};
+      let eventMinute =
+        typeof parentData.event_minute === 'number'
+          ? parentData.event_minute
+          : 0;
+      let prevTotal =
+        typeof parentData.total_read_time === 'number'
+          ? parentData.total_read_time
+          : 0;
+      let prevUserCount =
+        typeof parentData.user_count === 'number' ? parentData.user_count : 0;
 
-    let exists = false;
-    for (let read_history of data.read_history) {
-      if (read_history.user_uid === user_uid) {
-        read_history.read_time += read_time;
-        read_history.datetime.push(datetime);
-        exists = true;
+      let newTotal = prevTotal + read_time;
+      let newUserCount = prevUserCount;
+
+      if (userSnap.exists) {
+        let userData = userSnap.data() || {};
+        let prevReadTime =
+          typeof userData.read_time === 'number' ? userData.read_time : 0;
+        let prevDatetime = Array.isArray(userData.datetime)
+          ? userData.datetime
+          : [];
+        tx.update(userRef, {
+          read_time: prevReadTime + read_time,
+          datetime: prevDatetime.concat([datetime]),
+        });
+      } else {
+        tx.set(userRef, {
+          read_time: read_time,
+          datetime: [datetime],
+        });
+        newUserCount = prevUserCount + 1;
       }
-    }
 
-    if (!exists) {
-      data.read_history.push({
-        user_uid: user_uid,
-        read_time: read_time,
-        datetime: [datetime],
+      let remain = eventMinute - newTotal;
+      if (remain < 0) remain = 0;
+
+      console.log('time', eventMinute, newTotal);
+
+      tx.update(parentRef, {
+        total_read_time: newTotal,
+        user_count: newUserCount,
+        remain_time: remain,
       });
-    }
-
-    let sum = 0;
-    for (let read_history of data.read_history) {
-      sum += read_history.read_time;
-    }
-
-    console.log('time', data.event_minute, sum);
-
-    data.remain_time = data.event_minute - sum;
-    data.remain_time = data.remain_time < 0 ? 0 : data.remain_time;
-
-    doc.ref.update(data);
+    });
   }
+  /* eslint-enable no-await-in-loop */
 };
 
 updateLimitEvent = async (book_id, user_uid, read_time, datetime) => {
@@ -260,79 +229,58 @@ updateLimitEvent = async (book_id, user_uid, read_time, datetime) => {
     .collection('limit_event')
     .where('book_id', '==', book_id)
     .get();
+  /* eslint-disable no-await-in-loop */
   for (let doc of docs.docs) {
     let data = doc.data();
 
-    if (data.has_subcollection_history === true) {
-      // 새 구조: read_history 가 서브컬렉션에 있음. 트랜잭션으로 원자적 갱신.
-      let parentRef = doc.ref;
-      let userRef = parentRef.collection('read_history').doc(user_uid);
-      /* eslint-disable no-await-in-loop */
-      await db.runTransaction(async (tx) => {
-        let parentSnap = await tx.get(parentRef);
-        let userSnap = await tx.get(userRef);
-        let parentData = parentSnap.data() || {};
-        let prevTotal =
-          typeof parentData.total_read_time === 'number'
-            ? parentData.total_read_time
-            : 0;
-        let prevUserCount =
-          typeof parentData.user_count === 'number' ? parentData.user_count : 0;
-
-        let newTotal = prevTotal + read_time;
-        let newUserCount = prevUserCount;
-
-        if (userSnap.exists) {
-          let userData = userSnap.data() || {};
-          let prevTotalTime =
-            typeof userData.total_time === 'number' ? userData.total_time : 0;
-          let prevLogs = Array.isArray(userData.logs) ? userData.logs : [];
-          tx.update(userRef, {
-            total_time: prevTotalTime + read_time,
-            logs: prevLogs.concat([
-              { read_time: read_time, datetime: datetime },
-            ]),
-          });
-        } else {
-          tx.set(userRef, {
-            total_time: read_time,
-            logs: [{ read_time: read_time, datetime: datetime }],
-          });
-          newUserCount = prevUserCount + 1;
-        }
-
-        tx.update(parentRef, {
-          total_read_time: newTotal,
-          user_count: newUserCount,
-        });
-      });
-      /* eslint-enable no-await-in-loop */
+    if (data.has_subcollection_history !== true) {
+      console.warn('unmigrated limit_event encountered: ' + doc.id);
       continue;
     }
 
-    if (!('read_history' in data)) {
-      data.read_history = [];
-    }
+    // read_history 는 서브컬렉션에 저장됨. 트랜잭션으로 원자적 갱신.
+    let parentRef = doc.ref;
+    let userRef = parentRef.collection('read_history').doc(user_uid);
+    await db.runTransaction(async (tx) => {
+      let parentSnap = await tx.get(parentRef);
+      let userSnap = await tx.get(userRef);
+      let parentData = parentSnap.data() || {};
+      let prevTotal =
+        typeof parentData.total_read_time === 'number'
+          ? parentData.total_read_time
+          : 0;
+      let prevUserCount =
+        typeof parentData.user_count === 'number' ? parentData.user_count : 0;
 
-    let exists = false;
-    for (let read_history of data.read_history) {
-      if (read_history.user_uid === user_uid) {
-        read_history.total_time += read_time;
-        read_history.logs.push({ read_time: read_time, datetime: datetime });
-        exists = true;
+      let newTotal = prevTotal + read_time;
+      let newUserCount = prevUserCount;
+
+      if (userSnap.exists) {
+        let userData = userSnap.data() || {};
+        let prevTotalTime =
+          typeof userData.total_time === 'number' ? userData.total_time : 0;
+        let prevLogs = Array.isArray(userData.logs) ? userData.logs : [];
+        tx.update(userRef, {
+          total_time: prevTotalTime + read_time,
+          logs: prevLogs.concat([
+            { read_time: read_time, datetime: datetime },
+          ]),
+        });
+      } else {
+        tx.set(userRef, {
+          total_time: read_time,
+          logs: [{ read_time: read_time, datetime: datetime }],
+        });
+        newUserCount = prevUserCount + 1;
       }
-    }
 
-    if (!exists) {
-      data.read_history.push({
-        user_uid: user_uid,
-        logs: [{ read_time: read_time, datetime: datetime }],
-        total_time: read_time,
+      tx.update(parentRef, {
+        total_read_time: newTotal,
+        user_count: newUserCount,
       });
-    }
-
-    doc.ref.update(data);
+    });
   }
+  /* eslint-enable no-await-in-loop */
 };
 
 updateEventSummaryByDay = async (start_moment) => {
@@ -441,27 +389,12 @@ loadEventUnitData = async (datas, time_event, start_date, end_date) => {
   datas[event_id]['show_reader_user_count'] = show_book_reader_users.length;
   // datas[event_id]['show_reader_user_count'] = time_event_data['read_history'].length
 
-  if (
-    time_event_data.read_history.length &&
-    'event_minute' in time_event_data
-  ) {
-    let total_read_time =
-      time_event_data['event_minute'] - time_event_data['remain_time'];
-    datas[event_id]['total_read_time'] = total_read_time;
-    datas[event_id]['avg_user_read_time'] =
-      total_read_time / time_event_data.read_history.length;
-  } else if (time_event_data.read_history.length) {
-    let total_read_time = 0;
-    for (let read_history of time_event_data.read_history) {
-      total_read_time += read_history.total_time;
-    }
-    datas[event_id]['total_read_time'] = total_read_time;
-    datas[event_id]['avg_user_read_time'] =
-      total_read_time / time_event_data.read_history.length;
-  } else {
-    datas[event_id]['total_read_time'] = 0;
-    datas[event_id]['avg_user_read_time'] = 0;
-  }
+  // read_history 는 서브컬렉션으로 이전됨. 부모 문서의 집계 필드를 사용.
+  let user_count = time_event_data.user_count || 0;
+  let total_read_time = time_event_data.total_read_time || 0;
+  datas[event_id]['total_read_time'] = total_read_time;
+  datas[event_id]['avg_user_read_time'] =
+    user_count > 0 ? total_read_time / user_count : 0;
   // console.log('total_read_time', datas[event_id]['total_read_time'])
   // console.log('avg_user_read_time', datas[event_id]['avg_user_read_time'])
 
@@ -699,40 +632,28 @@ exports.get_limit_events = functions
       /* eslint-disable no-await-in-loop */
       for (let limitEvent of limitEvents.docs) {
         let data = limitEvent.data();
+
+        if (data.has_subcollection_history !== true) {
+          console.warn('unmigrated limit_event encountered: ' + limitEvent.id);
+          continue;
+        }
+
         let total_time = data['limit_seconds'];
         let book_id = data['book_id'];
         let time_event_user_count = data['time_event_user_count'] || 0;
+        let user_count =
+          typeof data.user_count === 'number' ? data.user_count : 0;
+        let read_count = user_count + time_event_user_count;
         let read_time = 0;
-        let read_count = 0;
 
-        if (data.has_subcollection_history === true) {
-          let user_count =
-            typeof data.user_count === 'number' ? data.user_count : 0;
-          read_count = user_count + time_event_user_count;
-
-          if (req.query.user_id) {
-            let userSnap = await limitEvent.ref
-              .collection('read_history')
-              .doc(req.query.user_id)
-              .get();
-            if (userSnap.exists) {
-              let ud = userSnap.data() || {};
-              read_time = typeof ud.total_time === 'number' ? ud.total_time : 0;
-            }
-          }
-        } else {
-          let read_history = Array.isArray(data['read_history'])
-            ? data['read_history']
-            : [];
-          read_count = read_history.length + time_event_user_count;
-
-          if (req.query.user_id) {
-            for (let history of read_history) {
-              if (history.user_uid === req.query.user_id) {
-                read_time = history.total_time;
-                break;
-              }
-            }
+        if (req.query.user_id) {
+          let userSnap = await limitEvent.ref
+            .collection('read_history')
+            .doc(req.query.user_id)
+            .get();
+          if (userSnap.exists) {
+            let ud = userSnap.data() || {};
+            read_time = typeof ud.total_time === 'number' ? ud.total_time : 0;
           }
         }
 
@@ -767,40 +688,28 @@ exports.get_limit_events_asia = functions
       /* eslint-disable no-await-in-loop */
       for (let limitEvent of limitEvents.docs) {
         let data = limitEvent.data();
+
+        if (data.has_subcollection_history !== true) {
+          console.warn('unmigrated limit_event encountered: ' + limitEvent.id);
+          continue;
+        }
+
         let total_time = data['limit_seconds'];
         let book_id = data['book_id'];
         let time_event_user_count = data['time_event_user_count'] || 0;
+        let user_count =
+          typeof data.user_count === 'number' ? data.user_count : 0;
+        let read_count = user_count + time_event_user_count;
         let read_time = 0;
-        let read_count = 0;
 
-        if (data.has_subcollection_history === true) {
-          let user_count =
-            typeof data.user_count === 'number' ? data.user_count : 0;
-          read_count = user_count + time_event_user_count;
-
-          if (req.query.user_id) {
-            let userSnap = await limitEvent.ref
-              .collection('read_history')
-              .doc(req.query.user_id)
-              .get();
-            if (userSnap.exists) {
-              let ud = userSnap.data() || {};
-              read_time = typeof ud.total_time === 'number' ? ud.total_time : 0;
-            }
-          }
-        } else {
-          let read_history = Array.isArray(data['read_history'])
-            ? data['read_history']
-            : [];
-          read_count = read_history.length + time_event_user_count;
-
-          if (req.query.user_id) {
-            for (let history of read_history) {
-              if (history.user_uid === req.query.user_id) {
-                read_time = history.total_time;
-                break;
-              }
-            }
+        if (req.query.user_id) {
+          let userSnap = await limitEvent.ref
+            .collection('read_history')
+            .doc(req.query.user_id)
+            .get();
+          if (userSnap.exists) {
+            let ud = userSnap.data() || {};
+            read_time = typeof ud.total_time === 'number' ? ud.total_time : 0;
           }
         }
 

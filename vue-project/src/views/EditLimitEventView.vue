@@ -53,7 +53,7 @@
             <div>
               <h1>{{ limitEvent.book_id }}</h1>
               <h1>{{ bookName(limitEvent.book_id) }}</h1>
-              <h1 :class="{warning: history_count(limitEvent) > 3000}">{{ history_count(limitEvent) }}</h1>
+              <h1>총 읽기 시간: {{ total_read_time(limitEvent) }}</h1>
               <h1>{{ history_user_count(limitEvent) }} </h1>
             </div>
             <div class='button' @click="selectBanner(limitEvent['.key'])">수정하기</div>
@@ -74,7 +74,6 @@
 <script>
 import { firestore, firestorage, fireauth } from '../main'
 import Header from './components/Header'
-import _ from 'lodash';
 
 export default {
   name: 'EditLimitEventView',
@@ -106,19 +105,14 @@ export default {
     }
   },
   methods: {
-    history_count(limitEvent) {
-      let count = 0;
-      for (let item of limitEvent.read_history) {
-        count += item.logs.length;
-      }
-      return count
+    total_read_time(limitEvent) {
+      return limitEvent.total_read_time || 0;
     },
     history_user_count(limitEvent) {
-      let user_uids = _.map(limitEvent.read_history, 'user_uid')
-      user_uids = _.uniq(user_uids)
-      let current_count = user_uids.length || 0;
-      let sum = current_count + limitEvent.time_event_user_count;
-      return `${limitEvent.time_event_user_count} + ${current_count} = ${sum}`;
+      let current_count = limitEvent.user_count || 0;
+      let time_event_user_count = limitEvent.time_event_user_count || 0;
+      let sum = current_count + time_event_user_count;
+      return `${time_event_user_count} + ${current_count} = ${sum}`;
     },
     bookName(bookId) {
       for (let book of this.books) {
@@ -164,7 +158,10 @@ export default {
           is_active: this.is_active,
           time_event_user_count: Number(this.time_event_user_count),
           create_time: this.create_time,
-          read_history: []
+          read_history: [],
+          has_subcollection_history: true,
+          user_count: 0,
+          total_read_time: 0
         }
         firestore.collection('limit_event').add(newDocument).then((docRef) => {
           console.log('Document written with ID: ', docRef.id)

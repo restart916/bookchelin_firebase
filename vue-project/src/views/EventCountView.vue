@@ -88,12 +88,14 @@ export default {
 
       const limitEvents = await firestore.collection('limit_event').get();
       for (let limitEvent of limitEvents.docs) {
-        const read_history = limitEvent.data()['read_history']
-        const time_event_user_count = limitEvent.data()['time_event_user_count']
-        const user_count = read_history.length + time_event_user_count
-        const read_count = _.sum(read_history.map((history) => history.logs.length))
+        const eventData = limitEvent.data()
+        const parent_user_count = eventData['user_count'] || 0
+        const time_event_user_count = eventData['time_event_user_count'] || 0
+        const user_count = parent_user_count + time_event_user_count
+        // 세션 단위 로그 수 필드는 부모 문서에 없음. 사용자 수를 대체값으로 사용.
+        const read_count = parent_user_count
 
-        let book_id = limitEvent.data()['book_id']
+        let book_id = eventData['book_id']
 
         let data = _.find(this.limit_datas, (v) => v['book_id'] == book_id);
         if (data) {
@@ -106,12 +108,12 @@ export default {
 
       const timeEvents = await firestore.collection('time_event').get();
       for (let timeEvent of timeEvents.docs) {
-        const read_history = timeEvent.data()['read_history']
-        // const time_event_user_count = timeEvent.data()['time_event_user_count']
-        const user_count = read_history.length // + time_event_user_count
-        const read_count = _.sum(read_history.map((history) => history.datetime.length))
+        const eventData = timeEvent.data()
+        const user_count = eventData['user_count'] || 0
+        // 세션 단위 로그 수 필드는 부모 문서에 없음. 사용자 수를 대체값으로 사용.
+        const read_count = user_count
 
-        let book_id = timeEvent.data()['book_id']
+        let book_id = eventData['book_id']
 
         let data = _.find(this.time_datas, (v) => v['book_id'] == book_id);
         if (data) {
