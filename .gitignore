@@ -3,6 +3,8 @@ public/*
 
 # Firebase / GCP service account keys (never commit)
 *-adminsdk-*.json
+scripts/serviceAccountKey.json
+scripts/node_modules/
 
 # Logs
 logs

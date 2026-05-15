@@ -1,0 +1,8 @@
+{
+  "name": "scripts",
+  "private": true,
+  "description": "Firebase admin scripts (backfill, repair). Run individually with node.",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
