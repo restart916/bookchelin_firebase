@@ -460,6 +460,52 @@ exports.add_time_read_time_logs = functions.firestore
     );
   });
 
+// search_index/books 문서를 books/{bookId} 변경에 맞춰 동기화.
+// Android 앱이 앱 시작 시 books 컬렉션 전체를 받지 않고,
+// 검색 다이얼로그용 최소 필드(id, title, description)만 받도록 하기 위한 인덱스.
+// hidden !== true 인 책만 포함하며, 다중 동시 쓰기에 대비해 runTransaction 사용.
+exports.update_search_index_on_book_write = functions.firestore
+  .document('books/{bookId}')
+  .onWrite(async (change, context) => {
+    const bookId = context.params.bookId;
+    const after = change.after.exists ? change.after.data() : null;
+
+    const indexRef = db.doc('search_index/books');
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(indexRef);
+        const data = snap.exists ? snap.data() : { books: [] };
+        const books = Array.isArray(data.books) ? data.books : [];
+
+        const filtered = books.filter((b) => b.id !== bookId);
+
+        if (after && after.hidden !== true) {
+          filtered.push({
+            id: bookId,
+            title: typeof after.title === 'string' ? after.title : '',
+            description:
+              typeof after.description === 'string' ? after.description : '',
+          });
+        }
+
+        tx.set(indexRef, {
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+          books: filtered,
+        });
+      });
+    } catch (err) {
+      console.error(
+        `update_search_index_on_book_write: transaction failed for bookId=${bookId}`,
+        err
+      );
+      throw err;
+    }
+
+    console.log(`update_search_index_on_book_write: ${bookId}`);
+    return null;
+  });
+
 const runtimeOpts = {
   timeoutSeconds: 540,
   memory: '1GB',
