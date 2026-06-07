@@ -118,6 +118,8 @@ async function generateHomeDynamic(db, now = new Date()) {
 
   const dayIndex = kstDayIndex(now);
   const discover = selectDiscover({ pool: orderedPool, dayIndex, window: 10 });
+  // 상단 캐러셀: 큐레이션 핀(main_books)을 날짜 윈도우로 매일 회전(내리고/올리기).
+  const carousel = selectDiscover({ pool: pinIds, dayIndex, window: 10 });
 
   const autoDocs = buildAutoSuggestDocs(trending, discover);
 
@@ -125,6 +127,7 @@ async function generateHomeDynamic(db, now = new Date()) {
   batch.set(db.collection('home_dynamic').doc('current'), {
     updated_at: now,
     date: kstDateString(now),
+    carousel,
     trending,
     discover,
   });
@@ -132,7 +135,7 @@ async function generateHomeDynamic(db, now = new Date()) {
   batch.set(db.collection('suggest_group').doc('_auto_discover'), autoDocs._auto_discover);
   await batch.commit();
 
-  return { date: kstDateString(now), trending: trending.length, discover: discover.length };
+  return { date: kstDateString(now), carousel: carousel.length, trending: trending.length, discover: discover.length };
 }
 
 module.exports = {

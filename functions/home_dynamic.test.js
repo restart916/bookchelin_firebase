@@ -135,6 +135,8 @@ test('generateHomeDynamic: 집계→선정→home_dynamic/current + 자동행 2�
 
   const home = db._writes['home_dynamic/current'];
   assert.strictEqual(home.date, '2026-06-07');
+  // 캐러셀 = 핀(main_books) 회전 윈도우 → 핀이 P 하나뿐이므로 ['P']
+  assert.deepStrictEqual(home.carousel, ['P']);
   // A는 7일내 유저 2명 → 트렌딩. P는 핀이라 제외.
   assert.deepStrictEqual(home.trending, [{ book_id: 'A', reader_count: 2 }]);
   // 발견 풀 = 가시 - 핀(P) - 트렌딩(A) = [D1, D2] (HID 제외)
