@@ -21,6 +21,7 @@ const axios = require('axios').default;
 
 // [END additionalimports]
 const db = admin.firestore();
+const { generateHomeDynamic } = require('./home_dynamic');
 
 // [START trigger]
 exports.date = functions.https.onRequest((req, res) => {
@@ -741,6 +742,7 @@ exports.daily_job = functions
     await updateReadTimeLog(); // 하루에 그 책 몇시간 읽었는지 (유저당으로도)
     // await updateSummary();    // 유저 통계용 데이터 삽입
     await updateEventSummary(); // 출판사 통계 데이터
+    await generateHomeDynamic(db); // 동적 홈 편성(트렌딩/발견 + 자동 추천행)
 
     return true;
   });
@@ -761,5 +763,22 @@ exports.minutes_job = functions.pubsub
 
     return true;
   });
+
+// 동적 홈 편성을 수동으로 1회 실행하는 검증용 HTTPS 트리거.
+exports.regenerate_home_dynamic = functions.https.onRequest(async (req, res) => {
+  try {
+    const result = await generateHomeDynamic(db);
+    console.log('regenerate_home_dynamic done', result);
+    res.status(200).json({
+      ok: true,
+      date: result.date,
+      trending: result.trending,
+      discover: result.discover,
+    });
+  } catch (e) {
+    console.error('regenerate_home_dynamic failed', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 
 // GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account.json" firebase emulators:start
