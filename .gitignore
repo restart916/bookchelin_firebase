@@ -74,3 +74,7 @@ node_modules/
 
 # Script-generated artifacts (verify-book-images 등)
 scripts/output/
+
+# 사전 데이터 덤프 (repo에 커밋하지 않음 — CLAUDE.md 참조)
+bookoc119_books.json
+bookoc119_titles.txt
