@@ -181,9 +181,11 @@ async function generateHomeDynamic(db, now = new Date()) {
   const dayIndex = kstDayIndex(now);
   const stateRef = db.collection('home_dynamic').doc('_trending_state');
   const stateSnap = await stateRef.get();
+  const stateDoc = (stateSnap && stateSnap.exists ? stateSnap.data() : null) || {};
+  // 같은 날 재실행(예: regenerate 수동 호출)이 streak 를 이중 증가시키지 않도록,
+  // 그날의 입력 baseline 을 재사용해 멱등하게 만든다. 날이 바뀌면 직전 결과(state)를 입력으로.
   const prevState =
-    (stateSnap && stateSnap.exists ? (stateSnap.data() || {}).state : null) ||
-    {};
+    (stateDoc.day === dayIndex ? stateDoc.baseline : stateDoc.state) || {};
   const { selected: trending, nextState } = selectTrendingWithCooldown(
     ranked,
     prevState,
@@ -217,7 +219,8 @@ async function generateHomeDynamic(db, now = new Date()) {
   });
   batch.set(db.collection('suggest_group').doc('_auto_trending'), autoDocs._auto_trending);
   batch.set(db.collection('suggest_group').doc('_auto_discover'), autoDocs._auto_discover);
-  batch.set(stateRef, { updated_at: now, day: dayIndex, state: nextState });
+  // baseline = 이번 실행에 쓴 입력 상태. 같은 날 재실행 시 멱등성을 위해 함께 저장.
+  batch.set(stateRef, { updated_at: now, day: dayIndex, state: nextState, baseline: prevState });
   await batch.commit();
 
   return { date: kstDateString(now), carousel: carousel.length, trending: trending.length, discover: discover.length };
