@@ -23,6 +23,7 @@ const axios = require('axios').default;
 const db = admin.firestore();
 const { generateHomeDynamic, formatCurationMessage } = require('./home_dynamic');
 const { fetchAndStoreDau } = require('./analytics_dau');
+const { sendDauReport } = require('./analytics_discord');
 const { notifyDiscord, discordWebhook } = require('./discord');
 
 // [START trigger]
@@ -815,18 +816,61 @@ exports.regenerate_home_dynamic = functions
 //   });
 
 // DAU 수집을 수동으로 1회 실행하는 검증용 HTTPS 트리거. (배포 직후 동작 확인용)
+// 쿼리 파라미터: ?days=N (기본 7일, 최대 90일)
 exports.collect_dau_now = functions
   .region('asia-northeast1')
   .https.onRequest(async (req, res) => {
     try {
-      const result = await fetchAndStoreDau(db, { lookbackDays: 7 });
-      res.status(200).json({ ok: true, ...result });
+      const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 90);
+      const result = await fetchAndStoreDau(db, { lookbackDays: days });
+
+      // 날짜별 요약 테이블 (응답 JSON에 포함)
+      const summary = result.rows.map((r) => ({
+        date: r.date,
+        dau: r.dau,
+        wau: r.wau,
+        mau: r.mau,
+        dauPerMau: Number.isFinite(r.dauPerMau) ? `${(r.dauPerMau * 100).toFixed(1)}%` : null,
+        dauPerWau: Number.isFinite(r.dauPerWau) ? `${(r.dauPerWau * 100).toFixed(1)}%` : null,
+        wauPerMau: Number.isFinite(r.wauPerMau) ? `${(r.wauPerMau * 100).toFixed(1)}%` : null,
+        purchaseRevenue: r.purchaseRevenue,
+        totalRevenue: r.totalRevenue,
+      }));
+
+      res.status(200).json({
+        ok: true,
+        property: result.property,
+        serviceAccount: result.serviceAccount,
+        days,
+        count: summary.length,
+        rows: summary,
+      });
     } catch (e) {
       const status = e?.response?.status;
       const msg = e?.response?.data?.error?.message ?? e.message;
       console.error(`collect_dau_now failed (status ${status}): ${msg}`);
       res.status(500).json({ ok: false, status, error: msg });
     }
+  });
+
+// 매일 KST 09:00(UTC 00:00)에 전날 GA4 지표를 Discord로 발송.
+// DISCORD_WEBHOOK_URL 시크릿이 설정되어 있어야 한다: firebase functions:secrets:set DISCORD_WEBHOOK_URL
+exports.daily_dau_report = functions
+  .runWith({
+    timeoutSeconds: 120,
+    secrets: [discordWebhook],
+  })
+  .pubsub.schedule('every day 00:00')
+  .timeZone('UTC')
+  .onRun(async () => {
+    try {
+      await sendDauReport(db);
+      console.log('daily_dau_report: Discord 전송 완료');
+    } catch (e) {
+      console.error('daily_dau_report 실패:', e.message);
+      throw e;
+    }
+    return null;
   });
 
 // GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account.json" firebase emulators:start

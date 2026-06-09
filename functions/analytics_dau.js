@@ -1,12 +1,16 @@
 // analytics_dau.js
-// GA4(Firebase Analytics)의 DAU/WAU/MAU를 조회해 Firestore에 저장하는 로직.
+// GA4(Firebase Analytics)의 DAU/WAU/MAU, 수익, 리텐션 비율을 조회해 Firestore에 저장하는 로직.
 //
 // 인증: Cloud Functions 런타임 서비스 계정의 ADC(Application Default Credentials)를 사용한다.
 //   - 키 파일을 코드에 포함하지 않는다.
 //   - 대신 이 함수의 런타임 서비스 계정을 GA4 속성에 "뷰어"로 추가해야 한다.
 //   - 어떤 계정을 추가해야 하는지는 첫 실행 로그(serviceAccount: ...)에서 확인할 수 있다.
 //
-// GA4 지표: active1DayUsers ≈ DAU, active7DayUsers ≈ WAU, active28DayUsers ≈ MAU
+// GA4 지표:
+//   active1DayUsers ≈ DAU, active7DayUsers ≈ WAU, active28DayUsers ≈ MAU
+//   purchaseRevenue: 구매 수익 (인앱결제 등), totalRevenue: 전체 수익 (광고 수익 포함)
+//   dauPerMau: DAU/MAU 비율 (소수점, 예: 0.15 = 15%) — 스티키니스(stickiness) 지표
+//   dauPerWau: DAU/WAU 비율, wauPerMau: WAU/MAU 비율
 
 const { GoogleAuth } = require('google-auth-library');
 
@@ -56,9 +60,14 @@ async function fetchAndStoreDau(db, opts = {}) {
       dateRanges: [{ startDate: `${lookbackDays}daysAgo`, endDate: 'today' }],
       dimensions: [{ name: 'date' }],
       metrics: [
-        { name: 'active1DayUsers' },
-        { name: 'active7DayUsers' },
-        { name: 'active28DayUsers' },
+        { name: 'active1DayUsers' },   // DAU
+        { name: 'active7DayUsers' },   // WAU
+        { name: 'active28DayUsers' },  // MAU
+        { name: 'purchaseRevenue' },   // 구매 수익 (인앱결제·이커머스)
+        { name: 'totalRevenue' },      // 전체 수익 (광고 수익 포함)
+        { name: 'dauPerMau' },         // DAU/MAU 비율 (스티키니스)
+        { name: 'dauPerWau' },         // DAU/WAU 비율
+        { name: 'wauPerMau' },         // WAU/MAU 비율
       ],
       orderBys: [{ dimension: { dimensionName: 'date' } }],
     }
@@ -66,8 +75,9 @@ async function fetchAndStoreDau(db, opts = {}) {
 
   const rows = (data.rows || []).map((row) => {
     const date = row.dimensionValues[0].value; // YYYYMMDD
-    const [dau, wau, mau] = row.metricValues.map((m) => Number(m.value));
-    return { date, dau, wau, mau };
+    const [dau, wau, mau, purchaseRevenue, totalRevenue, dauPerMau, dauPerWau, wauPerMau] =
+      row.metricValues.map((m) => Number(m.value));
+    return { date, dau, wau, mau, purchaseRevenue, totalRevenue, dauPerMau, dauPerWau, wauPerMau };
   });
 
   // Firestore에 날짜별 문서로 upsert
@@ -81,6 +91,11 @@ async function fetchAndStoreDau(db, opts = {}) {
         dau: r.dau,
         wau: r.wau,
         mau: r.mau,
+        purchaseRevenue: r.purchaseRevenue,
+        totalRevenue: r.totalRevenue,
+        dauPerMau: r.dauPerMau,   // 0~1 소수점, 예: 0.15 = 15%
+        dauPerWau: r.dauPerWau,
+        wauPerMau: r.wauPerMau,
         property: GA4_PROPERTY_ID,
         updatedAt: new Date(),
       },
