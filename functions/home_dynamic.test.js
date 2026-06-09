@@ -180,6 +180,24 @@ test('formatCurationMessage: 섹션별 제목 목록 + 신규(🆕) 표시', () 
   assert.ok(msg.includes('🎠 캐러셀 (1)'));
 });
 
+test('generateHomeDynamic: 숨김(hidden) 핀의 캐러셀 제목도 개별 조회로 채운다', async () => {
+  const now = new Date('2026-06-07T03:00:00Z');
+  const db = makeFakeDb({
+    readTimeLogs: [],
+    // 'HID' 는 hidden==true 라 books where(hidden==false) 스냅에는 안 잡힌다.
+    books: [{ id: 'D1', hidden: false }],
+    mainBooks: [{ id: 'mb1', book_id: 'HID' }], // 숨김 책을 핀으로
+    // 개별 doc(id).get() 으로는 숨김 책의 제목을 읽을 수 있어야 한다.
+    docs: { 'books/HID': { title: '숨김인데 제목은 있음', hidden: true } },
+  });
+
+  const result = await hd.generateHomeDynamic(db, now);
+
+  assert.deepStrictEqual(result.carousel, [
+    { book_id: 'HID', title: '숨김인데 제목은 있음' },
+  ]);
+});
+
 test('formatCurationMessage: 빈 섹션은 "(없음)", title 없으면 book_id 폴백', () => {
   const msg = hd.formatCurationMessage({
     date: '2026-06-09',

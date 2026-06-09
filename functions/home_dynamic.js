@@ -212,6 +212,19 @@ async function generateHomeDynamic(db, now = new Date()) {
   // 상단 캐러셀: 큐레이션 핀(main_books)을 날짜 윈도우로 매일 회전(내리고/올리기).
   const carousel = selectDiscover({ pool: pinIds, dayIndex, window: 10 });
 
+  // 캐러셀 핀은 숨김(hidden==true) 책일 수 있어 booksSnap(hidden==false)에 없다 →
+  // 알림 제목 표시를 위해 맵에 빠진 핀만 개별 조회해 제목을 채운다(보통 ≤10건).
+  const missingTitleIds = carousel.filter((id) => !titleById.has(id));
+  if (missingTitleIds.length) {
+    const snaps = await Promise.all(
+      missingTitleIds.map((id) => db.collection('books').doc(id).get())
+    );
+    snaps.forEach((s, i) => {
+      const t = s && s.exists ? (s.data() || {}).title : undefined;
+      if (typeof t === 'string' && t) titleById.set(missingTitleIds[i], t);
+    });
+  }
+
   const autoDocs = buildAutoSuggestDocs(trending, discover);
 
   const batch = db.batch();
