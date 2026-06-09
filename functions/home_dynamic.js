@@ -166,6 +166,11 @@ async function generateHomeDynamic(db, now = new Date()) {
 
   const booksSnap = await db.collection('books').where('hidden', '==', false).get();
   const visibleIds = booksSnap.docs.map((d) => d.id);
+  // Discord 알림 등에서 책 제목을 보여주기 위한 id→title 맵(보이는 책 한정, 없으면 id 폴백).
+  const titleById = new Map(
+    booksSnap.docs.map((d) => [d.id, (d.data() || {}).title])
+  );
+  const titleOf = (id) => titleById.get(id) || id;
 
   const mbSnap = await db.collection('main_books').get();
   const pinIds = mbSnap.docs.map((d) => d.data().book_id).filter(Boolean);
@@ -223,7 +228,37 @@ async function generateHomeDynamic(db, now = new Date()) {
   batch.set(stateRef, { updated_at: now, day: dayIndex, state: nextState, baseline: prevState });
   await batch.commit();
 
-  return { date: kstDateString(now), carousel: carousel.length, trending: trending.length, discover: discover.length };
+  // 반환값: 알림/검증에서 쓰도록 제목과 '오늘 새로 진입(streak===1)' 표시를 덧붙인 상세 리스트.
+  // Firestore 에 쓰는 문서 shape(위 batch)은 그대로 두고, 반환만 풍부하게 한다.
+  return {
+    date: kstDateString(now),
+    carousel: carousel.map((id) => ({ book_id: id, title: titleOf(id) })),
+    trending: trending.map((t) => ({
+      book_id: t.book_id,
+      reader_count: t.reader_count,
+      title: titleOf(t.book_id),
+      is_new: Boolean(nextState[t.book_id] && nextState[t.book_id].streak === 1),
+    })),
+    discover: discover.map((id) => ({ book_id: id, title: titleOf(id) })),
+  };
+}
+
+// 일간 큐레이션 결과를 Discord 로 보낼 사람이 읽기 좋은 텍스트로 만든다(순수 함수).
+// generateHomeDynamic 의 반환값을 그대로 받는다. 오늘 새로 인기에 든 책은 🆕 로 표시.
+function formatCurationMessage(result) {
+  const fmt = (b) => `• ${b.title || b.book_id}${b.is_new ? '  🆕' : ''}`;
+  const lines = [`📚 일간 큐레이션 갱신 — ${result.date}`];
+  const section = (emoji, label, items) => {
+    lines.push('', `${emoji} ${label} (${items.length})`);
+    if (items.length === 0) lines.push('• (없음)');
+    else for (const b of items) lines.push(fmt(b));
+  };
+  section('🔥', '지금 인기', result.trending || []);
+  section('✨', '오늘의 발견', result.discover || []);
+  section('🎠', '캐러셀', result.carousel || []);
+  let msg = lines.join('\n');
+  if (msg.length > 1900) msg = msg.slice(0, 1900) + '\n… (생략)';
+  return msg;
 }
 
 module.exports = {
@@ -236,4 +271,5 @@ module.exports = {
   selectDiscover,
   buildAutoSuggestDocs,
   generateHomeDynamic,
+  formatCurationMessage,
 };
