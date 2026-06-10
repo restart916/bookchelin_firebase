@@ -1,16 +1,18 @@
-# 공유마당/위키문헌 만료저작물 단편소설 → EPUB + 표지 빌드 (2026-06)
+# 공유마당/위키문헌 만료저작물 → EPUB + 표지 빌드 (2026-06)
 #
 # 사용법: python3 build_gongu_epubs.py
-#   1) 위키문헌 API 에서 원문 수집 (전부 PD-old 만료 저작물 확인됨)
+#   1) gongu_books.json 의 작품들을 위키문헌 API 에서 수집 (전부 PD-old 만료 확인)
 #   2) /tmp/gongu_books 에 표지 PNG(600x900, headless Chrome 필요)와
 #      EPUB 2.0.1(NCX 포함, 표지 내장) 생성
 #   3) 업로드는 upload_gongu_books.js 로 별도 실행
 #
-# 클라이언트 호환: Android=epublibDroid(EPUB2/NCX), iOS=WebView 기반 → EPUB 2.0.1 사용.
+# 책 메타데이터는 gongu_books.json 단일 소스. 신규 추가 시 그 파일에 항목만 추가하면
+# 이 스크립트(표지·EPUB)와 upload_gongu_books.js(Storage·Firestore)가 함께 처리한다.
+#
+# 클라이언트 호환: Android=epublibDroid(EPUB2/NCX), iOS=WebView → EPUB 2.0.1 사용.
 
 import json
 import os
-import random
 import subprocess
 import urllib.parse
 import urllib.request
@@ -19,6 +21,8 @@ import zipfile
 import html as H
 from html.parser import HTMLParser
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BOOKS_JSON = os.path.join(SCRIPT_DIR, 'gongu_books.json')
 OUT_DIR = '/tmp/gongu_books'
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 USER_AGENT = 'BookchelinBot/1.0 (contact: yongsanglee@odkmedia.net)'
@@ -28,29 +32,9 @@ SOURCE_NOTE = (
     '위키문헌(ko.wikisource.org)과 공유마당(한국저작권위원회)에 공개된 원문을 바탕으로 제작되었습니다.'
 )
 
-# 주의: 작가 사망 1962년 이전(구법 50년 만료분)만 추가할 것. 염상섭(1963 사망)은 2033년까지 보호.
-BOOKS = [
-    dict(file='운수_좋은_날', page='운수 좋은 날', title='운수 좋은 날', author='현진건', life='1900–1943',
-         pub='1924년 《개벽》 발표',
-         desc='인력거꾼 김 첨지의 하루를 통해 일제강점기 도시 하층민의 비극을 그린 현진건의 대표 단편. '
-              '모처럼 손님이 끊이지 않는 "운수 좋은" 날, 아픈 아내를 위해 설렁탕을 사 들고 돌아온 그를 기다리는 것은….'),
-    dict(file='메밀꽃_필_무렵', page='메밀꽃 필 무렵', title='메밀꽃 필 무렵', author='이효석', life='1907–1942',
-         pub='1936년 《조광》 발표',
-         desc='달빛 아래 소금을 뿌린 듯 흐드러진 메밀꽃밭을 배경으로, '
-              '장돌뱅이 허 생원의 평생 잊지 못할 하룻밤 인연을 그린 한국 서정 단편의 백미.'),
-    dict(file='동백꽃', page='동백꽃', title='동백꽃', author='김유정', life='1908–1937',
-         pub='1936년 《조광》 발표',
-         desc="닭싸움을 빌미로 시비를 걸어오는 점순이와 눈치 없는 '나'의 풋풋한 사랑을 해학적으로 그린 김유정의 대표작. "
-              '알싸한 노란 동백꽃(생강나무 꽃) 향기 속에 묻히는 결말이 백미.'),
-    dict(file='날개', page='날개', title='날개', author='이상', life='1910–1937',
-         pub='1936년 《조광》 발표',
-         desc='"박제가 되어 버린 천재를 아시오?" — 식민지 지식인의 무력한 자의식을 실험적 문체로 그려낸 '
-              '한국 모더니즘 문학의 정점.'),
-    dict(file='감자', page='감자', title='감자', author='김동인', life='1900–1951',
-         pub='1925년 《조선문단》 발표',
-         desc='가난 때문에 칠성문 밖 빈민굴로 흘러든 복녀가 도덕적으로 몰락해 가는 과정을 차갑게 응시한 '
-              '김동인의 자연주의 대표 단편.'),
-]
+# 작가 사망 1962년 이전(구법 50년 만료분)만 추가할 것. 염상섭(1963 사망)은 2033년까지 보호.
+with open(BOOKS_JSON, encoding='utf-8') as f:
+    BOOKS = json.load(f)
 
 
 class Extractor(HTMLParser):
@@ -103,93 +87,52 @@ def fetch_paras(book):
     ex = Extractor()
     ex.feed(d['parse']['text'])
     paras = ex.paras
-    # 첫 문단이 작가명만 있는 경우 제거
-    if paras and len(paras[0]) < 12 and book['author'].replace(' ', '') in paras[0].replace(' ', ''):
+    # 선행 문단이 제목/작가명만 반복되는 경우 제거 (위키문헌 페이지가 제목을 본문 머리에 넣는 경우)
+    norm = lambda s: s.replace(' ', '').strip()
+    drop = {norm(book['title']), norm(book['author'])}
+    while paras and len(paras[0]) < 20 and norm(paras[0]) in drop:
         paras = paras[1:]
     return paras
 
 
-# ---------- 표지 (SVG → headless Chrome → PNG 600x900) ----------
-
-def motif_rain(c):
-    random.seed(1)
-    out = []
-    for _ in range(60):
-        x, y = random.uniform(-50, 650), random.uniform(0, 900)
-        l = random.uniform(20, 60)
-        out.append(f'<line x1="{x:.0f}" y1="{y:.0f}" x2="{x + l * 0.25:.0f}" y2="{y + l:.0f}" '
-                   f'stroke="{c}" stroke-width="2" opacity="{random.uniform(0.15, 0.5):.2f}"/>')
-    return '\n'.join(out)
-
-
-def motif_buckwheat(c):
-    random.seed(7)
-    out = ['<circle cx="300" cy="235" r="95" fill="#f5efdc" opacity="0.95"/>']
-    for _ in range(160):
-        x, y = random.uniform(0, 600), random.uniform(560, 900)
-        out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{random.uniform(1.5, 4):.1f}" '
-                   f'fill="{c}" opacity="{random.uniform(0.4, 0.95):.2f}"/>')
-    return '\n'.join(out)
-
-
-def motif_camellia(c):
-    random.seed(3)
-    out = []
-    for cx, cy, n in [(110, 690, 7), (480, 170, 5), (500, 760, 6), (90, 200, 4)]:
-        for _ in range(n):
-            x, y = cx + random.uniform(-55, 55), cy + random.uniform(-55, 55)
-            out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{random.uniform(7, 16):.0f}" '
-                       f'fill="{c}" opacity="{random.uniform(0.55, 0.95):.2f}"/>')
-    return '\n'.join(out)
-
-
-def motif_wing(c):
-    return (f'<path d="M 80 660 Q 300 480 540 620" stroke="{c}" stroke-width="5" fill="none" opacity="0.9"/>'
-            f'<path d="M 110 710 Q 305 560 510 680" stroke="{c}" stroke-width="3.5" fill="none" opacity="0.6"/>'
-            f'<path d="M 145 755 Q 310 635 480 735" stroke="{c}" stroke-width="2.5" fill="none" opacity="0.35"/>')
-
-
-def motif_potato(c):
-    random.seed(5)
-    out = []
-    for _ in range(9):
-        x, y = random.uniform(80, 520), random.uniform(620, 840)
-        rx = random.uniform(28, 55)
-        ry = rx * random.uniform(0.6, 0.8)
-        rot = random.uniform(-30, 30)
-        out.append(f'<ellipse cx="{x:.0f}" cy="{y:.0f}" rx="{rx:.0f}" ry="{ry:.0f}" fill="{c}" '
-                   f'opacity="{random.uniform(0.25, 0.6):.2f}" transform="rotate({rot:.0f} {x:.0f} {y:.0f})"/>')
-    return '\n'.join(out)
-
-
-COVER_STYLES = {
-    '운수_좋은_날': dict(bg='#2b3a4a', fg='#f2ede3', sub='#aebccb', motif=lambda: motif_rain('#8fa3b8')),
-    '메밀꽃_필_무렵': dict(bg='#1d2440', fg='#f5efdc', sub='#9aa3c7', motif=lambda: motif_buckwheat('#f5efdc')),
-    '동백꽃': dict(bg='#f4eede', fg='#3c4a2e', sub='#7a8463', motif=lambda: motif_camellia('#e3b820')),
-    '날개': dict(bg='#efedea', fg='#262421', sub='#8a857d', motif=lambda: motif_wing('#262421')),
-    '감자': dict(bg='#4a3526', fg='#efe3d0', sub='#b59f86', motif=lambda: motif_potato('#c8a374')),
-}
+# ---------- 표지 (시리즈 팔레트, JSON 순서대로 deterministic) ----------
+# "한국 단편소설 선" 시리즈로 통일감을 주는 미니멀 표지. 책마다 팔레트만 순환한다.
+PALETTES = [
+    ('#2b3a4a', '#f2ede3', '#aebccb'),  # 짙은 청회색
+    ('#1d2440', '#f5efdc', '#9aa3c7'),  # 남색
+    ('#4a3526', '#efe3d0', '#b59f86'),  # 흙갈색
+    ('#3c4a2e', '#f4eede', '#9aa888'),  # 올리브
+    ('#42283a', '#f3e6ef', '#bb9bb0'),  # 자주
+    ('#26414a', '#e8f1f2', '#9ec2c8'),  # 청록
+    ('#4a2e2e', '#f3e3e0', '#c39a96'),  # 적갈
+    ('#2e3142', '#ececf4', '#a6a8c0'),  # 진회보라
+    ('#1f3a34', '#e6f2ee', '#92c0b3'),  # 진초록
+    ('#473a1f', '#f4eddc', '#c2b07f'),  # 카키골드
+]
 
 COVER_TPL = '''<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{{margin:0;padding:0}}</style></head><body>
 <svg width="600" height="900" viewBox="0 0 600 900" xmlns="http://www.w3.org/2000/svg">
 <rect width="600" height="900" fill="{bg}"/>
-{motif}
-<text x="300" y="100" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="17" letter-spacing="8" fill="{sub}">한국 단편소설 선</text>
-<line x1="240" y1="125" x2="360" y2="125" stroke="{sub}" stroke-width="1"/>
-<text x="300" y="425" text-anchor="middle" font-family="AppleMyungjo" font-weight="bold" font-size="{ts}" letter-spacing="4" fill="{fg}">{title}</text>
-<text x="300" y="505" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="26" letter-spacing="12" fill="{fg}" opacity="0.92">{author}</text>
-<text x="300" y="862" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="15" letter-spacing="4" fill="{sub}">북슐랭</text>
+<rect x="40" y="40" width="520" height="820" fill="none" stroke="{sub}" stroke-width="1.5" opacity="0.5"/>
+<text x="300" y="120" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="17" letter-spacing="8" fill="{sub}">{series}</text>
+<line x1="250" y1="150" x2="350" y2="150" stroke="{sub}" stroke-width="1"/>
+<text x="300" y="430" text-anchor="middle" font-family="AppleMyungjo" font-weight="bold" font-size="{ts}" letter-spacing="3" fill="{fg}">{title}</text>
+<line x1="270" y1="480" x2="330" y2="480" stroke="{fg}" stroke-width="1" opacity="0.6"/>
+<text x="300" y="525" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="24" letter-spacing="10" fill="{fg}" opacity="0.9">{author}</text>
+<text x="300" y="838" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="15" letter-spacing="4" fill="{sub}">북슐랭</text>
 </svg></body></html>'''
 
 
-def build_cover(book):
-    s = COVER_STYLES[book['file']]
-    ts = 64 if len(book['title']) <= 7 else 52
+def build_cover(book, idx):
+    bg, fg, sub = PALETTES[idx % len(PALETTES)]
+    series = '한국 동화선' if book.get('category') == '4' else '한국 단편소설 선'
+    n = len(book['title'])
+    ts = 64 if n <= 6 else (52 if n <= 9 else 42)
     html_path = os.path.join(OUT_DIR, f"cover_{book['file']}.html")
     png_path = os.path.join(OUT_DIR, f"cover_{book['file']}.png")
     with open(html_path, 'w') as f:
-        f.write(COVER_TPL.format(bg=s['bg'], fg=s['fg'], sub=s['sub'], motif=s['motif'](),
-                                 ts=ts, title=book['title'], author=book['author']))
+        f.write(COVER_TPL.format(bg=bg, fg=fg, sub=sub, series=series, ts=ts,
+                                 title=H.escape(book['title']), author=H.escape(book['author'])))
     subprocess.run([CHROME, '--headless', '--disable-gpu', f'--screenshot={png_path}',
                     '--window-size=600,900', '--hide-scrollbars', f'file://{html_path}'],
                    check=True, capture_output=True)
@@ -305,9 +248,9 @@ def build_epub(book, paras, cover_png):
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    for book in BOOKS:
+    for idx, book in enumerate(BOOKS):
         paras = fetch_paras(book)
-        cover = build_cover(book)
+        cover = build_cover(book, idx)
         epub = build_epub(book, paras, cover)
         print(f"{book['title']}: {len(paras)} paras → {epub} ({os.path.getsize(epub) // 1024}KB)")
 
