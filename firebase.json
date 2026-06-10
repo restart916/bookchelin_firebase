@@ -21,6 +21,14 @@
     ],
     "rewrites": [
       {
+        "source": "/book/**",
+        "function": "web_book"
+      },
+      {
+        "source": "/sitemap.xml",
+        "function": "web_book"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

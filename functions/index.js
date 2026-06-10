@@ -25,6 +25,7 @@ const { generateHomeDynamic, formatCurationMessage } = require('./home_dynamic')
 const { fetchAndStoreDau } = require('./analytics_dau');
 const { sendDauReport } = require('./analytics_discord');
 const { notifyDiscord, discordWebhook } = require('./discord');
+const { handleWebBook } = require('./web_book');
 
 // [START trigger]
 exports.date = functions.https.onRequest((req, res) => {
@@ -872,5 +873,16 @@ exports.daily_dau_report = functions
     }
     return null;
   });
+
+// SEO 용 공개 웹 페이지: hosting rewrite(/book/**, /sitemap.xml)가 이 함수로 연결된다.
+// 책 본문은 노출하지 않는다(앱 설치 유도). 상세 로직은 web_book.js 참고.
+exports.web_book = functions.https.onRequest(async (req, res) => {
+  try {
+    await handleWebBook(db, req, res);
+  } catch (e) {
+    console.error('web_book 렌더 실패:', req.path, e.message);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 // GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account.json" firebase emulators:start
