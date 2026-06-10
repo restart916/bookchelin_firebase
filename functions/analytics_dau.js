@@ -39,6 +39,9 @@ async function callGa4(client, url, method = 'GET', body) {
  */
 async function fetchAndStoreDau(db, opts = {}) {
   const lookbackDays = opts.lookbackDays || 3;
+  const dateRange = (opts.startDate && opts.endDate)
+    ? { startDate: opts.startDate, endDate: opts.endDate }
+    : { startDate: `${lookbackDays}daysAgo`, endDate: 'today' };
 
   const client = await auth.getClient();
 
@@ -50,14 +53,14 @@ async function fetchAndStoreDau(db, opts = {}) {
   } catch (e) {
     // 무시: 일부 환경에서는 getCredentials 가 이메일을 노출하지 않음
   }
-  console.log('GA4 DAU job: serviceAccount =', serviceAccount, 'property =', GA4_PROPERTY_ID);
+  console.log('GA4 DAU job: serviceAccount =', serviceAccount, 'property =', GA4_PROPERTY_ID, 'dateRange =', dateRange);
 
   const data = await callGa4(
     client,
     `https://analyticsdata.googleapis.com/v1beta/properties/${GA4_PROPERTY_ID}:runReport`,
     'POST',
     {
-      dateRanges: [{ startDate: `${lookbackDays}daysAgo`, endDate: 'today' }],
+      dateRanges: [dateRange],
       dimensions: [{ name: 'date' }],
       metrics: [
         { name: 'active1DayUsers' },   // DAU

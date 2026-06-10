@@ -550,11 +550,6 @@ exports.update_search_index_on_book_write = functions.firestore
     return null;
   });
 
-const runtimeOpts = {
-  timeoutSeconds: 540,
-  memory: '1GB',
-};
-
 loadImage = async (title, image_url) => {
   if (!image_url) return;
 
@@ -733,14 +728,20 @@ exports.get_limit_events_asia = functions
     });
   });
 
+// 매일 KST 00:00에 실행되는 일간 집계 작업.
+// 과거에는 App Engine(appengine/) cron이 'daily-tick' PubSub 토픽을 publish하고
+// 이 함수가 .pubsub.topic('daily-tick').onPublish 로 소비하는 구조였으나,
+// App Engine 인스턴스를 24/7 살려두는 비용 때문에 Cloud Scheduler 네이티브
+// 스케줄(.pubsub.schedule)로 전환했다. App Engine cron/앱은 더 이상 필요 없다.
 exports.daily_job = functions
   .runWith({
     timeoutSeconds: 540,
     memory: '2GB',
     secrets: [discordWebhook], // Discord 알림용 웹훅 URL
   })
-  .pubsub.topic('daily-tick')
-  .onPublish(async (message) => {
+  .pubsub.schedule('every day 00:00')
+  .timeZone('Asia/Seoul')
+  .onRun(async () => {
     console.log('This job is run every day!');
 
     await updateReadLog(); // 하루에 그 책 몇번 읽었는지
@@ -751,25 +752,12 @@ exports.daily_job = functions
     // 매일 큐레이션 결과를 Discord 로 알림(실패해도 본 로직은 막지 않음).
     await notifyDiscord(formatCurationMessage(curation));
 
-    return true;
+    return null;
   });
 
-exports.hourly_job = functions
-  .runWith(runtimeOpts)
-  .pubsub.topic('hourly-tick')
-  .onPublish(async (message) => {
-    console.log('This job is run every hour!');
-
-    return true;
-  });
-
-exports.minutes_job = functions.pubsub
-  .topic('minutes-tick')
-  .onPublish(async (message) => {
-    console.log('This job is run every minutes! ver0.076');
-
-    return true;
-  });
+// hourly_job / minutes_job 은 no-op(아무 일도 안 함)이라 삭제했다.
+// 이들을 트리거하던 App Engine cron(hourly-tick/minutes-tick)이 매분 인스턴스를
+// 깨워 비용을 발생시키던 원인이었다.
 
 // 동적 홈 편성을 수동으로 1회 실행하는 검증용 HTTPS 트리거.
 // ?notify=0 으로 호출하면 Discord 알림 없이 데이터만 갱신(테스트 중 채널 도배 방지).
@@ -823,7 +811,10 @@ exports.collect_dau_now = functions
   .https.onRequest(async (req, res) => {
     try {
       const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 90);
-      const result = await fetchAndStoreDau(db, { lookbackDays: days });
+      const startDate = req.query.startDate;
+      const endDate = req.query.endDate;
+      const opts = (startDate && endDate) ? { startDate, endDate } : { lookbackDays: days };
+      const result = await fetchAndStoreDau(db, opts);
 
       // 날짜별 요약 테이블 (응답 JSON에 포함)
       const summary = result.rows.map((r) => ({
@@ -842,7 +833,7 @@ exports.collect_dau_now = functions
         ok: true,
         property: result.property,
         serviceAccount: result.serviceAccount,
-        days,
+        dateRange: (startDate && endDate) ? { startDate, endDate } : { lookbackDays: days },
         count: summary.length,
         rows: summary,
       });
