@@ -93,7 +93,7 @@ export default {
     }
   },
   mounted () {
-    fireauth.signInAnonymously().catch(function(error) {
+    if (!fireauth.currentUser) fireauth.signInAnonymously().catch(function(error) {
       console.log('login error', error);
     });
   },

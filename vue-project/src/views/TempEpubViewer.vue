@@ -107,8 +107,7 @@ export default {
   async mounted () {
     this.$refs.pulltorefresh.hide()
 
-    let user = await fireauth.signInAnonymously();
-    console.log('fireauth', user)
+    if (!fireauth.currentUser) await fireauth.signInAnonymously();
 
     let book_id = this.$route.params.book_id;
     let cfi = decodeURI(this.$route.query.cfi || '') || undefined;

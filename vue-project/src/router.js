@@ -18,13 +18,24 @@ import EpubViewer from './views/EpubViewer';
 
 import PublisherLogin from './views/PublisherLogin';
 import EventCountViewByPublisher from './views/EventCountViewByPublisher';
+import LoginView from './views/LoginView';
+
+import { onAuthReady, isAdmin } from './admin_auth';
 
 Vue.use(Router);
 
-export default new Router({
+// 인증 없이 접근 가능한 라우트(외부 CP사 제공용 + 로그인 화면).
+const PUBLIC_ROUTE_NAMES = ['LoginView', 'PublisherLogin', 'EventCountViewByPublisher'];
+
+const router = new Router({
   mode: 'history',
   base: process.env.BASE_URL,
   routes: [
+    {
+      path: '/login',
+      name: 'LoginView',
+      component: LoginView
+    },
     {
       path: '/',
       name: 'ListView',
@@ -112,3 +123,17 @@ export default new Router({
     },
   ]
 });
+
+// 어드민 라우트 접근 가드: 공개 라우트가 아니면 화이트리스트 구글 계정만 통과.
+router.beforeEach(async (to, from, next) => {
+  if (PUBLIC_ROUTE_NAMES.includes(to.name)) {
+    return next();
+  }
+  const user = await onAuthReady();
+  if (isAdmin(user)) {
+    return next();
+  }
+  return next({ name: 'LoginView', query: { redirect: to.fullPath } });
+});
+
+export default router;

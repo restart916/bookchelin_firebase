@@ -11,18 +11,30 @@
     <router-link to="/count-time">읽은 기록</router-link>
     <router-link to="/event-count">출판사 통계</router-link>
     <router-link to="/edit-review">리뷰 검사</router-link>
+    <span v-if="email" class="account">{{ email }}
+      <a class="logout" @click="logout">로그아웃</a>
+    </span>
   </div>
 </template>
 
 <script>
+import { fireauth } from '../../main'
+import { signOut } from '../../admin_auth'
+
 export default {
   name: 'Header',
   mounted () {
   },
   data () {
-    return {}
+    return {
+      email: (fireauth.currentUser && fireauth.currentUser.email) || ''
+    }
   },
   methods: {
+    async logout () {
+      await signOut()
+      this.$router.replace({ name: 'LoginView' })
+    }
   }
 }
 </script>
@@ -30,5 +42,14 @@ export default {
 <style scoped>
 a {
   margin: 10px;
+}
+.account {
+  margin-left: 10px;
+  color: #888;
+  font-size: 0.85em;
+}
+.logout {
+  cursor: pointer;
+  color: #d23669;
 }
 </style>
