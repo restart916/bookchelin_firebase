@@ -24,8 +24,11 @@ import { onAuthReady, isAdmin } from './admin_auth';
 
 Vue.use(Router);
 
-// 인증 없이 접근 가능한 라우트(외부 CP사 제공용 + 로그인 화면).
-const PUBLIC_ROUTE_NAMES = ['LoginView', 'PublisherLogin', 'EventCountViewByPublisher'];
+// 인증 없이 접근 가능한 라우트.
+//  - LoginView: 로그인 화면
+//  - PublisherLogin / EventCountViewByPublisher: 외부 CP사(출판사) 제공용
+//  - EpubViewer: 모바일 앱(iOS/Android)이 WebView 로 띄우는 EPUB 리더 — 절대 막으면 안 됨
+const PUBLIC_ROUTE_NAMES = ['LoginView', 'PublisherLogin', 'EventCountViewByPublisher', 'EpubViewer'];
 
 const router = new Router({
   mode: 'history',
