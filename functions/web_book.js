@@ -216,6 +216,24 @@ async function loadFeaturedBooks(db) {
     .map((s) => ({ id: s.id, ...s.data() }));
 }
 
+// 랜딩 하단 "이런 책도 있어요" — 공개 책을 카테고리별로 묶어 접이식으로 보여준다.
+// 카테고리별 최대 14권까지만(전체는 앱에서) + 내부 링크로 크롤러의 책 페이지 발견을 돕는다.
+const CATEGORY_DISPLAY_ORDER = [5, 1, 6, 2, 4, 3]; // 문학·지식교양·경제경영·자기계발·키즈·취업수험
+const MAX_TITLES_PER_CATEGORY = 14;
+
+async function loadCatalog(db) {
+  // 공개 책 전체를 한 번에 읽어 count 와 카테고리 그룹 양쪽에 재사용 (응답은 12h 캐시됨).
+  const snap = await db.collection('books').where('hidden', '==', false).get();
+  const byCategory = {};
+  snap.forEach((d) => {
+    const b = d.data();
+    const cat = Number(b.category);
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push({ id: d.id, title: typeof b.title === 'string' ? b.title : '' });
+  });
+  return { count: snap.size, byCategory };
+}
+
 const LANDING_FAQ = [
   {
     q: '북슐랭은 정말 무료인가요?',
@@ -232,11 +250,12 @@ const LANDING_FAQ = [
 ];
 
 async function renderLanding(db, res) {
-  const [featured, countSnap] = await Promise.all([
+  const [featured, catalog] = await Promise.all([
     loadFeaturedBooks(db),
-    db.collection('books').where('hidden', '==', false).count().get(),
+    loadCatalog(db),
   ]);
-  const bookCount = countSnap.data().count;
+  const bookCount = catalog.count;
+  const featuredIds = new Set(featured.map((b) => b.id));
 
   const jsonLd = [
     {
@@ -276,6 +295,20 @@ async function renderLanding(db, res) {
     (f) => `<details><summary>${escapeHtml(f.q)}</summary><p>${escapeHtml(f.a)}</p></details>`
   ).join('');
 
+  // 카테고리별 접이식 목록 (인기 캐러셀에 든 책은 제외)
+  const catalogHtml = CATEGORY_DISPLAY_ORDER.filter((c) => catalog.byCategory[c])
+    .map((c) => {
+      const all = catalog.byCategory[c].filter((b) => !featuredIds.has(b.id));
+      if (!all.length) return '';
+      const shown = all.slice(0, MAX_TITLES_PER_CATEGORY);
+      const links = shown
+        .map((b) => `<a href="/book/${b.id}">${escapeHtml(truncate(b.title, 30))}</a>`)
+        .join('');
+      const more = all.length > shown.length ? ` <span class="more">외 ${all.length - shown.length}권</span>` : '';
+      return `<details><summary>${escapeHtml(CATEGORY_NAMES[c] || '기타')} <span class="cnt">${all.length}권</span></summary><div class="titlelist">${links}</div>${more}</details>`;
+    })
+    .join('');
+
   const metaDescription = `무제한 무료 독서 앱 북슐랭. 문학·지식교양·경제경영·자기계발·키즈 전자책 ${bookCount}권을 무료로 끝까지 읽을 수 있어요.`;
 
   const html = `<!DOCTYPE html>
@@ -309,6 +342,11 @@ async function renderLanding(db, res) {
   details { border-bottom: 1px solid #eee; padding: 10px 0; }
   summary { cursor: pointer; font-weight: 600; }
   details p { color: #555; }
+  summary .cnt { color: #d23669; font-weight: 400; font-size: 0.85em; margin-left: 4px; }
+  .titlelist { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
+  .titlelist a { color: #555; text-decoration: none; font-size: 0.88em; }
+  .titlelist a:hover { color: #d23669; text-decoration: underline; }
+  .more { display: inline-block; margin-top: 8px; color: #aaa; font-size: 0.82em; }
   footer { margin-top: 48px; color: #aaa; font-size: 0.8em; text-align: center; }
 </style>
 </head>
@@ -323,6 +361,7 @@ async function renderLanding(db, res) {
     </div>
   </div>
   ${grid ? `<h2>지금 인기 있는 책</h2><div class="grid">${grid}</div>` : ''}
+  ${catalogHtml ? `<h2>이런 책들도 있어요</h2>${catalogHtml}` : ''}
   <h2>자주 묻는 질문</h2>
   ${faqHtml}
   <footer>ⓒ 북슐랭 (Bookchelin) — 무제한 무료 독서 앱</footer>
