@@ -170,7 +170,7 @@ ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ''}
 <div class="wrap">
   <header><a href="${WEB_BASE_URL}/">북슐랭</a></header>
   <main>
-    ${image ? `<img class="cover" src="${escapeHtml(image)}" alt="${title} 표지">` : ''}
+    ${image ? `<img class="cover" src="${escapeHtml(image)}" alt="${title} 표지" referrerpolicy="no-referrer">` : ''}
     <h1>${title}</h1>
     ${categoryName ? `<span class="chip">${escapeHtml(categoryName)} · 전자책 · 무료</span>` : ''}
     ${ratingBlock}
@@ -266,7 +266,7 @@ async function renderLanding(db, res) {
       (b) =>
         `<a class="card" href="/book/${b.id}">` +
         (typeof b.image_url === 'string' && b.image_url
-          ? `<img src="${escapeHtml(b.image_url)}" alt="${escapeHtml(b.title)} 표지" loading="lazy">`
+          ? `<img src="${escapeHtml(b.image_url)}" alt="${escapeHtml(b.title)} 표지" loading="lazy" referrerpolicy="no-referrer">`
           : '') +
         `<span>${escapeHtml(truncate(b.title, 22))}</span></a>`
     )
