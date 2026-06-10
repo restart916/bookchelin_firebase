@@ -95,43 +95,223 @@ def fetch_paras(book):
     return paras
 
 
-# ---------- 표지 (시리즈 팔레트, JSON 순서대로 deterministic) ----------
-# "한국 단편소설 선" 시리즈로 통일감을 주는 미니멀 표지. 책마다 팔레트만 순환한다.
-PALETTES = [
-    ('#2b3a4a', '#f2ede3', '#aebccb'),  # 짙은 청회색
-    ('#1d2440', '#f5efdc', '#9aa3c7'),  # 남색
-    ('#4a3526', '#efe3d0', '#b59f86'),  # 흙갈색
-    ('#3c4a2e', '#f4eede', '#9aa888'),  # 올리브
-    ('#42283a', '#f3e6ef', '#bb9bb0'),  # 자주
-    ('#26414a', '#e8f1f2', '#9ec2c8'),  # 청록
-    ('#4a2e2e', '#f3e3e0', '#c39a96'),  # 적갈
-    ('#2e3142', '#ececf4', '#a6a8c0'),  # 진회보라
-    ('#1f3a34', '#e6f2ee', '#92c0b3'),  # 진초록
-    ('#473a1f', '#f4eddc', '#c2b07f'),  # 카키골드
-]
+# ---------- 표지 (작품별 모티프 + 팔레트) ----------
+# 책마다 주제에 맞는 모티프와 색을 주어 개성을 살린다. COVER_SPEC 에 없으면 팔레트 순환.
+import random
+
+
+def _rain(c):
+    random.seed(1); out = []
+    for _ in range(60):
+        x, y = random.uniform(-50, 650), random.uniform(0, 900); l = random.uniform(20, 60)
+        out.append(f'<line x1="{x:.0f}" y1="{y:.0f}" x2="{x+l*0.25:.0f}" y2="{y+l:.0f}" stroke="{c}" stroke-width="2" opacity="{random.uniform(0.15,0.5):.2f}"/>')
+    return '\n'.join(out)
+
+
+def _buckwheat(c):
+    random.seed(7); out = ['<circle cx="300" cy="235" r="95" fill="#f5efdc" opacity="0.95"/>']
+    for _ in range(160):
+        x, y = random.uniform(0, 600), random.uniform(560, 900)
+        out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{random.uniform(1.5,4):.1f}" fill="{c}" opacity="{random.uniform(0.4,0.95):.2f}"/>')
+    return '\n'.join(out)
+
+
+def _camellia(c):
+    random.seed(3); out = []
+    for cx, cy, n in [(110, 690, 7), (480, 170, 5), (500, 760, 6), (90, 200, 4)]:
+        for _ in range(n):
+            x, y = cx + random.uniform(-55, 55), cy + random.uniform(-55, 55)
+            out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{random.uniform(7,16):.0f}" fill="{c}" opacity="{random.uniform(0.55,0.95):.2f}"/>')
+    return '\n'.join(out)
+
+
+def _wing(c):
+    return (f'<path d="M 80 660 Q 300 480 540 620" stroke="{c}" stroke-width="5" fill="none" opacity="0.9"/>'
+            f'<path d="M 110 710 Q 305 560 510 680" stroke="{c}" stroke-width="3.5" fill="none" opacity="0.6"/>'
+            f'<path d="M 145 755 Q 310 635 480 735" stroke="{c}" stroke-width="2.5" fill="none" opacity="0.35"/>')
+
+
+def _potato(c):
+    random.seed(5); out = []
+    for _ in range(9):
+        x, y = random.uniform(80, 520), random.uniform(620, 840)
+        rx = random.uniform(28, 55); ry = rx * random.uniform(0.6, 0.8); rot = random.uniform(-30, 30)
+        out.append(f'<ellipse cx="{x:.0f}" cy="{y:.0f}" rx="{rx:.0f}" ry="{ry:.0f}" fill="{c}" opacity="{random.uniform(0.25,0.6):.2f}" transform="rotate({rot:.0f} {x:.0f} {y:.0f})"/>')
+    return '\n'.join(out)
+
+
+def _crescent(c):  # 봉별기 — 이별의 밤, 초승달 + 별
+    random.seed(11)
+    out = [f'<path d="M 470 170 a 70 70 0 1 0 2 0 a 54 54 0 1 1 -2 0 Z" fill="{c}" opacity="0.9"/>']
+    for _ in range(40):
+        x, y = random.uniform(0, 600), random.uniform(0, 900)
+        out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{random.uniform(0.8,2.2):.1f}" fill="{c}" opacity="{random.uniform(0.3,0.8):.2f}"/>')
+    return '\n'.join(out)
+
+
+def _letter(c):  # B사감과 러브레터 — 편지/봉투
+    out = []
+    for x, y, r in [(120, 690, -8), (430, 720, 10), (250, 770, -3)]:
+        out.append(f'<g transform="rotate({r} {x+70} {y+45})" opacity="0.85">'
+                   f'<rect x="{x}" y="{y}" width="140" height="90" rx="4" fill="none" stroke="{c}" stroke-width="2.5"/>'
+                   f'<path d="M {x} {y} L {x+70} {y+50} L {x+140} {y}" fill="none" stroke="{c}" stroke-width="2.5"/></g>')
+    return '\n'.join(out)
+
+
+def _flame(c):  # 광염 소나타 — 광기의 불꽃
+    return (f'<path d="M 300 820 C 230 720 290 690 280 600 C 350 670 330 730 360 700 '
+            f'C 380 760 350 800 300 820 Z" fill="{c}" opacity="0.85"/>'
+            f'<path d="M 300 815 C 270 760 300 730 296 680 C 330 720 318 760 332 745 '
+            f'C 342 778 326 802 300 815 Z" fill="#f5e6c8" opacity="0.55"/>')
+
+
+def _sprout(c):  # 봄봄 — 새싹/언덕
+    random.seed(13); out = [f'<path d="M -20 840 Q 300 760 620 840 L 620 900 L -20 900 Z" fill="{c}" opacity="0.25"/>']
+    for _ in range(11):
+        x = random.uniform(60, 540); h = random.uniform(40, 90); y = random.uniform(800, 850)
+        out.append(f'<path d="M {x:.0f} {y:.0f} q -16 -{h*0.5:.0f} 0 -{h:.0f} q 16 {h*0.5:.0f} 0 {h:.0f}" fill="{c}" opacity="0.7"/>'
+                   f'<path d="M {x:.0f} {y-h*0.4:.0f} q 18 -10 26 -28 q -20 4 -26 28" fill="{c}" opacity="0.6"/>')
+    return '\n'.join(out)
+
+
+def _haze(c):  # 술 권하는 사회 — 취기의 안개, 동심원
+    out = []
+    for r in range(40, 260, 34):
+        out.append(f'<circle cx="300" cy="240" r="{r}" fill="none" stroke="{c}" stroke-width="2" opacity="{max(0.08, 0.5-r/520):.2f}"/>')
+    return '\n'.join(out)
+
+
+def _stripes(c):  # 치숙 — 풍자/엇갈린 시선, 대각선
+    out = []
+    for i in range(-2, 14):
+        x = i * 60
+        out.append(f'<line x1="{x}" y1="900" x2="{x+260}" y2="0" stroke="{c}" stroke-width="14" opacity="0.10"/>')
+    return '\n'.join(out)
+
+
+def _books(c):  # 빈처 — 가난한 작가, 책 더미
+    out = []
+    base = 800
+    for i, (w, h, dx) in enumerate([(46, 150, 150), (40, 120, 205), (52, 175, 255), (38, 110, 318), (44, 140, 365)]):
+        out.append(f'<rect x="{dx}" y="{base-h}" width="{w}" height="{h}" fill="none" stroke="{c}" stroke-width="2.5" opacity="0.8"/>'
+                   f'<line x1="{dx}" y1="{base-h+14}" x2="{dx+w}" y2="{base-h+14}" stroke="{c}" stroke-width="1.5" opacity="0.6"/>')
+    return '\n'.join(out)
+
+
+def _window(c):  # 경희 — 신여성, 창밖을 보다
+    return (f'<rect x="210" y="150" width="180" height="240" fill="none" stroke="{c}" stroke-width="3" opacity="0.85"/>'
+            f'<line x1="300" y1="150" x2="300" y2="390" stroke="{c}" stroke-width="2" opacity="0.7"/>'
+            f'<line x1="210" y1="270" x2="390" y2="270" stroke="{c}" stroke-width="2" opacity="0.7"/>'
+            f'<rect x="218" y="158" width="76" height="104" fill="{c}" opacity="0.12"/>'
+            f'<rect x="306" y="278" width="76" height="104" fill="{c}" opacity="0.12"/>')
+
+
+def _waterwheel(c):  # 물레방아 — 물레방아 + 물결
+    out = [f'<circle cx="300" cy="250" r="120" fill="none" stroke="{c}" stroke-width="3" opacity="0.85"/>',
+           f'<circle cx="300" cy="250" r="30" fill="none" stroke="{c}" stroke-width="3" opacity="0.85"/>']
+    import math
+    for k in range(8):
+        a = k * math.pi / 4
+        out.append(f'<line x1="{300+30*math.cos(a):.0f}" y1="{250+30*math.sin(a):.0f}" x2="{300+120*math.cos(a):.0f}" y2="{250+120*math.sin(a):.0f}" stroke="{c}" stroke-width="2.5" opacity="0.8"/>')
+    for y in (780, 815, 850):
+        out.append(f'<path d="M -20 {y} q 75 -22 150 0 t 150 0 t 150 0 t 150 0" fill="none" stroke="{c}" stroke-width="2.5" opacity="0.5"/>')
+    return '\n'.join(out)
+
+
+def _gold(c):  # 금 따는 콩밭 — 흙 속 금
+    random.seed(17); out = [f'<path d="M -20 760 Q 300 720 620 760 L 620 900 L -20 900 Z" fill="#000" opacity="0.18"/>']
+    for _ in range(26):
+        x, y = random.uniform(40, 560), random.uniform(770, 880)
+        s = random.uniform(4, 11)
+        out.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{s:.0f}" height="{s*0.7:.0f}" rx="2" fill="{c}" opacity="{random.uniform(0.6,1):.2f}" transform="rotate({random.uniform(0,90):.0f} {x:.0f} {y:.0f})"/>')
+    return '\n'.join(out)
+
+
+def _harvest(c):  # 만무방 — 벼 이삭
+    random.seed(19); out = []
+    import math
+    for _ in range(9):
+        x = random.uniform(70, 530); base = random.uniform(820, 860); h = random.uniform(150, 230)
+        out.append(f'<line x1="{x:.0f}" y1="{base:.0f}" x2="{x:.0f}" y2="{base-h:.0f}" stroke="{c}" stroke-width="2" opacity="0.6"/>')
+        for j in range(6):
+            yy = base - h + j * (h/7); off = 9 + j
+            out.append(f'<path d="M {x:.0f} {yy:.0f} q {off} -6 {off+6} -16" fill="none" stroke="{c}" stroke-width="1.6" opacity="0.55"/>'
+                       f'<path d="M {x:.0f} {yy:.0f} q -{off} -6 -{off+6} -16" fill="none" stroke="{c}" stroke-width="1.6" opacity="0.55"/>')
+    return '\n'.join(out)
+
+
+def _playful(c):  # 황소와 도깨비 (동화) — 밝은 도형/별
+    random.seed(23); out = []
+    import math
+    for _ in range(22):
+        x, y = random.uniform(40, 560), random.uniform(620, 870)
+        k = random.random()
+        if k < 0.4:
+            out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{random.uniform(6,16):.0f}" fill="{c}" opacity="{random.uniform(0.5,0.9):.2f}"/>')
+        elif k < 0.7:
+            s = random.uniform(12, 26)
+            out.append(f'<polygon points="{x:.0f},{y-s:.0f} {x+s*0.9:.0f},{y+s*0.6:.0f} {x-s*0.9:.0f},{y+s*0.6:.0f}" fill="{c}" opacity="{random.uniform(0.5,0.9):.2f}"/>')
+        else:
+            pts = []
+            for i in range(10):
+                a = math.pi/2 + i*math.pi/5; rr = (16 if i%2==0 else 7)
+                pts.append(f'{x+rr*math.cos(a):.0f},{y-rr*math.sin(a):.0f}')
+            out.append(f'<polygon points="{" ".join(pts)}" fill="{c}" opacity="{random.uniform(0.6,0.95):.2f}"/>')
+    return '\n'.join(out)
+
+
+# file → (motif_fn, motif_color, (bg, fg, sub))
+COVER_SPEC = {
+    # 기존 5권 (라이브 유지 — 재업로드 안 함, 재현용)
+    '운수_좋은_날': (_rain, '#8fa3b8', ('#2b3a4a', '#f2ede3', '#aebccb')),
+    '메밀꽃_필_무렵': (_buckwheat, '#f5efdc', ('#1d2440', '#f5efdc', '#9aa3c7')),
+    '동백꽃': (_camellia, '#e3b820', ('#f4eede', '#3c4a2e', '#7a8463')),
+    '날개': (_wing, '#262421', ('#efedea', '#262421', '#8a857d')),
+    '감자': (_potato, '#c8a374', ('#4a3526', '#efe3d0', '#b59f86')),
+    # 신규 12권 — 작품별 모티프 + 다양한 컬러
+    '봉별기': (_crescent, '#e8e2c8', ('#222a44', '#f0ece0', '#8a90b8')),
+    'B사감과_러브레터': (_letter, '#c8966e', ('#f3ece0', '#5a3e3a', '#a98e74')),
+    '광염_소나타': (_flame, '#d2622e', ('#2a1c1c', '#f3e0d2', '#b07a5a')),
+    '봄봄': (_sprout, '#7faa4a', ('#eef2e2', '#3a4a2a', '#88996a')),
+    '술_권하는_사회': (_haze, '#b8bcc4', ('#2e3540', '#e6e2d8', '#9aa0aa')),
+    '치숙': (_stripes, '#c9a14a', ('#3a3630', '#f0e6d0', '#b0a080')),
+    '빈처': (_books, '#c79a6a', ('#3e2f26', '#f0e2d2', '#b59a82')),
+    '경희': (_window, '#e8d2dd', ('#403040', '#f3e8ee', '#bba0b4')),
+    '물레방아': (_waterwheel, '#a9cfc8', ('#234044', '#e6f0ee', '#8fbab4')),
+    '금_따는_콩밭': (_gold, '#e8c24a', ('#2e2820', '#f2e8d0', '#b8a060')),
+    '만무방': (_harvest, '#cdb45a', ('#3a3320', '#f2ead2', '#bbab78')),
+    '황소와_도깨비': (_playful, '#ffd24a', ('#2b6e8c', '#fff6e8', '#bfe2ef')),
+}
+
+FALLBACK_PALETTE = ('#2e3142', '#ececf4', '#a6a8c0')
 
 COVER_TPL = '''<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{{margin:0;padding:0}}</style></head><body>
 <svg width="600" height="900" viewBox="0 0 600 900" xmlns="http://www.w3.org/2000/svg">
 <rect width="600" height="900" fill="{bg}"/>
-<rect x="40" y="40" width="520" height="820" fill="none" stroke="{sub}" stroke-width="1.5" opacity="0.5"/>
-<text x="300" y="120" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="17" letter-spacing="8" fill="{sub}">{series}</text>
-<line x1="250" y1="150" x2="350" y2="150" stroke="{sub}" stroke-width="1"/>
+{motif}
+<text x="300" y="100" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="17" letter-spacing="8" fill="{sub}">{series}</text>
+<line x1="240" y1="125" x2="360" y2="125" stroke="{sub}" stroke-width="1"/>
 <text x="300" y="430" text-anchor="middle" font-family="AppleMyungjo" font-weight="bold" font-size="{ts}" letter-spacing="3" fill="{fg}">{title}</text>
-<line x1="270" y1="480" x2="330" y2="480" stroke="{fg}" stroke-width="1" opacity="0.6"/>
-<text x="300" y="525" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="24" letter-spacing="10" fill="{fg}" opacity="0.9">{author}</text>
-<text x="300" y="838" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="15" letter-spacing="4" fill="{sub}">북슐랭</text>
+<text x="300" y="505" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="24" letter-spacing="10" fill="{fg}" opacity="0.92">{author}</text>
+<text x="300" y="862" text-anchor="middle" font-family="Apple SD Gothic Neo" font-size="15" letter-spacing="4" fill="{sub}">북슐랭</text>
 </svg></body></html>'''
 
 
 def build_cover(book, idx):
-    bg, fg, sub = PALETTES[idx % len(PALETTES)]
+    spec = COVER_SPEC.get(book['file'])
+    if spec:
+        motif_fn, mc, (bg, fg, sub) = spec
+        motif = motif_fn(mc)
+    else:
+        bg, fg, sub = FALLBACK_PALETTE
+        motif = ''
     series = '한국 동화선' if book.get('category') == '4' else '한국 단편소설 선'
     n = len(book['title'])
     ts = 64 if n <= 6 else (52 if n <= 9 else 42)
     html_path = os.path.join(OUT_DIR, f"cover_{book['file']}.html")
     png_path = os.path.join(OUT_DIR, f"cover_{book['file']}.png")
     with open(html_path, 'w') as f:
-        f.write(COVER_TPL.format(bg=bg, fg=fg, sub=sub, series=series, ts=ts,
+        f.write(COVER_TPL.format(bg=bg, fg=fg, sub=sub, series=series, ts=ts, motif=motif,
                                  title=H.escape(book['title']), author=H.escape(book['author'])))
     subprocess.run([CHROME, '--headless', '--disable-gpu', f'--screenshot={png_path}',
                     '--window-size=600,900', '--hide-scrollbars', f'file://{html_path}'],
