@@ -24,6 +24,11 @@
         "regex": "^/(?P<page>edit|edit-banner|edit-limit-event|edit-link-select|edit-log-select|edit-main-book|edit-review|edit-suggest-book|edit-time-event|count|count-time|event-count|export|publisher)$",
         "destination": "/admin/:page",
         "type": 301
+      },
+      {
+        "regex": "^/(?P<rest>(publisher/detail|epub-viewer)/.+)$",
+        "destination": "/admin/:rest",
+        "type": 301
       }
     ],
     "rewrites": [
