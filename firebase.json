@@ -19,18 +19,21 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "regex": "^/(?P<page>edit|edit-banner|edit-limit-event|edit-link-select|edit-log-select|edit-main-book|edit-review|edit-suggest-book|edit-time-event|count|count-time|event-count|export|publisher)$",
+        "destination": "/admin/:page",
+        "type": 301
+      }
+    ],
     "rewrites": [
       {
-        "source": "/book/**",
-        "function": "web_book"
-      },
-      {
-        "source": "/sitemap.xml",
-        "function": "web_book"
+        "source": "/admin/**",
+        "destination": "/admin/index.html"
       },
       {
         "source": "**",
-        "destination": "/index.html"
+        "function": "web_book"
       }
     ]
   }

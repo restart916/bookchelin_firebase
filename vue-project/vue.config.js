@@ -1,5 +1,7 @@
 module.exports = {
-  outputDir: '../public',
+  // 어드민은 /admin/ 경로로 서빙 (루트는 SEO 랜딩 페이지 — functions/web_book.js)
+  publicPath: '/admin/',
+  outputDir: '../public/admin',
   css: {
     loaderOptions: {
       sass: {

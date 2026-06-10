@@ -36,7 +36,7 @@ firebase deploy --only storage
 # Vue admin: install (uses --ignore-scripts; legacy grpc cannot compile on Node 20+ ARM64)
 cd vue-project && npm install --ignore-scripts
 
-# Vue admin: build + deploy hosting (admin UI)
+# Vue admin: build + deploy hosting (admin UI → public/admin, served at /admin/)
 cd vue-project && npm run build && cd .. && firebase deploy --only hosting
 
 # Tail recent function logs
@@ -102,7 +102,7 @@ Tracks four targets:
 - `functions` (predeploy lint)
 - `firestore` (rules + indexes, both locally managed since 2026-05-15)
 - `storage` (rules)
-- `hosting` (Vue admin build output in `public/`)
+- `hosting` (`public/` — since 2026-06: Vue admin lives under `/admin/` (`public/admin/`, noindex), everything else rewrites to the `web_book` function which SSRs the public SEO pages: `/` landing, `/book/{id}`, `/sitemap.xml`. Old admin root URLs 301-redirect to `/admin/...`. **Never expose book full text on the web pages** — they exist to funnel app installs)
 
 `firestore.rules` / `storage.rules` were exported from production into the repo. The convention now is **never edit rules in the Firebase Console** — all changes go through git → `firebase deploy --only firestore:rules`. The current production rules are highly permissive (everything readable/writable) and known-flagged as a security debt.
 
