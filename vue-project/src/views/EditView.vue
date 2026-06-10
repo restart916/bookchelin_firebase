@@ -1,133 +1,143 @@
 <template>
   <div>
     <Header></Header>
-    <section class='section'>
-      1. 추가하기 - book_id 를 제외한 데이터를 입력하고 add 버튼을 누른다<br>
-      2. 삭제하기 - 아래 목록에서 삭제버튼을 누른다<br>
-      3. 수정하기 - 아래 목록에서 수정하기 버튼을 누른다. 위에 입력란에 데이터가 채워지면 수정하고 다시 add 버튼을 누른다<br>
-      * - 수정하기할때 파일은 추가 안해도 내용만 수정가능합니다<br>
+
+    <!-- 요약 + 필터 툴바 -->
+    <section class="section toolbar">
+      <div class="summary">
+        총 <b>{{ allBooks.length }}</b>권
+        · 활성 <b class="ok">{{ activeCount }}</b>
+        · 숨김 <b class="muted">{{ hiddenCount }}</b>
+        <span class="filtered">— 필터 결과 <b>{{ filteredBooks.length }}</b>권</span>
+      </div>
+
+      <div class="filters">
+        <input class="f-search" v-model="searchText" placeholder="제목 검색">
+        <select v-model="filterCategory">
+          <option value="">전체 카테고리</option>
+          <option v-for="c in book_category" :key="c.key" :value="c.id">{{ c.name }}</option>
+        </select>
+        <select v-model="filterPublisher">
+          <option value="__all">전체 출판사</option>
+          <option value="">(출판사 없음)</option>
+          <option v-for="p in publishers" :key="p.key" :value="p.code">{{ p.name }}</option>
+        </select>
+        <select v-model="filterStatus">
+          <option value="">전체 상태</option>
+          <option value="active">활성만</option>
+          <option value="hidden">숨김만</option>
+        </select>
+        <button class="btn-reset" @click="resetFilters">필터 초기화</button>
+        <button class="btn-add" @click="openCreate">＋ 새 책 추가</button>
+      </div>
     </section>
-    <section class='section'>
-      <div>
-        <div>book_id</div>
-        <div class='control'>
-          <input type='text' class='input' v-model='book_id'>
-        </div>
+
+    <!-- 추가/수정 폼 (기본 숨김, 버튼 클릭 시에만) -->
+    <section v-if="showForm" class="section form-panel">
+      <div class="form-head">
+        <h2>{{ book_id ? '책 수정' : '새 책 추가' }}</h2>
+        <button class="btn-close" @click="closeForm">✕ 닫기</button>
       </div>
-      <div>
-        <div>title</div>
-        <div class='control'>
-          <input type='text' class='input' v-model='title'>
-        </div>
+      <div v-if="book_id" class="form-hint">수정 중: {{ book_id }} (파일은 변경 시에만 첨부)</div>
+
+      <div class="field"><label>title</label><input class="input" v-model="title"></div>
+      <div class="Row">
+        <div class="Column"><label>description</label><textarea class="input" v-model="description"></textarea></div>
+        <div class="Column"><label>table of contents</label><textarea class="input" v-model="toc"></textarea></div>
+      </div>
+      <div class="field"><label>image_url</label><input class="input" v-model="image_url"></div>
+      <div class="field"><label>순서 (숫자)</label><input class="input" v-model="order"></div>
+      <div class="Row">
+        <div class="Column"><label>shop_yes24_link</label><input class="input" v-model="shop_yes24_link"></div>
+        <div class="Column"><label>shop_kyobo_link</label><input class="input" v-model="shop_bandi_link"></div>
+        <div class="Column"><label>shop_inter_link</label><input class="input" v-model="shop_inter_link"></div>
       </div>
       <div class="Row">
         <div class="Column">
-          <div>description</div>
-          <div class='control'>
-            <textarea type='text' class='input' v-model='description'>
-            </textarea>
-          </div>
-        </div>
-        <div class="Column">
-          <div>table of contents</div>
-          <div class='control'>
-            <textarea type='text' class='input' v-model='toc'>
-            </textarea>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div>image_url</div>
-        <div class='control'>
-          <input type='text' class='input' v-model='image_url'>
-        </div>
-      </div>
-      <div>
-        <div>순서 - 숫자로 입력하세요</div>
-        <div class='control'>
-          <input type='text' class='input' v-model='order'>
-        </div>
-      </div>
-      <div>
-        <div>shop_yes24_link</div>
-        <div class='control'>
-          <input type='text' class='input' v-model='shop_yes24_link'>
-        </div>
-      </div>
-      <div>
-        <div>shop_kyobo_link</div>
-        <div class='control'>
-          <input type='text' class='input' v-model='shop_bandi_link'>
-        </div>
-      </div>
-      <div>
-        <div>shop_inter_link</div>
-        <div class='control'>
-          <input type='text' class='input' v-model='shop_inter_link'>
-        </div>
-      </div>
-      <div class="Row">
-        <div class="Column">
-          <div>카테고리 - 필수로 선택해주세요</div>
+          <label>카테고리 (필수)</label>
           <select v-model="category">
             <option disabled value="0">선택해주세요</option>
-            <option v-for="category in book_category" :key="category.key"
-              :value="category.id">
-              {{ category.name }}
-            </option>
+            <option v-for="c in book_category" :key="c.key" :value="c.id">{{ c.name }}</option>
           </select>
         </div>
         <div class="Column">
-          <div>출판사 - optional</div>
+          <label>출판사 (optional)</label>
           <select v-model="publisher">
             <option value="">선택 없음</option>
-            <option v-for="publisher in publishers" :key="publisher.key"
-              :value="publisher.code">
-              {{ publisher.name }}
-            </option>
+            <option v-for="p in publishers" :key="p.key" :value="p.code">{{ p.name }}</option>
           </select>
         </div>
         <div class="Column">
-          <div>숨김여부 - 체크시 앱에서 보이지 않게 됩니다</div>
-          <div class='control'>
-            <input type="checkbox" id="checkbox" v-model="hidden">
-            <label for="checkbox">숨기기</label>
-          </div>
+          <label>숨김여부</label>
+          <div><input type="checkbox" id="hidden_cb" v-model="hidden"><label for="hidden_cb"> 숨기기</label></div>
         </div>
       </div>
-      <div>
-        <div>epub_file</div>
-        <div class='control'>
-          <input type='file' class='input' @change='onChangeFile'>
-        </div>
+      <div class="Row">
+        <div class="Column"><label>epub_file</label><input type="file" class="input" @change="onChangeFile"></div>
+        <div class="Column"><label>pdf_file</label><input type="file" class="input" @change="onChangePdfFile"></div>
       </div>
-      <div>
-        <div>pdf_file</div>
-        <div class='control'>
-          <input type='file' class='input' @change='onChangePdfFile'>
-        </div>
-      </div>
-      <div>
-        <div class='button' @click='addBook'>Add</div>
+      <div class="form-actions">
+        <button class="btn-add" @click="addBook">{{ book_id ? '수정 저장' : '추가' }}</button>
+        <button class="btn-reset" @click="closeForm">취소</button>
       </div>
     </section>
-    <section class='section'>
-      <div class='container'>
-        <div class='columns' v-for='book in books' :key="book['.key']">
-          <div class='notification Row'>
-            <h1 class='title Column'>{{ book.title }}</h1>
-            <div class='button Column' @click="selectBook(book['.key'])">수정하기</div>
-            <div class='button Column' @click="deleteBook(book['.key'])">삭제</div>
-            <select v-model="book.category" @change="onChangeBookCategory(book)">
-              <option disabled value="0">선택해주세요</option>
-              <option v-for="category in book_category" :key="category.key"
-                :value="category.id">
-                {{ category.name }}
-              </option>
-            </select>
 
-          </div>
-        </div>
+    <!-- 리스트 (현재 페이지만 렌더) -->
+    <section class="section">
+      <table class="list">
+        <thead>
+          <tr>
+            <th class="c-cover"></th>
+            <th class="c-title">제목</th>
+            <th class="c-cat">카테고리</th>
+            <th class="c-pub">출판사</th>
+            <th class="c-status">상태</th>
+            <th class="c-act">관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="book in pagedBooks" :key="book['.key']">
+            <td class="c-cover">
+              <img v-if="book.image_url" :src="book.image_url" referrerpolicy="no-referrer" alt="">
+            </td>
+            <td class="c-title">{{ book.title }}</td>
+            <td class="c-cat">
+              <select v-model="book.category" @change="onChangeBookCategory(book)">
+                <option disabled value="0">선택</option>
+                <option v-for="c in book_category" :key="c.key" :value="c.id">{{ c.name }}</option>
+              </select>
+            </td>
+            <td class="c-pub">{{ publisherName(book.publisher) }}</td>
+            <td class="c-status">
+              <span :class="book.hidden ? 'badge hidden' : 'badge active'">
+                {{ book.hidden ? '숨김' : '활성' }}
+              </span>
+            </td>
+            <td class="c-act">
+              <button class="btn-mini" @click="selectBook(book['.key'])">수정</button>
+              <button class="btn-mini danger" @click="deleteBook(book['.key'])">삭제</button>
+            </td>
+          </tr>
+          <tr v-if="pagedBooks.length === 0">
+            <td colspan="6" class="empty">조건에 맞는 책이 없습니다.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 페이지네이션 -->
+      <div class="pager">
+        <span>페이지당</span>
+        <select v-model.number="pageSize">
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <button class="btn-mini" :disabled="currentPage <= 1" @click="currentPage = 1">« 처음</button>
+        <button class="btn-mini" :disabled="currentPage <= 1" @click="currentPage--">‹ 이전</button>
+        <span class="page-info">{{ currentPage }} / {{ totalPages }} 페이지</span>
+        <button class="btn-mini" :disabled="currentPage >= totalPages" @click="currentPage++">다음 ›</button>
+        <button class="btn-mini" :disabled="currentPage >= totalPages" @click="currentPage = totalPages">끝 »</button>
       </div>
     </section>
   </div>
@@ -149,17 +159,22 @@ export default {
       publishers: firestore.collection('publisher')
     }
   },
-  mounted () {
-
-  },
   data () {
     return {
+      // 필터/페이지 상태
+      searchText: '',
+      filterCategory: '',
+      filterPublisher: '__all',
+      filterStatus: '',
+      pageSize: 20,
+      currentPage: 1,
+      // 폼 상태
+      showForm: false,
       book_id: '',
       title: '',
       description: '',
       toc: '',
       image_url: '',
-      epub_file: '',
       firestore_url: '',
       uploadFile: null,
       uploadPdfFile: null,
@@ -172,27 +187,86 @@ export default {
       shop_inter_link: '',
     }
   },
+  computed: {
+    allBooks () {
+      // vue-firestore 바인딩 로드 전에는 undefined 일 수 있음 — 항상 배열 보장
+      return Array.isArray(this.books) ? this.books : []
+    },
+    activeCount () {
+      return this.allBooks.filter(b => b.hidden !== true).length
+    },
+    hiddenCount () {
+      return this.allBooks.filter(b => b.hidden === true).length
+    },
+    filteredBooks () {
+      const q = this.searchText.trim().toLowerCase()
+      return this.allBooks.filter(b => {
+        if (q && !(b.title || '').toLowerCase().includes(q)) return false
+        if (this.filterCategory && String(b.category) !== String(this.filterCategory)) return false
+        if (this.filterPublisher !== '__all' && (b.publisher || '') !== this.filterPublisher) return false
+        if (this.filterStatus === 'active' && b.hidden === true) return false
+        if (this.filterStatus === 'hidden' && b.hidden !== true) return false
+        return true
+      })
+    },
+    totalPages () {
+      return Math.max(1, Math.ceil(this.filteredBooks.length / this.pageSize))
+    },
+    pagedBooks () {
+      const start = (this.currentPage - 1) * this.pageSize
+      return this.filteredBooks.slice(start, start + this.pageSize)
+    },
+    publisherMap () {
+      const m = {}
+      const pubs = Array.isArray(this.publishers) ? this.publishers : []
+      for (const p of pubs) m[p.code] = p.name
+      return m
+    }
+  },
+  watch: {
+    // 필터/페이지 크기가 바뀌면 1페이지로
+    searchText () { this.currentPage = 1 },
+    filterCategory () { this.currentPage = 1 },
+    filterPublisher () { this.currentPage = 1 },
+    filterStatus () { this.currentPage = 1 },
+    pageSize () { this.currentPage = 1 },
+    // 필터 결과가 줄어 현재 페이지가 범위를 벗어나면 보정
+    totalPages (val) { if (this.currentPage > val) this.currentPage = val }
+  },
   methods: {
-    onChangeFile(event) {
-      console.log('changeFile: ', event.target.files)
+    publisherName (code) {
+      if (!code) return '—'
+      return this.publisherMap[code] || code
+    },
+    resetFilters () {
+      this.searchText = ''
+      this.filterCategory = ''
+      this.filterPublisher = '__all'
+      this.filterStatus = ''
+      this.currentPage = 1
+    },
+    openCreate () {
+      this.clearInput()
+      this.showForm = true
+    },
+    closeForm () {
+      this.showForm = false
+      this.clearInput()
+    },
+    onChangeFile (event) {
       this.uploadFile = event.target.files[0]
     },
-    onChangePdfFile(event) {
-      console.log('changeFile: ', event.target.files)
+    onChangePdfFile (event) {
       this.uploadPdfFile = event.target.files[0]
     },
-    onChangeBookCategory(book) {
-      console.log('onChangeBookCategory: ', book, book.category)
-
-      firestore.collection('books').doc(book['.key']).update({category: book.category}).then((docRef) => {
-        alert(`${book.title} 수정 성공`)
-        this.clearInput()
-      }).catch((error) => {
+    onChangeBookCategory (book) {
+      firestore.collection('books').doc(book['.key']).update({ category: book.category }).then(() => {
+        alert(`${book.title} 카테고리 수정 성공`)
+      }).catch(() => {
         alert(`${book.title} 수정 실패`)
       })
-
     },
-    clearInput() {
+    clearInput () {
       this.book_id = ''
       this.title = ''
       this.description = ''
@@ -219,15 +293,13 @@ export default {
         if (this.uploadFile || this.uploadPdfFile) {
           let filepath = null
           if (this.uploadFile) {
-            filepath = 'epub/'+this.uploadFile.name
+            filepath = 'epub/' + this.uploadFile.name
           } else {
-            filepath = 'pdf/'+this.uploadPdfFile.name
+            filepath = 'pdf/' + this.uploadPdfFile.name
           }
           let upload_ref = firestorage.ref().child(filepath)
 
-          upload_ref.put(this.uploadFile || this.uploadPdfFile).then((snapshot) => {
-            console.log('Uploaded file!');
-
+          upload_ref.put(this.uploadFile || this.uploadPdfFile).then(() => {
             let data = {
               title: this.title,
               description: this.description,
@@ -243,10 +315,9 @@ export default {
               shop_inter_link: this.shop_inter_link,
             }
 
-            firestore.collection('books').doc(this.book_id).update(data).then((docRef) => {
-              console.log('update book with file')
+            firestore.collection('books').doc(this.book_id).update(data).then(() => {
               alert('수정 성공')
-              this.clearInput()
+              this.closeForm()
             }).catch((error) => {
               console.error('Error adding document: ', error)
               alert('수정 실패')
@@ -267,10 +338,9 @@ export default {
             shop_inter_link: this.shop_inter_link,
           }
 
-          firestore.collection('books').doc(this.book_id).update(data).then((docRef) => {
-            console.log('update book without file')
+          firestore.collection('books').doc(this.book_id).update(data).then(() => {
             alert('수정 성공')
-            this.clearInput()
+            this.closeForm()
           }).catch((error) => {
             console.error('Error adding document: ', error)
             alert('수정 실패')
@@ -280,18 +350,16 @@ export default {
       } else {
         let filepath = null
         if (this.uploadFile) {
-          filepath = 'epub/'+this.uploadFile.name
+          filepath = 'epub/' + this.uploadFile.name
         } else if (this.uploadPdfFile) {
-          filepath = 'pdf/'+this.uploadPdfFile.name
+          filepath = 'pdf/' + this.uploadPdfFile.name
         } else {
-          alert('퍄일을 등록해주세요')
+          alert('파일을 등록해주세요')
           return
         }
 
         let upload_ref = firestorage.ref().child(filepath)
-        upload_ref.put(this.uploadFile || this.uploadPdfFile).then((snapshot) => {
-          console.log('Uploaded file!');
-
+        upload_ref.put(this.uploadFile || this.uploadPdfFile).then(() => {
           let newDocument = {
             title: this.title,
             description: this.description,
@@ -309,7 +377,7 @@ export default {
           firestore.collection('books').add(newDocument).then((docRef) => {
             console.log('Document written with ID: ', docRef.id)
             alert('추가 성공')
-            this.clearInput()
+            this.closeForm()
           }).catch((error) => {
             console.error('Error adding document: ', error)
             alert('추가 실패')
@@ -318,24 +386,25 @@ export default {
       }
     },
     selectBook (key) {
-      for (let book of this.books) {
+      for (let book of this.allBooks) {
         if (book['.key'] == key) {
-          console.log(book)
           this.book_id = book['.key']
           this.title = book['title']
           this.description = book['description']
           this.toc = 'toc' in book ? book['toc'] : ''
           this.image_url = book['image_url']
           this.firestore_url = book['firestore_url']
-          this.category = 'hidden' in book ? book['category'] : 0
+          this.category = 'category' in book ? book['category'] : 0
           this.publisher = 'publisher' in book ? book['publisher'] : ''
-          this.order = 'hidden' in book ? book['order'] : 0
+          this.order = 'order' in book ? book['order'] : 0
           this.hidden = 'hidden' in book ? book['hidden'] : false
           this.shop_yes24_link = book['shop_yes24_link'] || ''
           this.shop_bandi_link = book['shop_bandi_link'] || ''
           this.shop_inter_link = book['shop_inter_link'] || ''
         }
       }
+      this.showForm = true
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     },
     deleteBook (key) {
       if (!confirm("정말 삭제하십니까?")) {
@@ -343,7 +412,6 @@ export default {
       }
 
       firestore.collection('books').doc(key).delete().then(() => {
-        console.log('Document successfully deleted!')
         alert('삭제 성공')
       }).catch((error) => {
         console.error('Error removing document: ', error)
@@ -354,22 +422,53 @@ export default {
 }
 </script>
 
-<!-- Add 'scoped' attribute to limit CSS to this component only -->
 <style scoped>
-.title{
-  font-size: 20px;
-}
-.Row {
-  display: table;
-  width: 100%; /*Optional*/
-  table-layout: fixed; /*Optional*/
-  border-spacing: 10px; /*Optional*/
-}
-.Column {
-  text-align: left;
-  display: table-cell;
-}
-textarea {
-  height: 200px;
-}
+.section { padding: 14px 20px; }
+.toolbar { background: #fafafa; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 5; }
+.summary { font-size: 0.95em; margin-bottom: 10px; }
+.summary .ok { color: #01875f; }
+.summary .muted { color: #999; }
+.summary .filtered { color: #d23669; margin-left: 6px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.filters input, .filters select { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; }
+.f-search { min-width: 200px; }
+
+.btn-add { background: #d23669; color: #fff; border: none; border-radius: 4px; padding: 7px 14px; cursor: pointer; font-weight: 700; }
+.btn-reset { background: #eee; border: 1px solid #ccc; border-radius: 4px; padding: 7px 12px; cursor: pointer; }
+.btn-close { background: none; border: none; cursor: pointer; color: #888; }
+.btn-mini { padding: 4px 9px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 0.85em; margin: 0 2px; }
+.btn-mini.danger { color: #c0392b; border-color: #e2b6b1; }
+.btn-mini:disabled { opacity: 0.4; cursor: default; }
+
+.form-panel { background: #fff; border: 2px solid #d23669; border-radius: 8px; margin: 14px 20px; }
+.form-head { display: flex; justify-content: space-between; align-items: center; }
+.form-head h2 { margin: 0; font-size: 1.1em; }
+.form-hint { color: #888; font-size: 0.85em; margin: 6px 0; }
+.field { margin: 8px 0; text-align: left; }
+.field label, .Column label { display: block; font-size: 0.82em; color: #666; margin-bottom: 3px; }
+.input { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+.form-actions { margin-top: 12px; display: flex; gap: 8px; }
+textarea.input { height: 120px; }
+
+.Row { display: table; width: 100%; table-layout: fixed; border-spacing: 8px; }
+.Column { text-align: left; display: table-cell; }
+
+.list { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+.list th, .list td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; vertical-align: middle; }
+.list th { background: #f7f7f8; color: #555; font-weight: 600; }
+.c-cover { width: 44px; }
+.c-cover img { width: 36px; height: 50px; object-fit: cover; border-radius: 3px; }
+.c-cat { width: 130px; }
+.c-pub { width: 120px; color: #666; }
+.c-status { width: 70px; }
+.c-act { width: 130px; white-space: nowrap; }
+.list select { padding: 4px; border: 1px solid #ccc; border-radius: 4px; max-width: 120px; }
+.badge { padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
+.badge.active { background: #e3f6ef; color: #01875f; }
+.badge.hidden { background: #eee; color: #999; }
+.empty { text-align: center; color: #aaa; padding: 30px; }
+
+.pager { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+.pager select { padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; }
+.page-info { font-size: 0.9em; color: #555; min-width: 90px; text-align: center; }
 </style>
