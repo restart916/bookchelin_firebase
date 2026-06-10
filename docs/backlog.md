@@ -7,24 +7,21 @@
 
 ---
 
-## 1. 어드민 로그인 게이트 + Firestore 규칙 잠그기 (보안, 우선순위 높음)
+## 1. Firestore 규칙 잠그기 (보안, 우선순위 높음)
+
+> ✅ **어드민 로그인 게이트는 완료** (2026-06-10, 커밋 8801b87). 구글 로그인 + 이메일
+> 화이트리스트(`vue-project/src/admin_auth.js` 의 `ADMIN_EMAILS`), `/admin/publisher`·
+> `/admin/publisher/detail/:id` 는 공개 예외. 구글 제공업체 활성화 + `bookchelin.web.app`
+> 인증 도메인 추가 완료. **아래 Firestore 규칙 잠금만 남음.**
 
 ### 배경
-- `https://bookchelin.web.app/admin/` 에 Vue 2 어드민이 **인증 없이 공개**되어 있다
-  (현재 `noindex` 메타만 적용, 소스는 `vue-project/`, `publicPath: '/admin/'`).
 - `firestore.rules` 가 **모든 컬렉션 read/write 허용** 상태 — `CLAUDE.md` 에 known security debt 로 명시.
+  (어드민 UI 는 로그인으로 막혔지만, 공개 API 키 + 열린 규칙이면 누구나 Firestore 에 직접 쓸 수 있다.)
 - HTTPS 함수 엔드포인트(`get_limit_events`, `get_limit_events_asia`, `date`, `addMessage`, `test`)도
   공개 상태.
 
 ### 할 일
-1. **어드민 로그인 게이트** — `vue-project` 에 Firebase Auth 로그인 추가
-   (이메일 화이트리스트 방식). Firebase web SDK 5 구버전 주의 — `vue-project/src/main.js` 에서
-   초기화 방식 확인.
-   - ⚠️ **예외**: `/admin/publisher` 와 `/admin/publisher/detail/:publisher_id` 두 라우트는
-     외부 CP(출판사) 제공용이라 **관리자 로그인 없이 접근 가능해야 한다**
-     (출판사 코드 입력 방식 유지 — `vue-project/src/views/PublisherLogin.vue` 참고).
-     라우터 가드에서 이 두 라우트만 통과시킬 것.
-2. **Firestore 규칙 단계적 잠금** — 모바일 클라이언트
+1. **Firestore 규칙 단계적 잠금** — 모바일 클라이언트
    (`../bookchelin_android` Java, `../bookchelin_flutter` Dart)가 비인증으로 직접 쓰는
    로그성 컬렉션(`read_time_logs`, `read_logs`, `book_reviews`, `show_book_detail`,
    `show_book_reader`, `home_section_view`, `home_section_click`,
