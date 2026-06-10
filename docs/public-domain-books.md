@@ -1,0 +1,93 @@
+# 만료저작물(퍼블릭 도메인) 책 제작·등록 가이드
+
+2026-06-10 작업 기록. 공유마당/위키문헌의 저작권 만료 단편소설 5권(운수 좋은 날, 메밀꽃 필 무렵,
+동백꽃, 날개, 감자)을 EPUB으로 제작해 등록한 과정 정리. 신규 책을 추가할 때 이 문서대로 진행하면 된다.
+
+## 1. 법적 기준 — 어떤 작품을 쓸 수 있나
+
+- **작가 사망 1962년 12월 31일 이전**이면 퍼블릭 도메인 확정.
+  (구 저작권법 사후 50년 만료분은 2013-07-01 법 개정 전에 만료되어 그대로 자유 이용.
+  1963년 이후 사망 작가는 사후 70년 — 예: 염상섭(1963 사망)은 **2033년까지 보호**, 사용 금지.)
+- 만료된 것은 **원문 텍스트만**이다. 현대 출판사 판본의 주석·현대어 교정·표지 디자인은 별도 저작권
+  → 위키문헌/공유마당 원문만 쓰고 표지는 직접 제작한다.
+- 검증된 작가(전부 사용 가능): 현진건(1943), 이효석(1942), 김유정(1937), 이상(1937), 김동인(1951),
+  나도향(1926), 채만식(1950), 윤동주(1945), 한용운(1944).
+- 원문 소스:
+  - 위키문헌 https://ko.wikisource.org — API 로 수집, 페이지 분류에 `PD-old-50/70` 있으면 만료 확인된 것
+  - 공유마당 https://gongu.copyright.or.kr — 만료저작물 코너
+- **주의 1**: 위키문헌 일부 작품은 발표 당시 옛한글 표기 그대로다(예: 벙어리 삼룡이 — `ᄯᅱ어들엇다`).
+  본문 샘플을 꼭 확인하고 현대어 표기인 작품만 쓴다.
+- **주의 2(다른 소스)**: 한국은행 발간물(경제금융용어 700선 등)은 PDF가 무료 공개돼 있어도
+  판권면이 `All Rights Reserved`다(공공누리 아님). 앱 게재는 경제교육실(02-759-5316) 사전 허락 필요.
+  증권사 리포트는 재배포 금지. 공공누리 자료는 **제1유형만** 상업 앱에 안전.
+
+## 2. 제작 파이프라인
+
+두 스크립트로 끝난다. 작품 추가는 각 파일의 `BOOKS` 배열에 항목만 추가.
+
+```bash
+# 1) 위키문헌 수집 → 표지 PNG + EPUB 생성 (/tmp/gongu_books 에 출력)
+cd scripts && python3 build_gongu_epubs.py
+
+# 2) Storage 업로드 + books 문서 생성 (hidden: true 로 등록됨, 멱등)
+node upload_gongu_books.js
+
+# 3) 어드민/앱에서 검수 후 공개 전환
+node upload_gongu_books.js --unhide
+```
+
+### build_gongu_epubs.py 가 하는 일
+
+1. 위키문헌 API(`action=parse`)로 원문 HTML 수집, 분류에 `PD-*` 없으면 assert 로 중단(법적 안전장치)
+2. 본문 `<p>` 만 추출 (헤더/라이선스 박스 제거, 첫 문단이 작가명만이면 제거)
+3. 표지: 작품별 SVG 디자인(색/모티프) → headless Chrome 스크린샷 → 600×900 PNG
+4. EPUB 2.0.1 생성 — 구조: 표지(이미지 내장) → 속표지 → 작품 소개 → 본문 → 출처/저작권 안내,
+   NCX 목차 포함, `meta name="cover"` 지정
+
+**EPUB 2.0.1 을 쓰는 이유**: Android 클라이언트는 epublibDroid(EPUB2/NCX 기반 자바 라이브러리),
+iOS 는 WebView 렌더링이라 EPUB2 가 가장 호환성이 넓다. 기존 354권의 epub 책들과 동일 계열.
+PDF 도 가능하지만(앱이 둘 다 지원, pdf 333권) 텍스트 원문은 EPUB 이 용량 1/10 이고 서체 설정을 따른다.
+
+### upload_gongu_books.js 가 하는 일
+
+1. EPUB → Storage `epub/한국단편_<파일명>.epub` (contentType: application/epub+zip)
+2. 표지 PNG → Storage `cover/한국단편_<파일명>.png` + **다운로드 토큰 부여**
+   (`firebaseStorageDownloadTokens` 메타데이터 → `firebasestorage.googleapis.com/...?alt=media&token=...` URL 을
+   `image_url` 에 사용. 기존 책들은 yes24/교보 핫링크지만 자체 제작 표지는 이 방식)
+3. `books` 문서 생성 — 같은 제목의 문서가 있으면 건너뜀(멱등)
+
+## 3. books 문서 스키마 (필드 타입 주의)
+
+`vue-project/src/views/EditView.vue` 의 addBook 과 동일해야 한다.
+
+| 필드 | 타입 | 값 |
+|---|---|---|
+| `title` | string | `"운수 좋은 날 (현진건)"` — 작가명 병기 |
+| `description` | string | 소개 + 끝에 퍼블릭 도메인 출처 문구(아래) |
+| `toc` | string | `"작품 소개\n<제목>\n출처 및 저작권 안내"` |
+| `image_url` | string | 표지 토큰 URL |
+| `firestore_url` | string | `epub/...` 또는 `pdf/...` Storage 경로 |
+| `category` | **string** | `"5"`(문학) — 1 지식교양·2 자기계발·3 취업수험·4 키즈·5 문학·6 경제경영 |
+| `order` | **string** | 숫자처럼 보여도 문자열이다. 만료저작물은 501~505 사용 중, 클 수록 앞에 노출 |
+| `hidden` | boolean | 등록 시 `true` → 검수 후 `false` |
+| `publisher` | string | 만료저작물은 `""` (빈값. 셜록홈즈 등 기존 고전 202권과 동일) |
+| `shop_*_link` 3개 | string | 무료 책이라 `""` |
+
+출처 문구(필수 — description 끝과 EPUB 판권면 양쪽에 들어감):
+> ※ 저작권 보호기간이 만료된 퍼블릭 도메인 작품입니다. 위키문헌·공유마당(한국저작권위원회) 공개 원문을 바탕으로 북슐랭이 제작했습니다.
+
+검색 인덱스(`search_index/books`)는 `update_search_index_on_book_write` 트리거가 자동 반영하므로
+별도 작업 없음 (hidden 책은 제외됨 — 공개 전환 시 자동 추가).
+
+## 4. 등록된 책 (2026-06-10)
+
+| 제목 | 작가 | 문서 ID | order |
+|---|---|---|---|
+| 운수 좋은 날 | 현진건 | `3GRcvCnEMxURCegGdkLr` | 505 |
+| 메밀꽃 필 무렵 | 이효석 | `lGQDhpvVAWgMh2MjFiWI` | 504 |
+| 동백꽃 | 김유정 | `KFNm9QHaDNoFTSiBkLYk` | 503 |
+| 날개 | 이상 | `0NeDxo4gyXdmTL0A86el` | 502 |
+| 감자 | 김동인 | `j1bR0rgETmayu1dhflvc` | 501 |
+
+다음 배치 후보(만료 + 현대어 표기 확인 완료): 봄봄(김유정), 배따라기(김동인).
+레디메이드 인생(채만식)도 위키문헌에 있으나 PD 분류 표기가 없어 수동 확인 필요.

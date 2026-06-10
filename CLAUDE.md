@@ -116,6 +116,7 @@ One index currently tracked: `books` collection with `hidden ASC + category ASC 
 - `migrate_event_history_phase_a.js` / `phase_b.js` — migrate event docs to subcollection layout (already run — keep for disaster recovery)
 - `fetch_current_rules.js` — pull production rules/index files locally
 - `check_active_events.js` — diagnostic listing of active time/limit events
+- `build_gongu_epubs.py` + `upload_gongu_books.js` — public-domain (만료저작물) book pipeline: Wikisource → cover PNG + EPUB → Storage + `books` doc. **Adding new free books? Read `docs/public-domain-books.md` first** (legal criteria, field types, full workflow)
 - `verify-book-images.mjs`, `build-link-select-bestseller-candidates.mjs`, `import-link-select-batch.mjs` — older Vue/REST-based ops (do not import firebase-admin)
 
 Mixed style: `.js` (CommonJS, uses `firebase-admin`) and `.mjs` (ESM, uses Firestore REST API directly). Both patterns are acceptable; match neighbors when adding new scripts.
