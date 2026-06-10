@@ -1,5 +1,9 @@
 .DS_Store
+# public/ 은 빌드 산출물(어드민은 public/admin)이라 무시하되,
+# 루트 정적 파일(robots, 서치콘솔 인증)은 git 으로 관리한다
 public/*
+!public/robots.txt
+!public/google*.html
 
 # Firebase / GCP service account keys (never commit)
 *-adminsdk-*.json
