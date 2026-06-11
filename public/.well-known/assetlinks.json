@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bookchelin.bookchelin",
+      "sha256_cert_fingerprints": [
+        "D9:C5:B9:B3:92:7E:03:D0:2D:FA:0B:60:15:4E:3E:9A:47:15:B3:C6:64:93:62:FF:6D:5F:2C:DA:F4:AA:02:66",
+        "25:DA:97:AD:5A:3A:7F:94:51:E0:19:63:5D:5D:02:64:6E:1C:B9:C9:8A:29:40:36:9F:8C:09:67:CB:58:D8:5D"
+      ]
+    }
+  }
+]

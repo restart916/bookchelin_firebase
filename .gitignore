@@ -4,6 +4,8 @@
 public/*
 !public/robots.txt
 !public/google*.html
+!public/app-ads.txt
+!public/.well-known/
 
 # Firebase / GCP service account keys (never commit)
 *-adminsdk-*.json

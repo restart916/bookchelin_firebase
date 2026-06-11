@@ -96,7 +96,10 @@
 
 ### 딥링크 재구축 `[android]` `[flutter(iOS)]` `[web]`
 - 현황: `firebase_dynamic_links` 는 서비스 종료(2025-08-25)로 양 클라이언트에서 제거됨. 현재 공유하기는 정적 블로그 URL 폴백 (flutter `book_detail_page._onClickShare`)
-- [ ] 이미 있는 SSR 웹(`bookchelin.web.app/book/{id}`)을 딥링크 타깃으로: Android App Links + iOS Universal Links 설정 (`assetlinks.json` / `apple-app-site-association` 은 hosting에 올리면 즉시 처리 가능)
+- [x] 서버측 검증 파일 배포 (2026-06-11): `bookchelin.web.app/.well-known/assetlinks.json` (Play 앱서명+업로드 키 SHA-256 둘 다, 구글 Digital Asset Links API 검증 통과) + `apple-app-site-association` (`/book/*` → 앱, Content-Type 헤더 설정). Play Console에 "웹 도메인 미연결로 딥링크 2개 작동 안 함" 경고 떠 있던 것의 해소 시작
+- [ ] `[android]` AndroidManifest에 `https://bookchelin.web.app` `/book/*` 인텐트 필터 + `android:autoVerify="true"` 추가
+- [ ] `[flutter(iOS)]` Associated Domains entitlement에 `applinks:bookchelin.web.app` 추가 + 런타임 딥링크 핸들러 연결 (`main_page.dart` 핸들러 재사용)
+- [ ] 양 클라이언트 공유하기를 `https://bookchelin.web.app/book/{id}` URL로 교체 (현재: 정적 블로그 URL)
 - [ ] App Links 완성 후 Play Console → 테스트 및 출시 → 고급 설정 → **앱 색인 생성**에 bookchelin.web.app 등록 (구글 검색 결과에서 앱 설치자는 앱으로 바로 열림. 2026-06-11 확인: 현재 등록된 웹사이트 0개. 같은 화면의 "앱 작업"/"인라인 설치"는 해당 없음 — 끈 상태 유지)
 - [ ] 공유하기를 `/book/{id}` URL로 교체 — 앱 설치자는 앱으로, 미설치자는 SEO 페이지 → 스토어 퍼널
 - [ ] `main_page.dart` 딥링크 핸들러(단일 문서 fetch 방식)와 Android 측 인텐트 처리 정비
