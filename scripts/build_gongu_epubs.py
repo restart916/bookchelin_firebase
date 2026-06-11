@@ -260,6 +260,75 @@ def _playful(c):  # 황소와 도깨비 (동화) — 밝은 도형/별
     return '\n'.join(out)
 
 
+def _sea(c):  # 배따라기 — 바다 물결 + 돛단배
+    out = []
+    # 수평선 위 작은 돛단배
+    out.append(f'<path d="M 270 250 L 270 180 L 330 230 Z" fill="{c}" opacity="0.85"/>')
+    out.append(f'<path d="M 250 252 q 50 18 100 0 l -12 22 q -38 12 -76 0 Z" fill="{c}" opacity="0.7"/>')
+    # 겹겹의 물결
+    for i, y in enumerate(range(300, 880, 36)):
+        op = 0.18 + 0.45 * (i / 16)
+        out.append(f'<path d="M -20 {y} q 75 -20 150 0 t 150 0 t 150 0 t 150 0" fill="none" stroke="{c}" stroke-width="2.5" opacity="{op:.2f}"/>')
+    return '\n'.join(out)
+
+
+def _railroad(c):  # 고향 — 소실점으로 뻗는 철길 + 들판 지평선
+    out = [f'<line x1="-20" y1="300" x2="620" y2="300" stroke="{c}" stroke-width="1.5" opacity="0.4"/>']
+    # 소실점(300,300)에서 하단으로 벌어지는 두 레일
+    out.append(f'<line x1="300" y1="300" x2="180" y2="890" stroke="{c}" stroke-width="3" opacity="0.7"/>')
+    out.append(f'<line x1="300" y1="300" x2="420" y2="890" stroke="{c}" stroke-width="3" opacity="0.7"/>')
+    # 침목 — 아래로 갈수록 넓고 성기게
+    for i in range(12):
+        t = i / 11.0
+        y = 320 + t * t * 560
+        hw = 14 + t * 110
+        out.append(f'<line x1="{300-hw:.0f}" y1="{y:.0f}" x2="{300+hw:.0f}" y2="{y:.0f}" stroke="{c}" stroke-width="{2+t*3:.0f}" opacity="{0.3+t*0.4:.2f}"/>')
+    return '\n'.join(out)
+
+
+def _peak(c):  # 산 — 산봉우리 실루엣 + 별
+    out = []
+    random.seed(31)
+    for _ in range(18):
+        x, y = random.uniform(40, 560), random.uniform(150, 300)
+        out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{random.uniform(1.5,3):.1f}" fill="{c}" opacity="{random.uniform(0.4,0.9):.2f}"/>')
+    # 겹친 산 능선
+    out.append(f'<path d="M -20 760 L 140 560 L 280 700 L 430 500 L 620 720 L 620 900 L -20 900 Z" fill="{c}" opacity="0.45"/>')
+    out.append(f'<path d="M -20 820 L 200 660 L 380 790 L 560 640 L 620 690 L 620 900 L -20 900 Z" fill="{c}" opacity="0.7"/>')
+    return '\n'.join(out)
+
+
+def _jar(c):  # 백치 아다다 — 깨진 질그릇 조각
+    out = []
+    random.seed(37)
+    import math
+    # 금이 간 항아리 윤곽
+    out.append(f'<path d="M 240 600 q -40 -90 60 -130 q 100 40 60 130 q 0 70 -60 75 q -60 -5 -60 -75 Z" fill="none" stroke="{c}" stroke-width="3" opacity="0.8"/>')
+    out.append(f'<path d="M 300 470 l 14 70 l -26 28 l 20 55" fill="none" stroke="{c}" stroke-width="2" opacity="0.7"/>')
+    # 흩어진 깨진 조각
+    for _ in range(14):
+        x, y = random.uniform(120, 480), random.uniform(700, 860)
+        s = random.uniform(10, 26)
+        a = random.uniform(0, 360)
+        out.append(f'<polygon points="{x:.0f},{y:.0f} {x+s:.0f},{y+s*0.3:.0f} {x+s*0.5:.0f},{y+s:.0f}" fill="{c}" opacity="{random.uniform(0.4,0.8):.2f}" transform="rotate({a:.0f} {x:.0f} {y:.0f})"/>')
+    return '\n'.join(out)
+
+
+def _sun(c):  # 땡볕 — 내리쬐는 태양 + 빛살
+    out = []
+    import math
+    cx, cy = 300, 230
+    for k in range(24):
+        a = k * math.pi / 12
+        r1, r2 = 70, 70 + (150 if k % 2 == 0 else 95)
+        out.append(f'<line x1="{cx+r1*math.cos(a):.0f}" y1="{cy+r1*math.sin(a):.0f}" x2="{cx+r2*math.cos(a):.0f}" y2="{cy+r2*math.sin(a):.0f}" stroke="{c}" stroke-width="3" opacity="0.55"/>')
+    out.append(f'<circle cx="{cx}" cy="{cy}" r="60" fill="{c}" opacity="0.9"/>')
+    # 지면의 아지랑이
+    for y in (800, 835, 868):
+        out.append(f'<path d="M -20 {y} q 60 -14 120 0 t 120 0 t 120 0 t 120 0 t 120 0" fill="none" stroke="{c}" stroke-width="2" opacity="0.35"/>')
+    return '\n'.join(out)
+
+
 # file → (motif_fn, motif_color, (bg, fg, sub))
 COVER_SPEC = {
     # 기존 5권 (라이브 유지 — 재업로드 안 함, 재현용)
@@ -281,6 +350,12 @@ COVER_SPEC = {
     '금_따는_콩밭': (_gold, '#e8c24a', ('#2e2820', '#f2e8d0', '#b8a060')),
     '만무방': (_harvest, '#cdb45a', ('#3a3320', '#f2ead2', '#bbab78')),
     '황소와_도깨비': (_playful, '#ffd24a', ('#2b6e8c', '#fff6e8', '#bfe2ef')),
+    # 신규 5권 (2026-06-11)
+    '배따라기': (_sea, '#6f95ad', ('#1c2e3e', '#e8eef2', '#7fa0b5')),
+    '고향_현진건': (_railroad, '#b0a080', ('#3a3328', '#f0e8d8', '#a89878')),
+    '산_이효석': (_peak, '#7fa888', ('#23362a', '#e8f0e2', '#8fb494')),
+    '백치_아다다': (_jar, '#c0a0ae', ('#3e3036', '#f2e8ec', '#b39aa8')),
+    '땡볕': (_sun, '#e0a838', ('#3a2a1a', '#f5e8d2', '#c89a5a')),
 }
 
 FALLBACK_PALETTE = ('#2e3142', '#ececf4', '#a6a8c0')
