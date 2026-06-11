@@ -1,0 +1,24 @@
+[
+  {
+    "file": "운전면허_문제은행_보통대형특수",
+    "pdf": "license_bank_main.pdf",
+    "title": "운전면허 필기 문제은행 1000제 (1·2종 보통/대형·특수)",
+    "publisher": "도로교통공단",
+    "category": "3",
+    "order": "99995",
+    "source_url": "https://www.safedriving.or.kr/notice/rerBankList.do?menuCode=MN-PO-1151",
+    "edition": "2026년 3월 9일 시행 기준",
+    "desc": "도로교통공단이 공개한 운전면허 학과시험 공식 문제은행입니다. 1·2종 보통, 1종 대형·특수 응시자용 1,000문항을 수록했으며, 실제 학과시험 문제가 이 문제은행에서 출제됩니다. 2026년 3월 9일 시행 기준 최신판으로, 회원가입 없이 무료로 학습할 수 있습니다."
+  },
+  {
+    "file": "운전면허_문제은행_이륜원동기",
+    "pdf": "license_bank_moto.pdf",
+    "title": "운전면허 필기 문제은행 800제 (2종 소형/원동기)",
+    "publisher": "도로교통공단",
+    "category": "3",
+    "order": "99994",
+    "source_url": "https://www.safedriving.or.kr/notice/rerBankList.do?menuCode=MN-PO-1151",
+    "edition": "2026년 3월 9일 시행 기준",
+    "desc": "도로교통공단이 공개한 이륜자동차 운전면허 학과시험 공식 문제은행입니다. 2종 소형, 원동기장치자전거 응시자용 800문항을 수록했으며, 실제 학과시험 문제가 이 문제은행에서 출제됩니다. 2026년 3월 9일 시행 기준 최신판으로, 회원가입 없이 무료로 학습할 수 있습니다."
+  }
+]
