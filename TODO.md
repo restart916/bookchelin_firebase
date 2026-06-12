@@ -74,7 +74,8 @@
 - [ ] 검색창에 입력 시 즉시 크래시 (아이폰)
 - [ ] 아이패드: 첫 화면 후 튕김
 - [ ] 맥북(Designed for iPad): 흰 화면
-- [ ] Crashlytics 도입 여부 확인, 없으면 추가 (이후 크래시 추적 기반)
+- [x] Crashlytics 도입 여부 확인 (2026-06-12) — Android(18.4.1)·iOS(firebase_crashlytics 5.2.2) 둘 다 이미 수집 중. GA4 기준 최근 30일 Android 예외 15건/유저 6명(영향 ~0.4%)으로 출시 블로커 없음. 상세 스택은 Crashlytics 콘솔에서 (iOS 검색 튕김 재현 단서도 거기서 찾을 것)
+- [ ] `[flutter(iOS)]` 대여함 표지 깨짐 수정 ✅ (2026-06-12, bookchelin_flutter `e11a911`) — 다음 검수 시 대여함에서 표지 정상 표시 확인
 
 ### 인앱 리뷰 프롬프트 ✅ 확인 완료 → iOS만 추가
 - 조사 결과: **Android는 이미 있음** (`BookDetailActivity.java` — 리더에서 돌아오면 RateThisApp 조건 충족 시 Google Play In-App Review). **Flutter(iOS)에는 없음** → 앱스토어 평점이 50개뿐인 이유
@@ -87,7 +88,7 @@
 - [ ] 첫 실행 시 "바로 읽기 좋은 책" 추천 (온보딩 큐레이션) — 회원가입 없음이 강점이므로 첫 화면에서 바로 읽게
 - [ ] 신규 유저 첫 N분 광고 면제 (첫인상에 종료 광고 맞으면 바로 삭제할 가능성) — RemoteConfig 제어와 연계
 - [ ] 다음날 푸시 1회 (위 푸시 자동화와 연계 — 서버 쪽은 즉시 처리 가능)
-- [ ] `[android]` POST_NOTIFICATIONS 런타임 권한 요청 추가 (targetSdk 35인데 미요청 → Android 13+ 푸시 수신 불가. 첫 책 읽기 완료 직후 등 가치 경험 뒤에 요청)
+- [x] `[android]` POST_NOTIFICATIONS 런타임 권한 요청 추가 (2026-06-12, bookchelin_android `47d8d2d` — 메인 진입 시 요청. 죽은 dynamic-links/appindexing 의존성 제거 포함). 추후 "첫 책 읽기 완료 후 요청"으로 시점 최적화 여지
 - [ ] `[android]` `[flutter(iOS)]` FCM 토큰 Firestore 저장 — Phase 1 개인화 푸시(이어읽기 리마인드)의 전제조건 (`docs/push-campaigns.md` Phase 1 참고)
 
 ### RemoteConfig 광고 제어 부활 `[android]` `[flutter(iOS)]`
