@@ -208,19 +208,28 @@ ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ''}
       storeIos.style.display = 'none';
       storeAndroid.style.display = 'none';
     } else if (isIOS) {
+      // "앱에서 열기" 하나로 통합 (App Store 버튼 제거).
       // 커스텀 스킴(bookchelin://)으로 앱을 직접 연다 — 카카오톡·인스타 인앱 브라우저에서도
-      // 동작(Universal Link 는 인앱 웹뷰에서 막힘). 미설치면 앱 전환이 없으므로
-      // 잠시 후 App Store 로 폴백. Safari 는 상단 Smart App Banner 도 함께 뜬다.
+      // 동작(Universal Link 는 인앱 웹뷰에서 막힘). 앱이 열리면 탭이 백그라운드로 가고,
+      // 안 가면(미설치) App Store 로 폴백. Safari 사용자는 상단 Smart App Banner 가
+      // 모달 없이 책 상세로 직행하므로 이 버튼은 주로 인앱 브라우저용.
+      // ※ iOS 특성상 미설치 시 커스텀 스킴 호출에서 시스템 모달이 한 번 뜨는 건 불가피
+      //   (iframe 우회는 최신 iOS 에서 설치자도 앱이 안 열리는 부작용이 있어 쓰지 않음).
+      storeIos.style.display = 'none';
       storeAndroid.style.display = 'none';
       openApp.addEventListener('click', function (e) {
         e.preventDefault();
-        var clickedAt = Date.now();
+        var jumped = false;
+        var onHide = function () {
+          if (document.hidden) jumped = true;
+        };
+        document.addEventListener('visibilitychange', onHide);
         setTimeout(function () {
-          // 앱이 열렸다면 탭이 백그라운드(document.hidden)가 된다. 아니면 미설치 → 스토어.
-          if (!document.hidden && Date.now() - clickedAt < 2100) {
+          document.removeEventListener('visibilitychange', onHide);
+          if (!jumped && !document.hidden) {
             window.location.href = '${IOS_STORE_URL}';
           }
-        }, 1600);
+        }, 1500);
         window.location.href = 'bookchelin://book/${bookId}';
       });
     } else {
