@@ -137,7 +137,7 @@ function renderBookHtml(bookId, book, reviews) {
 <title>${pageTitle}</title>
 <meta name="description" content="${metaDescription}">
 <link rel="canonical" href="${canonical}">
-<meta name="apple-itunes-app" content="app-id=${IOS_APP_ID}">
+<meta name="apple-itunes-app" content="app-id=${IOS_APP_ID}, app-argument=${canonical}">
 <meta property="og:type" content="book">
 <meta property="og:title" content="${pageTitle}">
 <meta property="og:description" content="${metaDescription}">
@@ -182,9 +182,41 @@ ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ''}
 </div>
 <div class="cta">
   <p><strong>${title}</strong> 전체 내용은 북슐랭 앱에서 무료로 읽을 수 있어요</p>
-  <a href="${IOS_STORE_URL}">App Store</a>
-  <a class="android" href="${ANDROID_STORE_URL}">Google Play</a>
+  <a id="open-app" class="android" href="#">앱에서 열기</a>
+  <a id="store-ios" href="${IOS_STORE_URL}">App Store</a>
+  <a id="store-android" class="android" href="${ANDROID_STORE_URL}">Google Play</a>
 </div>
+<script>
+  // App Links/Universal Links 는 카카오톡·인스타 등 인앱 브라우저에서 무시되므로,
+  // 그때도 "앱으로 직행"이 되도록 OS 별 폴백을 제공한다.
+  // - Android: intent:// URL 이 인앱 브라우저에서도 앱(설치 시)을 열고, 없으면 스토어로 폴백.
+  // - iOS: 인앱 웹뷰에선 Universal Link 가 안 통해 App Store 로 안내(Safari 는 상단 Smart App Banner 가 처리).
+  (function () {
+    var ua = navigator.userAgent || '';
+    var isAndroid = /Android/i.test(ua);
+    var isIOS = /iPhone|iPad|iPod/i.test(ua);
+    var openApp = document.getElementById('open-app');
+    var storeIos = document.getElementById('store-ios');
+    var storeAndroid = document.getElementById('store-android');
+    if (isAndroid) {
+      var fallback = encodeURIComponent('${ANDROID_STORE_URL}');
+      openApp.setAttribute(
+        'href',
+        'intent://bookchelin.web.app/book/${bookId}#Intent;scheme=https;package=${ANDROID_PACKAGE};S.browser_fallback_url=' +
+          fallback + ';end'
+      );
+      storeIos.style.display = 'none';
+      storeAndroid.style.display = 'none';
+    } else if (isIOS) {
+      // 설치자: 상단 Smart App Banner(또는 Universal Link)로 앱 진입. 버튼은 스토어만 노출.
+      openApp.style.display = 'none';
+      storeAndroid.style.display = 'none';
+    } else {
+      // 데스크톱 등: 앱 열기 버튼 숨기고 양쪽 스토어 안내.
+      openApp.style.display = 'none';
+    }
+  })();
+</script>
 </body>
 </html>`;
 }
