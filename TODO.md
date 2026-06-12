@@ -109,7 +109,8 @@
 - [x] `[android]` AndroidManifest 인텐트 필터 교체(page.link→web.app `/book/` pathPrefix, autoVerify) + `NewMainActivity.handleAppLink()` + `Util.generateContentLink` web.app URL화 (bookchelin_android `7ae035a`, compileDebugJavaWithJavac 통과)
 - [x] `[flutter(iOS)]` entitlement applinks→web.app + `app_links` 패키지 + main.dart 딥링크 핸들러(navigatorKey, getInitialLink+uriLinkStream) (bookchelin_flutter `3814f6f`, flutter analyze 통과)
 - [x] 양 클라이언트 공유하기를 `https://bookchelin.web.app/book/{id}` URL로 교체 (덤: 양쪽 다 죽은 Dynamic Links 단축링크를 쓰고 있어 공유가 깨져 있던 것도 복구)
-- [ ] **앱 배포 후 검증**: 실기기에서 카톡/문자로 `/book/{id}` 링크 탭 → 앱 책 상세 열리는지 (Android는 설치 후 autoVerify 자동, iOS는 AASA 캐시 때문에 재설치 필요할 수 있음). iOS Smart App Banner/Android 폴백 배너(인앱브라우저 대비)는 web_book SSR 작업으로 별도 — 즉시 처리 가능 항목
+- [x] 웹 폴백 배너 (2026-06-12, `2876333`) — web_book SSR 책 페이지에 Smart App Banner app-argument + OS인식 CTA(Android intent:// / iOS App Store) 추가. 카톡·인스타 인앱 브라우저에서도 앱 직행. functions:web_book 배포·검증 완료
+- [ ] **앱 배포 후 검증** (양 스토어 출시 완료): 실기기에서 ① 카톡으로 `/book/{id}` 탭 → 앱 책 상세 직행(설치자) ② 인앱 브라우저에서 웹 뜰 때 "앱에서 열기" 버튼 동작 ③ 미설치 기기는 스토어로. Android autoVerify / iOS AASA 캐시(재설치 필요할 수 있음) 확인
 - [ ] App Links 검증되면 Play Console "앱 색인 생성"에 bookchelin.web.app 등록 (위 ASO 섹션 참고)
 - [ ] App Links 완성 후 Play Console → 테스트 및 출시 → 고급 설정 → **앱 색인 생성**에 bookchelin.web.app 등록 (구글 검색 결과에서 앱 설치자는 앱으로 바로 열림. 2026-06-11 확인: 현재 등록된 웹사이트 0개. 같은 화면의 "앱 작업"/"인라인 설치"는 해당 없음 — 끈 상태 유지)
 - [ ] 공유하기를 `/book/{id}` URL로 교체 — 앱 설치자는 앱으로, 미설치자는 SEO 페이지 → 스토어 퍼널
