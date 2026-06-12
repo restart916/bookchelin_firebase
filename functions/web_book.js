@@ -208,9 +208,21 @@ ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ''}
       storeIos.style.display = 'none';
       storeAndroid.style.display = 'none';
     } else if (isIOS) {
-      // 설치자: 상단 Smart App Banner(또는 Universal Link)로 앱 진입. 버튼은 스토어만 노출.
-      openApp.style.display = 'none';
+      // 커스텀 스킴(bookchelin://)으로 앱을 직접 연다 — 카카오톡·인스타 인앱 브라우저에서도
+      // 동작(Universal Link 는 인앱 웹뷰에서 막힘). 미설치면 앱 전환이 없으므로
+      // 잠시 후 App Store 로 폴백. Safari 는 상단 Smart App Banner 도 함께 뜬다.
       storeAndroid.style.display = 'none';
+      openApp.addEventListener('click', function (e) {
+        e.preventDefault();
+        var clickedAt = Date.now();
+        setTimeout(function () {
+          // 앱이 열렸다면 탭이 백그라운드(document.hidden)가 된다. 아니면 미설치 → 스토어.
+          if (!document.hidden && Date.now() - clickedAt < 2100) {
+            window.location.href = '${IOS_STORE_URL}';
+          }
+        }, 1600);
+        window.location.href = 'bookchelin://book/${bookId}';
+      });
     } else {
       // 데스크톱 등: 앱 열기 버튼 숨기고 양쪽 스토어 안내.
       openApp.style.display = 'none';
