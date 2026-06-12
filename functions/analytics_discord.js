@@ -1,19 +1,31 @@
 // analytics_discord.js
-// 전날 GA4 지표(DAU/WAU/MAU + 리텐션 비율 + 수익)를 Discord로 발송하는 로직.
+// GA4 지표(DAU/WAU/MAU + 리텐션 비율 + 수익)를 Discord로 발송하는 로직.
 // 매일 KST 09:00(UTC 00:00)에 daily_dau_report 스케줄 함수에서 호출된다.
+//
+// 데이터 기준일은 D-2(그저께). GA4 표준 속성은 당일/전일 데이터가 최대 48시간까지
+// 계속 채워져, 09시 시점의 전일치는 미완성(실측: 어떤 날 54 → 다음날 83). D-2 는
+// 확정돼 더 이상 변하지 않으므로 "매일 같은 숫자를 두 번 보는" 혼란이 없다.
+// GA4 property 시간대 = Asia/Seoul(GMT-9)이라 날짜 경계는 KST 자정 기준.
 
 const { fetchAndStoreDau } = require('./analytics_dau');
 const { notifyDiscord } = require('./discord');
 
-// UTC 기준 어제 날짜를 YYYYMMDD 문자열로 반환
-function yesterdayUTC() {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10).replace(/-/g, '');
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 발송 시각과 무관하게 KST 기준 N일 전 날짜를 YYYYMMDD 로 반환.
+// (UTC+9 로 시프트한 뒤 날짜만 취하므로 09시가 아닌 시각에 돌려도 정확)
+function dateAgoKST(daysAgo) {
+  const kst = new Date(Date.now() + 9 * 3600 * 1000);
+  kst.setUTCDate(kst.getUTCDate() - daysAgo);
+  return kst.toISOString().slice(0, 10).replace(/-/g, '');
 }
 
 function formatDate(yyyymmdd) {
-  return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`;
+  const y = yyyymmdd.slice(0, 4);
+  const m = yyyymmdd.slice(4, 6);
+  const d = yyyymmdd.slice(6, 8);
+  const wd = WEEKDAYS[new Date(`${y}-${m}-${d}T00:00:00Z`).getUTCDay()];
+  return `${y}-${m}-${d}(${wd})`;
 }
 
 function pct(decimal) {
@@ -32,25 +44,32 @@ function usd(amount) {
  * @returns {Promise<boolean>} Discord 전송 성공 여부
  */
 async function sendDauReport(db) {
-  // lookbackDays: 2 → 어제 + 오늘(집계 미완) 두 행을 가져와 Firestore에 저장
-  const { rows } = await fetchAndStoreDau(db, { lookbackDays: 2 });
+  // lookbackDays: 3 → 그저께(D-2)·어제·오늘 + 여유 1일을 가져와 Firestore에 저장.
+  // (그저께 행이 반드시 포함되도록 D-2 보다 하루 더 넓게 조회)
+  const { rows } = await fetchAndStoreDau(db, { lookbackDays: 3 });
 
   if (!rows || rows.length === 0) {
     console.warn('[analytics_discord] GA4 응답 행 없음 — Discord 전송 건너뜀');
     return false;
   }
 
-  // UTC 00:00 기준 어제 날짜 행을 우선 선택, 없으면 마지막 행
-  const target = yesterdayUTC();
+  // 데이터 기준일 = KST D-2(그저께). 확정돼 더 이상 변하지 않는 값.
+  const target = dateAgoKST(2);
   const row = rows.find((r) => r.date === target) || rows[rows.length - 1];
 
+  const isExactTarget = row.date === target;
   const dateLabel = formatDate(row.date);
+  const sentLabel = formatDate(dateAgoKST(0)); // 발송일(오늘 KST)
 
   const payload = {
     username: '북슐랭 Analytics',
     embeds: [
       {
         title: `📊 ${dateLabel} 일간 리포트`,
+        description:
+          `🗓 **데이터 기준일: ${dateLabel}** — 그저께(D-2) 확정치\n` +
+          `발송: ${sentLabel} 오전 9시 (KST)` +
+          (isExactTarget ? '' : '\n⚠️ 그저께 데이터가 없어 가장 최근 행으로 대체됨'),
         color: 0x5865f2,
         fields: [
           { name: 'DAU', value: String(row.dau), inline: true },
@@ -65,7 +84,7 @@ async function sendDauReport(db) {
             inline: false,
           },
         ],
-        footer: { text: 'GA4 Property 185590610 · Bookchelin Firebase' },
+        footer: { text: 'GA4 Property 185590610 · Bookchelin Firebase · D-2 확정 기준' },
         timestamp: new Date().toISOString(),
       },
     ],
