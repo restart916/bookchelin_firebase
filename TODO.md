@@ -111,10 +111,10 @@
 - [x] 양 클라이언트 공유하기를 `https://bookchelin.web.app/book/{id}` URL로 교체 (덤: 양쪽 다 죽은 Dynamic Links 단축링크를 쓰고 있어 공유가 깨져 있던 것도 복구)
 - [x] 웹 폴백 배너 (2026-06-12, `2876333`) — web_book SSR 책 페이지에 Smart App Banner app-argument + OS인식 CTA(Android intent:// / iOS App Store) 추가. 카톡·인스타 인앱 브라우저에서도 앱 직행. functions:web_book 배포·검증 완료
 - [ ] **앱 배포 후 검증** (양 스토어 출시 완료): 실기기에서 ① 카톡으로 `/book/{id}` 탭 → 앱 책 상세 직행(설치자) ② 인앱 브라우저에서 웹 뜰 때 "앱에서 열기" 버튼 동작 ③ 미설치 기기는 스토어로. Android autoVerify / iOS AASA 캐시(재설치 필요할 수 있음) 확인
-- [ ] App Links 검증되면 Play Console "앱 색인 생성"에 bookchelin.web.app 등록 (위 ASO 섹션 참고)
-- [ ] App Links 완성 후 Play Console → 테스트 및 출시 → 고급 설정 → **앱 색인 생성**에 bookchelin.web.app 등록 (구글 검색 결과에서 앱 설치자는 앱으로 바로 열림. 2026-06-11 확인: 현재 등록된 웹사이트 0개. 같은 화면의 "앱 작업"/"인라인 설치"는 해당 없음 — 끈 상태 유지)
-- [ ] 공유하기를 `/book/{id}` URL로 교체 — 앱 설치자는 앱으로, 미설치자는 SEO 페이지 → 스토어 퍼널
-- [ ] `main_page.dart` 딥링크 핸들러(단일 문서 fetch 방식)와 Android 측 인텐트 처리 정비
+- [x] iOS 웹 "앱에서 열기" — 커스텀 스킴 bookchelin://book/{id} 로 스토어 미경유 직행 (2026-06-12). 웹 `1829581`(배포·CDN퍼지 완료) + Flutter `fede1b4`(_handleUri 커스텀스킴 파싱, **다음 iOS 배포 1.1.2 필요**). Android는 intent://로 이미 완성
+  - ⚠️ 스토어 "열기" 버튼으로는 특정 책 전달 불가(deferred deep link=Dynamic Links 종료). 직접 열기만 가능
+  - ⚠️ web_book 은 CDN s-maxage=86400 — 함수만 배포하면 옛 버전 캐싱, `firebase deploy --only hosting` 으로 퍼지해야 함
+- [ ] Play Console "앱 색인 생성"에 bookchelin.web.app 등록 (App Links 검증 후. 2026-06-11 확인: 등록 0개. "앱 작업"/"인라인 설치"는 해당 없음)
 
 ### 신규 광고 포맷 실험 `[android]` `[flutter(iOS)]`
 - [ ] 리스트 사이 네이티브 광고 (메인/카테고리 목록)
