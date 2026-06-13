@@ -15,7 +15,7 @@
 - 현재 등록정보 상태 (API로 확인): ko-KR 제목 "도서(책) 어플 - 북슐랭"(키워드 빈약), 짧은설명 "다양한 책들을 무료로 볼 수 있는 어플", 스크린샷 5장/태블릿용 0장, en-US 리스팅에 오타("Bookchellin"/"Bookschulin") + 그래픽 0개, contactWebsite가 app-ads-txt 플레이스홀더 도메인(→ bookchelin.web.app 으로 교체 후보)
 - [x] 플레이스토어 제목·짧은설명·자세한설명 갱신 (ko-KR + en-US, 2026-06-11 API 커밋 — 구글 검토 후 게시. 스크립트: `scripts/update_play_listing.mjs`)
 - [ ] 며칠 내 플레이스토어에서 새 등록정보 반영 확인 (검토 거부 시 이메일 옴 — 제목의 정책 위반 여부 등)
-- [ ] 앱스토어(iOS) 등록정보도 동일 방향으로 갱신 — App Store Connect는 API 키 별도(p8) 필요, 콘솔에서 직접 수정이 빠를 수 있음
+- [ ] 앱스토어(iOS) 등록정보 갱신 — Keywords 는 반영됨(확인). Support/Marketing URL(→ bookchelin.web.app, app-ads.txt 도메인 통일)은 **사장님이 다음 버전 배포 때 수동 처리 예정** (2026-06-13). 그래야 옛 placeholder 도메인 j6b64c7e.app-ads-txt.com 의존 끊고 해지 가능
 - [x] 개발자 웹사이트를 placeholder(app-ads-txt.com) → bookchelin.web.app 으로 교체 (2026-06-11 커밋. app-ads.txt 는 동일 내용으로 사전 배포·검증됨)
 - [ ] 1~2일 후 AdMob 콘솔에서 app-ads.txt 인증 상태 정상인지 확인 (앱 → app-ads.txt 탭)
 - [ ] 스크린샷 전면 교체 (현재 책 수 704권 반영, 핵심 메시지: 무료·무가입·베스트셀러 포함)
