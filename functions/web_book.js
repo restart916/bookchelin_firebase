@@ -48,6 +48,7 @@ async function loadReviews(db, bookId) {
   const texts = [];
   snap.forEach((d) => {
     const r = d.data();
+    if (r.hide === '1') return; // 도배/숨김 리뷰는 평점 집계·노출 모두에서 제외 (클라이언트와 동일 규약)
     if (typeof r.rating === 'number' && r.rating >= 1 && r.rating <= 5) {
       sum += r.rating;
       count += 1;
@@ -108,6 +109,16 @@ function renderBookHtml(bookId, book, reviews) {
       : {}),
   };
 
+  // 검색결과에 "북슐랭 > 책 제목" 경로를 노출 (BreadcrumbList).
+  const breadcrumb = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '북슐랭', item: WEB_BASE_URL },
+      { '@type': 'ListItem', position: 2, name: book.title, item: canonical },
+    ],
+  };
+
   const ratingBlock =
     reviews.count > 0
       ? `<p class="rating">★ ${reviews.average} <span class="muted">(리뷰 ${reviews.count}개)</span></p>`
@@ -144,7 +155,7 @@ function renderBookHtml(bookId, book, reviews) {
 <meta property="og:url" content="${canonical}">
 ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ''}
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+<script type="application/ld+json">${JSON.stringify([jsonLd, breadcrumb])}</script>
 <style>
   body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; margin: 0; color: #222; line-height: 1.7; }
   .wrap { max-width: 680px; margin: 0 auto; padding: 16px 20px 120px; }
