@@ -17,9 +17,24 @@
           <p class='control' style='margin-left:12px'><span class='tag is-dark'>기간</span></p>
           <p class='control' v-for='r in currentRanges' :key='r.label'>
             <button class='button is-small'
-                    :class="activeDays === r.days ? 'is-link' : 'is-light'"
+                    :class="(mode === 'preset' && activeDays === r.days) ? 'is-link' : 'is-light'"
                     :disabled='loading'
                     @click='load(r.days)'>{{ r.label }}</button>
+          </p>
+          <!-- 커스텀 기간: 시작/끝 날짜 직접 지정 (문서ID 범위질의 startAt/endAt) -->
+          <p class='control' style='margin-left:12px'><span class='tag is-dark'>직접</span></p>
+          <p class='control'>
+            <input class='input is-small' type='date' v-model='customStart' :disabled='loading'>
+          </p>
+          <p class='control'>~</p>
+          <p class='control'>
+            <input class='input is-small' type='date' v-model='customEnd' :disabled='loading'>
+          </p>
+          <p class='control'>
+            <button class='button is-small'
+                    :class="mode === 'custom' ? 'is-link' : 'is-light'"
+                    :disabled='loading || !customStart || !customEnd'
+                    @click='loadCustom()'>조회</button>
           </p>
         </div>
         <div class='field is-grouped' style='align-items:center; flex-wrap:wrap; margin-top:6px'>
@@ -94,6 +109,9 @@ export default {
       ],
       activeUnit: 'month',
       activeDays: 182,
+      mode: 'preset', // 'preset' | 'custom' — 버튼 강조용
+      customStart: '', // 커스텀 시작일 (YYYY-MM-DD)
+      customEnd: '', // 커스텀 끝일 (YYYY-MM-DD, 포함)
       loading: false,
       filterText: '',
       titleMap: {}, // { bookId: title } — search_index/books 단일 문서에서 1회 로드
@@ -127,11 +145,12 @@ export default {
     fmt (n) {
       return (n || 0).toLocaleString()
     },
-    // 단위 전환 시 그 단위의 첫 프리셋으로 재조회.
+    // 단위 전환 시: 커스텀 조회 중이면 같은 커스텀 기간을 그 단위로 재집계, 아니면 첫 프리셋.
     selectUnit (key) {
       if (this.activeUnit === key) return
       this.activeUnit = key
-      this.load(this.units.find(u => u.key === key).ranges[0].days)
+      if (this.mode === 'custom') this.loadCustom()
+      else this.load(this.units.find(u => u.key === key).ranges[0].days)
     },
     // 일별 문서ID(YYYY-MM-DD)를 현재 단위의 구간 키로 변환.
     bucketOf (id) {
@@ -139,8 +158,25 @@ export default {
       if (this.activeUnit === 'week') return this.$moment(id).format('GGGG-[W]WW') // ISO주 (예: 2026-W24)
       return id.slice(0, 7) // 월: YYYY-MM
     },
-    async load (days) {
+    // 프리셋 기간(최근 N일). days=null 이면 전체.
+    load (days) {
+      this.mode = 'preset'
       this.activeDays = days
+      const startId = days ? this.$moment().subtract(days, 'days').format('YYYY-MM-DD') : null
+      return this.runQuery(startId, null)
+    },
+    // 커스텀 기간(시작~끝, 끝일 포함).
+    loadCustom () {
+      if (!this.customStart || !this.customEnd) return
+      let start = this.customStart
+      let end = this.customEnd
+      if (start > end) { [start, end] = [end, start] } // 거꾸로 넣어도 처리
+      this.mode = 'custom'
+      this.activeDays = null
+      return this.runQuery(start, end)
+    },
+    // 실제 조회+집계. startId/endId 는 'YYYY-MM-DD'(문서ID). null 이면 그 경계 없음.
+    async runQuery (startId, endId) {
       this.loading = true
       this.rows = []
       this.buckets = []
@@ -156,13 +192,12 @@ export default {
           this.titleMap = map
         }
 
-        // 기간 범위질의: 문서ID 가 'YYYY-MM-DD' 라 사전순 = 시간순. startAt 으로 잘라 읽는다.
+        // 기간 범위질의: 문서ID 가 'YYYY-MM-DD' 라 사전순 = 시간순. startAt/endAt 으로 잘라 읽는다.
         let query = firestore.collection('dayly_total_time')
-        if (days) {
-          const startId = this.$moment().subtract(days, 'days').format('YYYY-MM-DD')
-          query = query
-            .orderBy(Firebase.firestore.FieldPath.documentId())
-            .startAt(startId)
+        if (startId || endId) {
+          query = query.orderBy(Firebase.firestore.FieldPath.documentId())
+          if (startId) query = query.startAt(startId)
+          if (endId) query = query.endAt(endId) // endAt: 끝일 문서까지 포함
         }
         const snap = await query.get()
         this.docCount = snap.size
