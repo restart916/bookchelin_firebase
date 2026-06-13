@@ -50,7 +50,10 @@
           </thead>
           <tbody>
             <tr v-for='row in filteredRows' :key='row.bookId'>
-              <td class='sticky-col'>{{ titleMap[row.bookId] || '(미확인)' }}</td>
+              <td class='sticky-col'>
+                {{ titleMap[row.bookId] || '(삭제됨)' }}
+                <span v-if='hiddenSet[row.bookId]' class='tag is-warning is-small'>비공개</span>
+              </td>
               <td class='muted'>{{ row.bookId }}</td>
               <td class='num total'>{{ fmt(row.count) }}</td>
               <td class='num' v-for='b in buckets' :key='b'>{{ row[b] ? fmt(row[b]) : '' }}</td>
@@ -94,6 +97,7 @@ export default {
       loading: false,
       filterText: '',
       titleMap: {}, // { bookId: title } — search_index/books 단일 문서에서 1회 로드
+      hiddenSet: {}, // { bookId: true } — 카탈로그 비공개(hidden=true) 책 (개별 보충 시 채워짐)
       rows: [], // 선택 기간에 '읽힌 적 있는' 책만, 합계 내림차순
       buckets: [], // 선택 단위의 구간 라벨 목록 (최신순)
       docCount: 0 // 선택 기간에 집계된 일별 문서 수
@@ -181,6 +185,25 @@ export default {
 
         this.buckets = Object.keys(bucketSet).sort().reverse() // 최신 구간이 왼쪽
         this.rows = Object.values(byBook).sort((a, b) => b.count - a.count) // 많이 읽힌 순
+
+        // 비공개(hidden=true) 책은 search_index 에 없어 제목이 '(미확인)' 으로 뜬다(삭제 아님).
+        // 화면에 뜬 미해결 제목만 개별 문서로 보충 — books 컬렉션 전체 fetch(712건) 는 여전히 회피.
+        // 합계순 상위부터 최대 100건. 그래도 안 나오면 진짜 삭제된 책.
+        const missing = this.rows.map(r => r.bookId).filter(id => !this.titleMap[id]).slice(0, 100)
+        if (missing.length) {
+          const snaps = await Promise.all(
+            missing.map(id => firestore.collection('books').doc(id).get())
+          )
+          const merged = Object.assign({}, this.titleMap)
+          const hidden = Object.assign({}, this.hiddenSet)
+          snaps.forEach(s => {
+            if (!s.exists) return
+            if (s.data().title) merged[s.id] = s.data().title
+            if (s.data().hidden === true) hidden[s.id] = true // 카탈로그 비공개 표시용
+          })
+          this.titleMap = merged // Vue2 반응성: 새 객체로 교체
+          this.hiddenSet = hidden
+        }
       } catch (e) {
         console.error('count-time 로딩 실패', e)
         alert('로딩 실패: ' + e.message)
