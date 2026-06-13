@@ -3,15 +3,26 @@
     <Header></Header>
     <section class='section'>
       <div class='container'>
-        <!-- 기간 선택: 기본 최근 6개월. dayly_total_time 문서ID(YYYY-MM-DD) 범위질의로
-             선택 기간만 읽어 부하를 줄인다. '전체'만 2019~현재 전부 로드(느릴 수 있음). -->
+        <!-- 단위(일/주/월) + 기간 선택. 원본 dayly_total_time 은 '하루 1문서'라
+             일/주/월 어떤 단위로도 집계 가능. 문서ID(YYYY-MM-DD) 범위질의로
+             선택 기간만 읽어 부하를 줄인다. '전체'만 2019~현재 전부 로드. -->
         <div class='field is-grouped' style='align-items:center; flex-wrap:wrap'>
-          <p class='control' v-for='opt in periodOptions' :key='opt.label'>
+          <p class='control'><span class='tag is-dark'>단위</span></p>
+          <p class='control' v-for='u in units' :key='u.key'>
             <button class='button is-small'
-                    :class="activeMonths === opt.months ? 'is-link' : 'is-light'"
+                    :class="activeUnit === u.key ? 'is-primary' : 'is-light'"
                     :disabled='loading'
-                    @click='load(opt.months)'>{{ opt.label }}</button>
+                    @click='selectUnit(u.key)'>{{ u.label }}</button>
           </p>
+          <p class='control' style='margin-left:12px'><span class='tag is-dark'>기간</span></p>
+          <p class='control' v-for='r in currentRanges' :key='r.label'>
+            <button class='button is-small'
+                    :class="activeDays === r.days ? 'is-link' : 'is-light'"
+                    :disabled='loading'
+                    @click='load(r.days)'>{{ r.label }}</button>
+          </p>
+        </div>
+        <div class='field is-grouped' style='align-items:center; flex-wrap:wrap; margin-top:6px'>
           <p class='control'>
             <input class='input is-small' style='width:240px'
                    v-model='filterText' placeholder='책 제목·ID 검색'>
@@ -34,7 +45,7 @@
               <th class='sticky-col'>책 제목</th>
               <th>bookId</th>
               <th class='num'>합계</th>
-              <th class='num' v-for='m in dateList' :key='m'>{{ m }}</th>
+              <th class='num' v-for='b in buckets' :key='b'>{{ b }}</th>
             </tr>
           </thead>
           <tbody>
@@ -42,7 +53,7 @@
               <td class='sticky-col'>{{ titleMap[row.bookId] || '(미확인)' }}</td>
               <td class='muted'>{{ row.bookId }}</td>
               <td class='num total'>{{ fmt(row.count) }}</td>
-              <td class='num' v-for='m in dateList' :key='m'>{{ row[m] ? fmt(row[m]) : '' }}</td>
+              <td class='num' v-for='b in buckets' :key='b'>{{ row[b] ? fmt(row[b]) : '' }}</td>
             </tr>
             <tr v-if='!loading && filteredRows.length === 0'>
               <td colspan='3'>데이터 없음</td>
@@ -66,25 +77,35 @@ export default {
   },
   data () {
     return {
-      periodOptions: [
-        { label: '최근 3개월', months: 3 },
-        { label: '최근 6개월', months: 6 },
-        { label: '최근 12개월', months: 12 },
-        { label: '전체', months: null } // 2019~현재 전부 — 느릴 수 있음
+      // 단위별 기간 프리셋. days = 오늘 기준 며칠 전부터(null = 전체).
+      units: [
+        { key: 'month', label: '월', ranges: [
+          { label: '6개월', days: 182 }, { label: '12개월', days: 365 }, { label: '전체', days: null }
+        ] },
+        { key: 'week', label: '주', ranges: [
+          { label: '8주', days: 56 }, { label: '26주', days: 182 }, { label: '52주', days: 364 }
+        ] },
+        { key: 'day', label: '일', ranges: [
+          { label: '14일', days: 14 }, { label: '30일', days: 30 }, { label: '90일', days: 90 }
+        ] }
       ],
-      activeMonths: 6,
+      activeUnit: 'month',
+      activeDays: 182,
       loading: false,
       filterText: '',
       titleMap: {}, // { bookId: title } — search_index/books 단일 문서에서 1회 로드
       rows: [], // 선택 기간에 '읽힌 적 있는' 책만, 합계 내림차순
-      dateList: [], // 선택 기간의 월 목록 (YYYY-MM, 최신순)
+      buckets: [], // 선택 단위의 구간 라벨 목록 (최신순)
       docCount: 0 // 선택 기간에 집계된 일별 문서 수
     }
   },
   computed: {
+    currentRanges () {
+      return this.units.find(u => u.key === this.activeUnit).ranges
+    },
     rangeLabel () {
-      if (this.dateList.length === 0) return '데이터 없음'
-      return `${this.dateList[this.dateList.length - 1]} ~ ${this.dateList[0]}`
+      if (this.buckets.length === 0) return '데이터 없음'
+      return `${this.buckets[this.buckets.length - 1]} ~ ${this.buckets[0]}`
     },
     filteredRows () {
       const q = this.filterText.trim().toLowerCase()
@@ -96,17 +117,29 @@ export default {
     }
   },
   async mounted () {
-    await this.load(this.activeMonths)
+    await this.load(this.activeDays)
   },
   methods: {
     fmt (n) {
       return (n || 0).toLocaleString()
     },
-    async load (months) {
-      this.activeMonths = months
+    // 단위 전환 시 그 단위의 첫 프리셋으로 재조회.
+    selectUnit (key) {
+      if (this.activeUnit === key) return
+      this.activeUnit = key
+      this.load(this.units.find(u => u.key === key).ranges[0].days)
+    },
+    // 일별 문서ID(YYYY-MM-DD)를 현재 단위의 구간 키로 변환.
+    bucketOf (id) {
+      if (this.activeUnit === 'day') return id
+      if (this.activeUnit === 'week') return this.$moment(id).format('GGGG-[W]WW') // ISO주 (예: 2026-W24)
+      return id.slice(0, 7) // 월: YYYY-MM
+    },
+    async load (days) {
+      this.activeDays = days
       this.loading = true
       this.rows = []
-      this.dateList = []
+      this.buckets = []
       this.docCount = 0
       try {
         // 제목 맵: books 컬렉션(712건/≈1MB) 대신 search_index/books 1건만 읽는다.
@@ -121,11 +154,8 @@ export default {
 
         // 기간 범위질의: 문서ID 가 'YYYY-MM-DD' 라 사전순 = 시간순. startAt 으로 잘라 읽는다.
         let query = firestore.collection('dayly_total_time')
-        if (months) {
-          const startId = this.$moment()
-            .subtract(months - 1, 'months')
-            .startOf('month')
-            .format('YYYY-MM-DD')
+        if (days) {
+          const startId = this.$moment().subtract(days, 'days').format('YYYY-MM-DD')
           query = query
             .orderBy(Firebase.firestore.FieldPath.documentId())
             .startAt(startId)
@@ -133,23 +163,23 @@ export default {
         const snap = await query.get()
         this.docCount = snap.size
 
-        const byBook = {} // bookId -> { bookId, count, [YYYY-MM]: time }
-        const monthSet = {}
+        const byBook = {} // bookId -> { bookId, count, [bucket]: time }
+        const bucketSet = {}
         snap.docs.forEach(doc => {
-          const month = doc.id.slice(0, 7) // YYYY-MM
-          monthSet[month] = true
+          const bucket = this.bucketOf(doc.id)
+          bucketSet[bucket] = true
           const counts = doc.data().total_count || {}
           for (const bid in counts) {
             const t = counts[bid]
             if (!t) continue
             let row = byBook[bid]
             if (!row) { row = byBook[bid] = { bookId: bid, count: 0 } }
-            row[month] = (row[month] || 0) + t
+            row[bucket] = (row[bucket] || 0) + t
             row.count += t
           }
         })
 
-        this.dateList = Object.keys(monthSet).sort().reverse() // 최신 월이 왼쪽
+        this.buckets = Object.keys(bucketSet).sort().reverse() // 최신 구간이 왼쪽
         this.rows = Object.values(byBook).sort((a, b) => b.count - a.count) // 많이 읽힌 순
       } catch (e) {
         console.error('count-time 로딩 실패', e)
