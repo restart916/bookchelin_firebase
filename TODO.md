@@ -102,6 +102,7 @@
 - [ ] 쪽수/진행률 표시
 - [ ] 대여함에서 다 읽은 책 삭제 기능
 - [ ] 전면광고 X버튼이 노치/상단 safe area에 가려 안 눌리는 문제 (iPhone mini/12 리뷰 다수)
+- [ ] `[flutter(iOS)]` 전면광고 타이머가 리더 밖(메인/책리스트)에서도 "잠시 후 광고가 게재됩니다" 토스트·광고 노출 — `admob_timer_mixin` 은 EPUB/PDF 리더에만 적용되지만, `_checkAd` 가 띄우는 "3초 후 광고 show" 일회성 `Timer` 가 `disposeTimer()` 에서 취소 안 됨(`Timer.periodic` 만 cancel). 리더서 300초 도달 직후 빠르게 나가면 잔여 발생. **수정**: 그 일회성 Timer 를 멤버로 보관해 `disposeTimer()` 에서 함께 cancel + 토스트/show 직전 `if (!mounted) return` 가드 추가
 
 ### 딥링크 재구축 `[android]` `[flutter(iOS)]` `[web]`
 - 현황: `firebase_dynamic_links` 는 서비스 종료(2025-08-25)로 양 클라이언트에서 제거됨. 현재 공유하기는 정적 블로그 URL 폴백 (flutter `book_detail_page._onClickShare`)
