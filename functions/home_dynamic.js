@@ -6,6 +6,27 @@ const moment = require('moment-timezone');
 
 const KST = 'Asia/Seoul';
 
+// ── 트렌딩 튜닝 파라미터 (여기만 바꿔서 조정) ───────────────────────────────
+// 트렌딩 집계 윈도우(일). 이 기간 내 read_time_logs 만 본다.
+const TRENDING_WINDOW_DAYS = 7;
+// (1) 시간 감쇠: read_time_log 의 경과일 days_ago 에 weight = 0.5^(days_ago/HALFLIFE_DAYS).
+//     작을수록 최신 로그를 더 강하게 반영. 3 이면 3일 전 로그가 가중치 1/2.
+const HALFLIFE_DAYS = 3;
+// (2) 소프트 노출 패널티: effective = weighted_readers / (1 + EXPOSURE_PENALTY * days_shown).
+//     클수록 오래 노출된 책이 더 빨리 순위에서 밀려난다.
+const EXPOSURE_PENALTY = 0.35;
+// 안전장치: 연속 노출이 이 일수 이상이면 1일 강제 쿨다운(무한 점유 방지). 0 이면 끔.
+const SAFETY_MAX_DAYS_SHOWN = 5;
+// 안전장치 강제 쿨다운 기간(일).
+const SAFETY_COOLDOWN_DAYS = 1;
+const DAY_MS = 86400000;
+
+// read_time_log 경과일(days_ago)에 대한 지수 감쇠 가중치(반감기 halfLife).
+function decayWeight(daysAgo, halfLife = HALFLIFE_DAYS) {
+  const d = daysAgo > 0 ? daysAgo : 0; // 미래 타임스탬프 방어 → 0
+  return Math.pow(0.5, d / halfLife);
+}
+
 function kstDateString(date) {
   return moment(date).tz(KST).format('YYYY-MM-DD');
 }
@@ -15,27 +36,55 @@ function kstDayIndex(date) {
   return Math.floor(moment.tz(s + ' 00:00', KST).valueOf() / 86400000);
 }
 
-function aggregateReaders(logs) {
+// 책별 집계: 고유 독자 수(reader_count)·총 독서시간(total_read_time)에 더해
+// 시간 감쇠를 적용한 가중 독자 점수(weighted_readers)를 낸다.
+// 고유 독자 개념 유지: 한 user 가 같은 책에 여러 로그를 남겨도, 그 user 의
+// '가장 최근(=가중치 최대) 로그' 가중치만 1회 반영해 과다 카운트를 막는다.
+// createdAt 이 없는 로그는 days_ago=0(가중치 1)로 취급 → 시간정보 없으면 기존 균등카운트와 동일.
+function aggregateReaders(logs, now = new Date(), opts = {}) {
+  const halfLife = opts.halfLife || HALFLIFE_DAYS;
+  const nowMs = now instanceof Date ? now.getTime() : new Date(now).getTime();
   const map = new Map();
   for (const d of logs) {
     if (!d || !d.book_id) continue;
     let e = map.get(d.book_id);
     if (!e) {
-      e = { book_id: d.book_id, readers: new Set(), total_read_time: 0 };
+      e = { book_id: d.book_id, readers: new Set(), bestWeight: new Map(), total_read_time: 0 };
       map.set(d.book_id, e);
     }
-    if (d.user_uid) e.readers.add(d.user_uid);
+    const uid = d.user_uid;
+    if (uid) {
+      e.readers.add(uid);
+      let w = 1; // createdAt 없으면 가중치 1
+      if (d.createdAt) {
+        const t = new Date(d.createdAt).getTime();
+        if (Number.isFinite(t)) w = decayWeight((nowMs - t) / DAY_MS, halfLife);
+      }
+      const prev = e.bestWeight.get(uid);
+      if (prev === undefined || w > prev) e.bestWeight.set(uid, w); // user 당 최대 가중치만
+    }
     e.total_read_time += typeof d.read_time === 'number' ? d.read_time : 0;
   }
-  return [...map.values()].map((e) => ({
-    book_id: e.book_id,
-    reader_count: e.readers.size,
-    total_read_time: e.total_read_time,
-  }));
+  return [...map.values()].map((e) => {
+    let weighted = 0;
+    for (const w of e.bestWeight.values()) weighted += w;
+    return {
+      book_id: e.book_id,
+      reader_count: e.readers.size, // 노이즈 컷(minReaders)용 '실측' 고유 독자 수
+      weighted_readers: weighted, // 정렬 1순위로 쓰는 시간가중 점수
+      total_read_time: e.total_read_time,
+    };
+  });
 }
 
-// 가시·핀제외·최소독자 필터 후 독자수 desc(동점 시 read_time desc) 정렬한 '전체' 후보 랭킹.
-// 쿨다운 룰이 상위에서 책을 빼더라도 다음 순위로 채울 수 있게 slice 하지 않은 풀을 돌려준다.
+// aggregate 의 시간가중 점수(weighted_readers). 없으면 reader_count 로 폴백(하위호환).
+function scoreOf(a) {
+  return typeof a.weighted_readers === 'number' ? a.weighted_readers : a.reader_count;
+}
+
+// 가시·핀제외·최소독자 필터 후 가중독자 desc(동점 시 read_time desc) 정렬한 '전체' 후보 랭킹.
+// minReaders 컷은 '실측' reader_count 기준(노이즈 컷)이고, 정렬 점수는 weighted_readers 다.
+// 쿨다운/패널티가 상위에서 책을 빼더라도 다음 순위로 채울 수 있게 slice 하지 않은 풀을 돌려준다.
 function rankTrending(aggregates, opts) {
   const { visibleIds, excludeIds = [], minReaders = 2 } = opts;
   const visible = new Set(visibleIds);
@@ -49,10 +98,15 @@ function rankTrending(aggregates, opts) {
     )
     .sort(
       (a, b) =>
-        b.reader_count - a.reader_count ||
+        scoreOf(b) - scoreOf(a) ||
         b.total_read_time - a.total_read_time
     )
-    .map((a) => ({ book_id: a.book_id, reader_count: a.reader_count }));
+    .map((a) => ({
+      book_id: a.book_id,
+      reader_count: a.reader_count,
+      weighted_readers: scoreOf(a),
+      total_read_time: a.total_read_time,
+    }));
 }
 
 function selectTrending(aggregates, opts) {
@@ -60,35 +114,61 @@ function selectTrending(aggregates, opts) {
   return rankTrending(aggregates, opts).slice(0, limit);
 }
 
-// 고착 방지 룰: 한 책은 최대 maxStreak 일 연속까지만 "지금 인기"에 노출되고,
-// 그 뒤 cooldownDays 일간 제외된다. prevState 는 어제 실행이 남긴 상태 맵
-// ({ [book_id]: { streak, cooldownUntil } }). cooldownUntil 은 그 dayIndex 까지(포함) 제외.
+// 고착 방지 룰(소프트 패널티): 하드 연속상한으로 책을 한꺼번에 빼는 대신,
+// 누적 노출일수(days_shown)에 비례해 점수를 깎아 순위에서 '서서히' 밀어낸다.
+//   effective = score / (1 + exposurePenalty * days_shown)
+// 무한 점유만 막도록 아주 가벼운 안전장치(days_shown >= safetyMaxDaysShown → 1일 강제 쿨다운)를 둔다.
+// prevState 는 어제 실행이 남긴 상태 맵 ({ [book_id]: { days_shown, cooldownUntil } }).
+//   (구 스키마의 streak 필드도 days_shown 으로 읽어 마이그레이션한다.)
 // 순수 함수 — Firestore I/O 없이 { selected, nextState } 를 돌려줘 테스트 가능하게 둔다.
 function selectTrendingWithCooldown(ranked, prevState, dayIndex, opts) {
-  const { limit = 8, maxStreak = 2, cooldownDays = 2 } = opts || {};
+  const {
+    limit = 8,
+    exposurePenalty = EXPOSURE_PENALTY,
+    safetyMaxDaysShown = SAFETY_MAX_DAYS_SHOWN, // 0 이면 안전장치 끔
+    safetyCooldownDays = SAFETY_COOLDOWN_DAYS,
+  } = opts || {};
   const state = prevState || {};
   const prev = (id) => {
     const p = state[id];
+    // days_shown(신규) 우선, 없으면 구 streak 로 폴백.
+    const ds =
+      p && typeof p.days_shown === 'number'
+        ? p.days_shown
+        : p && typeof p.streak === 'number'
+          ? p.streak
+          : 0;
     return {
-      streak: p && typeof p.streak === 'number' ? p.streak : 0,
+      days_shown: ds,
       cooldownUntil:
         p && typeof p.cooldownUntil === 'number' ? p.cooldownUntil : -1,
     };
   };
+  const baseScore = (c) =>
+    typeof c.weighted_readers === 'number' ? c.weighted_readers : c.reader_count;
 
   const eligible = [];
-  const blocked = []; // 랭크엔 들었으나 연속 노출 상한(atCap)으로 막힌 책 → 쿨다운 진입
+  const blocked = []; // 안전장치(과다 노출)로 1일 강제 쿨다운에 들어갈 책
   for (const c of ranked) {
     const p = prev(c.book_id);
-    const inCooldown = dayIndex <= p.cooldownUntil;
-    const atCap = p.streak >= maxStreak;
-    if (inCooldown) continue;
-    if (atCap) blocked.push(c);
-    else eligible.push(c);
+    if (dayIndex <= p.cooldownUntil) continue; // 쿨다운 중 → 제외
+    if (safetyMaxDaysShown > 0 && p.days_shown >= safetyMaxDaysShown) {
+      blocked.push(c);
+      continue;
+    }
+    const effective = baseScore(c) / (1 + exposurePenalty * p.days_shown);
+    eligible.push({ c, effective, base: baseScore(c) });
   }
+  // 소프트 패널티 반영 정렬: effective desc, 동점 시 base desc, 그다음 read_time desc.
+  eligible.sort(
+    (x, y) =>
+      y.effective - x.effective ||
+      y.base - x.base ||
+      (y.c.total_read_time || 0) - (x.c.total_read_time || 0)
+  );
+  const selected = eligible.slice(0, limit).map((e) => e.c);
 
-  const selected = eligible.slice(0, limit);
-  // 풀 부족 fallback: 후보가 limit 미만이면 쿨다운/상한을 일시 완화해 랭크 순으로 채운다.
+  // 풀 부족 fallback: 후보가 limit 미만이면 쿨다운/안전장치를 일시 완화해 랭크 순으로 채운다.
   if (selected.length < limit) {
     const chosen = new Set(selected.map((c) => c.book_id));
     for (const c of ranked) {
@@ -103,15 +183,15 @@ function selectTrendingWithCooldown(ranked, prevState, dayIndex, opts) {
   const nextState = {};
   for (const c of selected) {
     const p = prev(c.book_id);
-    // 어제 노출됐으면(streak>0) 연속, 아니면 1로 리셋.
-    nextState[c.book_id] = { streak: p.streak > 0 ? p.streak + 1 : 1 };
+    // 연속 노출이면 누적(+1), 끊겼다 다시 들어오면 1로 리셋.
+    nextState[c.book_id] = { days_shown: p.days_shown > 0 ? p.days_shown + 1 : 1 };
   }
-  // 상한에 걸려 빠진 책(강제 충원되지 않은) → 쿨다운 진입.
+  // 안전장치로 빠진 책(강제 충원되지 않은) → 짧은 쿨다운 진입.
   for (const c of blocked) {
     if (selectedSet.has(c.book_id)) continue;
     nextState[c.book_id] = {
-      streak: 0,
-      cooldownUntil: dayIndex + cooldownDays - 1,
+      days_shown: 0,
+      cooldownUntil: dayIndex + safetyCooldownDays - 1,
     };
   }
   // 아직 끝나지 않은(내일 이후까지 가는) 쿨다운은 그대로 이월.
@@ -119,7 +199,7 @@ function selectTrendingWithCooldown(ranked, prevState, dayIndex, opts) {
     if (nextState[id]) continue;
     const p = prev(id);
     if (p.cooldownUntil > dayIndex) {
-      nextState[id] = { streak: 0, cooldownUntil: p.cooldownUntil };
+      nextState[id] = { days_shown: 0, cooldownUntil: p.cooldownUntil };
     }
   }
 
@@ -156,7 +236,7 @@ function buildAutoSuggestDocs(trending, discover) {
 }
 
 async function generateHomeDynamic(db, now = new Date()) {
-  const cutoffISO = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
+  const cutoffISO = new Date(now.getTime() - TRENDING_WINDOW_DAYS * DAY_MS).toISOString();
 
   const rtSnap = await db
     .collection('read_time_logs')
@@ -175,7 +255,7 @@ async function generateHomeDynamic(db, now = new Date()) {
   const mbSnap = await db.collection('main_books').get();
   const pinIds = mbSnap.docs.map((d) => d.data().book_id).filter(Boolean);
 
-  const aggregates = aggregateReaders(logs);
+  const aggregates = aggregateReaders(logs, now);
   const ranked = rankTrending(aggregates, {
     visibleIds,
     excludeIds: pinIds,
@@ -195,7 +275,12 @@ async function generateHomeDynamic(db, now = new Date()) {
     ranked,
     prevState,
     dayIndex,
-    { limit: 8, maxStreak: 2, cooldownDays: 2 }
+    {
+      limit: 8,
+      exposurePenalty: EXPOSURE_PENALTY,
+      safetyMaxDaysShown: SAFETY_MAX_DAYS_SHOWN,
+      safetyCooldownDays: SAFETY_COOLDOWN_DAYS,
+    }
   );
 
   const pinSet = new Set(pinIds);
@@ -232,7 +317,8 @@ async function generateHomeDynamic(db, now = new Date()) {
     updated_at: now,
     date: kstDateString(now),
     carousel,
-    trending,
+    // 저장 shape 은 기존대로 {book_id, reader_count} 만 (가중치/내부필드는 빼고).
+    trending: trending.map((t) => ({ book_id: t.book_id, reader_count: t.reader_count })),
     discover,
   });
   batch.set(db.collection('suggest_group').doc('_auto_trending'), autoDocs._auto_trending);
@@ -250,7 +336,7 @@ async function generateHomeDynamic(db, now = new Date()) {
       book_id: t.book_id,
       reader_count: t.reader_count,
       title: titleOf(t.book_id),
-      is_new: Boolean(nextState[t.book_id] && nextState[t.book_id].streak === 1),
+      is_new: Boolean(nextState[t.book_id] && nextState[t.book_id].days_shown === 1),
     })),
     discover: discover.map((id) => ({ book_id: id, title: titleOf(id) })),
   };
@@ -275,6 +361,14 @@ function formatCurationMessage(result) {
 }
 
 module.exports = {
+  // 튜닝 상수 (테스트/문서용 노출)
+  TRENDING_WINDOW_DAYS,
+  HALFLIFE_DAYS,
+  EXPOSURE_PENALTY,
+  SAFETY_MAX_DAYS_SHOWN,
+  SAFETY_COOLDOWN_DAYS,
+  decayWeight,
+  scoreOf,
   kstDateString,
   kstDayIndex,
   aggregateReaders,
