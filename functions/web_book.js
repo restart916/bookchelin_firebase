@@ -449,9 +449,142 @@ function render404() {
 </body></html>`;
 }
 
+// 개인정보 처리방침 — App Store/Play 스토어 등록에 필요한 공개 정책 페이지.
+// 시행일 2019-04-01. 내용 변경 시 이 함수의 본문을 직접 수정한다.
+function renderPrivacyHtml() {
+  const canonical = `${WEB_BASE_URL}/privacy`;
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개인정보 처리방침 | 북슐랭</title>
+<meta name="description" content="북슐랭(Bookchelin) 개인정보 처리방침 — 수집 항목, 이용 목적, 보유기간, 정보주체의 권리 및 보호책임자 안내.">
+<link rel="canonical" href="${canonical}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="개인정보 처리방침 | 북슐랭">
+<meta property="og:url" content="${canonical}">
+<style>
+  body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; margin: 0; color: #222; line-height: 1.7; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 20px 80px; }
+  header a { color: #d23669; text-decoration: none; font-weight: 700; letter-spacing: 0.06em; }
+  h1 { font-size: 1.6em; margin: 20px 0 4px; }
+  .effective { color: #888; font-size: 0.9em; margin: 0 0 24px; }
+  .lead { color: #444; }
+  h2 { font-size: 1.08em; border-left: 4px solid #d23669; padding-left: 10px; margin-top: 36px; }
+  ul, ol { padding-left: 1.3em; }
+  li { margin: 4px 0; }
+  .box { background: #f7f7f8; border: 1px solid #eee; border-radius: 8px; padding: 12px 16px; margin: 14px 0; }
+  a { color: #d23669; }
+  footer.page { margin-top: 48px; padding-top: 16px; border-top: 1px solid #eee; color: #aaa; font-size: 0.82em; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><a href="${WEB_BASE_URL}/">북슐랭</a></header>
+  <h1>개인정보 처리방침</h1>
+  <p class="effective">본 방침은 2019년 4월 1일부터 시행됩니다.</p>
+
+  <p class="lead">북슐랭은 앱 서비스를 제공함에 있어 개인정보보호법에 따라 이용자의 개인정보 보호 및 권익을 보호하고 개인정보와 관련한 이용자의 고충을 원활하게 처리할 수 있도록 다음과 같은 처리방침을 두고 있습니다. 북슐랭은 개인정보처리방침을 개정하는 경우 앱 화면 및 공식 SNS를 통하여 공지할 것입니다.</p>
+
+  <h2>1. 개인정보의 처리 목적</h2>
+  <p>북슐랭은 개인정보를 다음의 목적을 위해 처리합니다. 처리한 개인정보는 다음의 목적 이외의 용도로는 사용되지 않으며 이용 목적이 변경될 시에는 사전동의를 구할 예정입니다.</p>
+  <ul>
+    <li>가. 이용자의 식별</li>
+    <li>나. 다양한 서비스 제공, 문의사항 또는 불만 처리, 공지사항 전달</li>
+    <li>다. 서비스 이용 기록과 접속 빈도 분석, 서비스 이용에 대한 통계, 맞춤형 서비스 제공, 서비스 개선에 활용</li>
+  </ul>
+
+  <h2>2. 개인정보처리 위탁</h2>
+  <p>① 북슐랭은 개인정보 처리업무를 위탁하지 않고 있습니다.<br>② 개인정보처리의 위탁 처리가 발생할 경우에는 지체 없이 본 개인정보 처리방침을 통하여 공개하도록 하겠습니다.</p>
+
+  <h2>3. 정보주체의 권리, 의무 및 그 행사방법</h2>
+  <p>이용자는 개인정보주체로서 다음과 같은 권리를 행사할 수 있습니다.</p>
+  <p>① 정보주체는 북슐랭에 대해 언제든지 다음 각 호의 개인정보 보호 관련 권리를 행사할 수 있습니다.</p>
+  <ol>
+    <li>개인정보 열람요구</li>
+    <li>오류 등이 있을 경우 정정 요구</li>
+    <li>삭제요구</li>
+    <li>처리정지 요구</li>
+  </ol>
+  <p>② 제1항에 따른 권리 행사는 북슐랭에 대해 개인정보 보호법 시행규칙 별지 제8호 서식에 따라 서면, 전자우편, 모사전송(FAX) 등을 통하여 하실 수 있으며 북슐랭은 이에 대해 지체 없이 조치하겠습니다.<br>③ 정보주체가 개인정보의 오류 등에 대한 정정 또는 삭제를 요구한 경우에는 북슐랭은 정정 또는 삭제를 완료할 때까지 당해 개인정보를 이용하거나 제공하지 않습니다.<br>④ 제1항에 따른 권리 행사는 정보주체의 법정대리인이나 위임을 받은 자 등 대리인을 통하여 하실 수 있습니다. 이 경우 개인정보 보호법 시행규칙 별지 제11호 서식에 따른 위임장을 제출하셔야 합니다.</p>
+
+  <h2>4. 처리하는 개인정보의 항목 및 수집 방법</h2>
+  <p>① 북슐랭은 다음의 개인정보 항목을 처리하고 있습니다.</p>
+  <ul>
+    <li><strong>필수항목</strong> : 단말기 정보(하드웨어 모델, 운영체제 버전), 로그 정보(이용자 식별 코드, 서비스 이용 기록, 설정 내용 등)</li>
+    <li><strong>수집목적</strong> : 회원과 비회원의 접속 빈도나 방문 시간 등을 분석, 이용자의 취향과 관심분야를 파악 및 자취 추적, 각종 이벤트 참여 정도 및 방문 회수 파악 등을 통한 타겟 마케팅 및 개인 맞춤 서비스 제공</li>
+  </ul>
+  <p>② 수집 방법</p>
+  <ul>
+    <li>앱 다운로드 후 최초 실행 시, 네트워크 접속 시, 쿠키 구매 및 서비스 내 아이템 구매 시 수집</li>
+    <li>제휴 관계의 플랫폼 이용 시 별도 동의 절차를 통해 수집</li>
+    <li>사용 중 고객 응대 시, 이용자의 자발적 제공 또는 필요에 의해 요청 후 수집</li>
+  </ul>
+
+  <h2>5. 개인정보 자동 수집 장치의 설치·운영 및 거부</h2>
+  <p>① 이용자가 서비스에 접속하거나 이용할 때, 이용자에 관한 아래 사항을 포함하는 정보를 자동적으로 수집합니다.</p>
+  <ul><li>이용내역정보, 로그 정보, 하드웨어 정보</li></ul>
+  <p>② 광고 게재 및 효과 측정을 위해 타사 모듈을 탑재하여 방문자 데이터를 수집하고 있으며, 개인 식별이 불가능한 형태의 단말기 정보를 이용 및 제공하고 있습니다.<br>③ Google Analytics를 활용하여 이용자의 서비스 이용에 대해 분석합니다. 이 때 개별 이용자의 개인 정보를 식별하지 않고 익명의 사용자 정보를 활용합니다.<br>④ 이용자는 '광고 식별자 수집 거부' 혹은 '앱 삭제'를 통해 자동 수집 장치의 설치·운영을 거부할 수 있습니다. 귀하는 쿠키 설치에 대한 선택권을 가지고 있습니다. 따라서, 귀하는 웹브라우저에서 옵션을 설정함으로써 모든 쿠키를 허용하거나, 쿠키가 저장될 때마다 확인을 거치거나, 아니면 모든 쿠키의 저장을 거부할 수도 있습니다.</p>
+  <div class="box"><strong>■ 광고 식별자 수집 거부 방법</strong><ul style="margin:8px 0 0;"><li>Android : [설정 → Google → 광고] 에서 선택 해제</li><li>iOS : [설정 → 개인정보 보호 → 추적(광고)]</li></ul></div>
+
+  <h2>6. 개인정보의 처리 및 보유기간</h2>
+  <p>① 북슐랭은 법령에 따른 개인정보 보유·이용기간 또는 이용자로부터 개인정보 수집 시 동의받은 개인정보 보유·이용기간 내에서 개인정보를 처리·보유합니다.<br>② 각각의 개인정보 처리 및 보유 기간은 다음과 같습니다.</p>
+  <p><strong>1. 앱 설치 및 이용 : 앱 탈퇴 시까지</strong><br>다만, 다음의 사유에 해당하는 경우에는 해당 사유 종료시까지</p>
+  <ol>
+    <li>관계 법령 위반에 따른 수사·조사 등이 진행중인 경우에는 해당 수사·조사 종료시까지</li>
+    <li>앱 이용에 따른 채권·채무관계 잔존시에는 해당 채권·채무관계 정산시까지</li>
+  </ol>
+  <p><strong>2. 재화 또는 서비스 제공 : 재화·서비스 공급완료 및 요금결제·정산 완료시까지</strong><br>다만, 다음의 사유에 해당하는 경우에는 해당 기간 종료시까지</p>
+  <ol>
+    <li>「전자상거래 등에서의 소비자 보호에 관한 법률」에 따른 표시·광고, 계약내용 및 이행 등 거래에 관한 기록
+      <ul>
+        <li>표시·광고에 관한 기록 : 6월</li>
+        <li>계약 또는 청약철회, 대금결제, 재화 등의 공급기록 : 5년</li>
+        <li>소비자 불만 또는 분쟁처리에 관한 기록 : 3년</li>
+      </ul>
+    </li>
+    <li>「통신비밀보호법」 제41조에 따른 통신사실확인자료 보관
+      <ul>
+        <li>가입자 전기통신일시, 개시·종료시간, 상대방 가입자번호, 사용도수 : 1년</li>
+        <li>컴퓨터통신, 인터넷 로그기록자료, 접속지 추적자료 : 3개월</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>7. 개인정보의 파기</h2>
+  <p>북슐랭은 원칙적으로 개인정보 처리 목적이 달성된 경우에는 지체 없이 해당 개인정보를 파기합니다. 파기의 절차, 기한 및 방법은 다음과 같습니다.</p>
+  <p>① 파기절차<br>이용자가 입력한 정보는 목적 달성 후 별도의 DB에 옮겨져 내부 방침 및 기타 관련 법령에 따라 일정기간 저장된 후 혹은 즉시 파기됩니다. 이 때, DB로 옮겨진 개인정보는 법률에 의한 경우가 아니고서는 다른 목적으로 이용되지 않습니다.<br>② 파기 기한<br>이용자의 개인정보는 개인정보의 보유기간이 경과된 경우에는 보유기간의 종료일로부터 5일 이내에, 개인정보의 처리 목적 달성, 해당 서비스의 폐지, 사업의 종료 등 그 개인정보가 불필요하게 되었을 때에는 개인정보의 처리가 불필요한 것으로 인정되는 날로부터 5일 이내에 그 개인정보를 파기합니다.<br>③ 파기방법<br>전자적 파일 형태의 정보는 기록을 재생할 수 없는 기술적 방법을 사용합니다.</p>
+
+  <h2>8. 개인정보의 안전성 확보 조치</h2>
+  <p>북슐랭은 개인정보보호법 제29조에 따라 다음과 같이 안전성 확보에 필요한 기술적/관리적 및 물리적 조치를 하고 있습니다.</p>
+  <p>① 개인정보 취급 직원의 최소화 및 교육<br>개인정보를 취급하는 직원을 지정하고 담당자에 한정시켜 최소화 하여 개인정보를 관리하는 대책을 시행하고 있습니다.<br>② 개인정보에 대한 접근 제한<br>개인정보를 처리하는 데이터베이스시스템에 대한 접근 권한의 부여, 변경, 말소를 통하여 개인정보에 대한 접근통제를 위하여 필요한 조치를 하고 있으며 침입차단시스템을 이용하여 외부로부터의 무단 접근을 통제하고 있습니다.<br>③ 문서 보안을 위한 잠금 장치 사용<br>개인정보가 포함된 서류, 보조저장매체 등을 잠금 장치가 있는 안전한 장소에 보관하고 있습니다.</p>
+
+  <h2>9. 개인정보 보호책임자</h2>
+  <p>① 북슐랭은 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.<br>② 정보주체는 북슐랭의 서비스(또는 사업)을 이용하시면서 발생한 모든 개인정보 보호 관련 문의, 불만처리, 피해구제 등에 관한 사항을 개인정보 보호책임자 및 담당부서로 문의하실 수 있습니다. 북슐랭은 정보주체의 문의에 대해 지체 없이 답변 및 처리해드릴 것입니다.<br>③ 정보주체는 개인정보 보호법 제35조에 따른 개인정보의 열람 청구를 아래의 연락처로 할 수 있습니다.</p>
+  <div class="box"><strong>▶ 개인정보 보호책임자 및 열람 청구 접수·처리</strong><br>성명 : 김주현<br>전화 : 010-3295-1231<br>이메일 : <a href="mailto:bookchelin@naver.com">bookchelin@naver.com</a></div>
+
+  <h2>10. 개인정보 열람 청구</h2>
+  <p>북슐랭의 자체적인 개인정보 불만처리, 피해구제 결과에 만족하지 못 하시거나 보다 자세한 도움이 필요하시면 아래의 기관으로 문의하여 주시기 바랍니다.</p>
+  <div class="box"><strong>▶ 개인정보 침해신고센터 (한국인터넷진흥원 운영)</strong><br>소관업무 : 개인정보 침해 사실 신고, 상담 신청<br>홈페이지 : <a href="https://privacy.kisa.or.kr" target="_blank" rel="noopener">privacy.kisa.or.kr</a><br>전화 : (국번없이) 118</div>
+  <div class="box"><strong>▶ 개인정보 분쟁조정위원회 (한국인터넷진흥원 운영)</strong><br>소관업무 : 개인정보 분쟁조정신청, 집단분쟁조정 (민사적 해결)<br>홈페이지 : <a href="https://privacy.kisa.or.kr" target="_blank" rel="noopener">privacy.kisa.or.kr</a><br>전화 : (국번없이) 118</div>
+  <p>▶ 대검찰청 사이버범죄수사단 : 02-3480-3573 (<a href="https://www.spo.go.kr" target="_blank" rel="noopener">www.spo.go.kr</a>)<br>▶ 경찰청 사이버범죄수사단 : 1566-0112 (<a href="https://www.netan.go.kr" target="_blank" rel="noopener">www.netan.go.kr</a>)</p>
+
+  <h2>11. 개인정보 처리방침 변경</h2>
+  <p>① 이 개인정보처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경 내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.</p>
+
+  <footer class="page">ⓒ 북슐랭 (Bookchelin) — 무제한 무료 독서 앱</footer>
+</div>
+</body>
+</html>`;
+}
+
 async function renderSitemap(db, res) {
   const snap = await db.collection('books').where('hidden', '==', false).get();
-  const urls = [`  <url><loc>${WEB_BASE_URL}/</loc></url>`];
+  const urls = [
+    `  <url><loc>${WEB_BASE_URL}/</loc></url>`,
+    `  <url><loc>${WEB_BASE_URL}/privacy</loc></url>`,
+  ];
   snap.forEach((d) => {
     urls.push(`  <url><loc>${WEB_BASE_URL}/book/${d.id}</loc></url>`);
   });
@@ -473,6 +606,12 @@ async function handleWebBook(db, req, res) {
 
   if (path === '/sitemap.xml') {
     return renderSitemap(db, res);
+  }
+
+  if (path === '/privacy' || path === '/privacy/') {
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+    return res.status(200).send(renderPrivacyHtml());
   }
 
   const m = path.match(/^\/book\/([A-Za-z0-9]{10,40})\/?$/);
