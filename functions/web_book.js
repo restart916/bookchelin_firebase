@@ -281,9 +281,9 @@ async function loadFeaturedBooks(db) {
 }
 
 // 랜딩 하단 "이런 책도 있어요" — 공개 책을 카테고리별로 묶어 접이식으로 보여준다.
-// 카테고리별 최대 14권까지만(전체는 앱에서) + 내부 링크로 크롤러의 책 페이지 발견을 돕는다.
+// 카테고리별 모든 공개 책에 내부 링크를 건다(접힌 <details> 안이라 화면 영향은 거의 없음).
+// sitemap 외에 크롤러가 모든 책 페이지를 발견할 경로를 보장하는 게 목적.
 const CATEGORY_DISPLAY_ORDER = [5, 1, 6, 2, 4, 3]; // 문학·지식교양·경제경영·자기계발·키즈·취업수험
-const MAX_TITLES_PER_CATEGORY = 14;
 
 async function loadCatalog(db) {
   // 공개 책 전체를 한 번에 읽어 count 와 카테고리 그룹 양쪽에 재사용 (응답은 12h 캐시됨).
@@ -364,12 +364,10 @@ async function renderLanding(db, res) {
     .map((c) => {
       const all = catalog.byCategory[c].filter((b) => !featuredIds.has(b.id));
       if (!all.length) return '';
-      const shown = all.slice(0, MAX_TITLES_PER_CATEGORY);
-      const links = shown
+      const links = all
         .map((b) => `<a href="/book/${b.id}">${escapeHtml(truncate(b.title, 30))}</a>`)
         .join('');
-      const more = all.length > shown.length ? ` <span class="more">외 ${all.length - shown.length}권</span>` : '';
-      return `<details><summary>${escapeHtml(CATEGORY_NAMES[c] || '기타')} <span class="cnt">${all.length}권</span></summary><div class="titlelist">${links}</div>${more}</details>`;
+      return `<details><summary>${escapeHtml(CATEGORY_NAMES[c] || '기타')} <span class="cnt">${all.length}권</span></summary><div class="titlelist">${links}</div></details>`;
     })
     .join('');
 
@@ -580,9 +578,20 @@ function renderPrivacyHtml() {
 }
 
 async function renderSitemap(db, res) {
-  const snap = await db.collection('books').where('hidden', '==', false).get();
+  const [snap, indexSnap] = await Promise.all([
+    db.collection('books').where('hidden', '==', false).get(),
+    db.doc('search_index/books').get(),
+  ]);
+  // 카탈로그가 마지막으로 바뀐 시각(search_index/books.updated_at — 책 변경마다 갱신)을
+  // 홈 URL 의 lastmod 로 제공한다. books 문서엔 per-doc 타임스탬프가 없어
+  // 책 URL 별 lastmod 는 날짜를 지어내지 않도록 생략한다.
+  let homeLastmod = '';
+  const upd = indexSnap.exists ? indexSnap.data().updated_at : null;
+  if (upd && typeof upd.toDate === 'function') {
+    homeLastmod = `<lastmod>${upd.toDate().toISOString().slice(0, 10)}</lastmod>`;
+  }
   const urls = [
-    `  <url><loc>${WEB_BASE_URL}/</loc></url>`,
+    `  <url><loc>${WEB_BASE_URL}/</loc>${homeLastmod}</url>`,
     `  <url><loc>${WEB_BASE_URL}/privacy</loc></url>`,
   ];
   snap.forEach((d) => {
