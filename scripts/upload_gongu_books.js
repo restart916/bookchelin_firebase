@@ -27,6 +27,7 @@ async function uploadWithToken(localPath, destPath, contentType) {
     destination: destPath,
     metadata: {
       contentType,
+      cacheControl: 'public, max-age=2592000', // 30일 CDN 캐시
       metadata: { firebaseStorageDownloadTokens: token },
     },
   });
@@ -68,7 +69,7 @@ async function main() {
     const epubDest = `epub/한국단편_${book.file}.epub`;
     await bucket.upload(`${SRC_DIR}/epub_${book.file}.epub`, {
       destination: epubDest,
-      metadata: { contentType: 'application/epub+zip' },
+      metadata: { contentType: 'application/epub+zip', cacheControl: 'public, max-age=2592000' },
     });
     const imageUrl = await uploadWithToken(
       `${SRC_DIR}/cover_${book.file}.png`,
