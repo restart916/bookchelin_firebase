@@ -26,6 +26,11 @@ const { fetchAndStoreDau } = require('./analytics_dau');
 const { sendDauReport } = require('./analytics_discord');
 const { notifyDiscord, discordWebhook } = require('./discord');
 const { handleWebBook } = require('./web_book');
+const { getActiveBooks, rebuildActiveBooksCache } = require('./event_cache');
+
+// read_time_logs 보관 기간(일). TTL 정책용 expireAt 필드 계산에 사용.
+// Firestore 네이티브 TTL: Firebase Console → Firestore → Indexes → TTL → read_time_logs / expireAt
+const RETENTION_DAYS = 90;
 
 // [START trigger]
 exports.date = functions.https.onRequest((req, res) => {
@@ -85,6 +90,8 @@ updateReadTimeLog = async () => {
 
   let count_data = {};
   let count_data_by_user = {};
+  // P2-2: book별 고유 독자 uid 집합 (dayly_reader_count 집계용)
+  let readers_by_book = {};
   for (let doc of docs.docs) {
     // console.log(doc.id, " => ", doc.data())
     let read_info = doc.data();
@@ -102,7 +109,18 @@ updateReadTimeLog = async () => {
       } else {
         count_data_by_user[user_uid] = read_info.read_time;
       }
+      if (book_id) {
+        if (!readers_by_book[book_id]) readers_by_book[book_id] = new Set();
+        readers_by_book[book_id].add(user_uid);
+      }
     }
+  }
+
+  // book별 하루 고유 독자 수 집계. aggregateReadersFromDailyDocs 가 읽는 컬렉션.
+  // 주의: 같은 독자가 며칠에 걸쳐 읽으면 날짜마다 별도 카운트 → 크로스데이 중복 포함.
+  const reader_count_data = {};
+  for (const [book_id, uids] of Object.entries(readers_by_book)) {
+    reader_count_data[book_id] = uids.size;
   }
 
   db.collection('dayly_total_time').doc(today).set({ total_count: count_data });
@@ -110,6 +128,7 @@ updateReadTimeLog = async () => {
     data: count_data_by_user,
     time: new Date(),
   });
+  db.collection('dayly_reader_count').doc(today).set({ reader_count: reader_count_data });
 };
 
 function addItem(user_uid, data) {
@@ -478,30 +497,32 @@ exports.add_time_read_time_logs = functions.firestore
     const newValue = snap.data();
 
     const user_uid = newValue.user_uid || 'unknown';
+    const book_id = newValue.book_id;
 
-    await updateTimeEvent(
-      newValue.book_id,
-      user_uid,
-      newValue.read_time,
-      context.timestamp
-    );
-    await updateLimitEvent(
-      newValue.book_id,
-      user_uid,
-      newValue.read_time,
-      context.timestamp
-    );
-
-    if ('createdAt' in newValue) {
-      return snap;
+    // 활성 이벤트가 없는 책은 time_event / limit_event 조회를 스킵해 읽기 비용을 절감한다.
+    // event_state/active_books 를 5분 인스턴스 캐시로 읽는다(대부분 히트).
+    // 신규 이벤트 반영 지연: 외부에서 이벤트 생성 시 daily_job(자정) 또는
+    //   refresh_active_books HTTPS 호출 전까지 최대 5분 추가 지연이 있다.
+    const activeBooks = await getActiveBooks(db);
+    if (activeBooks.time.has(book_id) || activeBooks.limit.has(book_id)) {
+      await updateTimeEvent(book_id, user_uid, newValue.read_time, context.timestamp);
+      await updateLimitEvent(book_id, user_uid, newValue.read_time, context.timestamp);
     }
 
-    return snap.ref.set(
-      {
-        createdAt: context.timestamp,
-      },
-      { merge: true }
-    );
+    const docData = snap.data();
+    const needsCreatedAt = !('createdAt' in docData);
+    const needsExpireAt = !('expireAt' in docData);
+    if (!needsCreatedAt && !needsExpireAt) return snap;
+
+    const updates = {};
+    if (needsCreatedAt) updates.createdAt = context.timestamp;
+    if (needsExpireAt) {
+      const base = needsCreatedAt ? context.timestamp : docData.createdAt;
+      const baseDate = base && typeof base.toDate === 'function' ? base.toDate() : new Date(base);
+      const expire = new Date(baseDate.getTime() + RETENTION_DAYS * 86400000);
+      updates.expireAt = admin.firestore.Timestamp.fromDate(expire);
+    }
+    return snap.ref.set(updates, { merge: true });
   });
 
 // search_index/books 문서를 books/{bookId} 변경에 맞춰 동기화.
@@ -744,6 +765,8 @@ exports.daily_job = functions
   .onRun(async () => {
     console.log('This job is run every day!');
 
+    // 활성 이벤트 캐시를 먼저 갱신해 당일 로그 트리거가 최신 목록을 참조하도록 한다.
+    await rebuildActiveBooksCache(db, admin);
     await updateReadLog(); // 하루에 그 책 몇번 읽었는지
     await updateReadTimeLog(); // 하루에 그 책 몇시간 읽었는지 (유저당으로도)
     // await updateSummary();    // 유저 통계용 데이터 삽입
@@ -782,6 +805,19 @@ exports.regenerate_home_dynamic = functions
       res.status(500).json({ ok: false, error: e.message });
     }
   });
+
+// 활성 이벤트 캐시(event_state/active_books)를 수동으로 즉시 재빌드한다.
+// 신규 이벤트를 Firebase Console 등 외부에서 생성한 직후, daily_job을 기다리지 않고
+// 이 엔드포인트를 호출하면 로그 트리거가 바로 그 이벤트를 인식할 수 있다.
+exports.refresh_active_books = functions.https.onRequest(async (req, res) => {
+  try {
+    await rebuildActiveBooksCache(db, admin);
+    res.status(200).json({ ok: true });
+  } catch (e) {
+    console.error('refresh_active_books failed', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 
 // GA4 DAU/WAU/MAU를 매일 자동 수집해 Firestore(analytics_dau, analytics_meta/dau_latest)에 저장.
 // 매일 한국시간(KST) 오전 9시에 실행. 최근 3일치를 다시 가져와 늦게 집계되는 값을 보정한다.
