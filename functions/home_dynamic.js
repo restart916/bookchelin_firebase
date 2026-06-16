@@ -360,6 +360,83 @@ function formatCurationMessage(result) {
   return msg;
 }
 
+// P2-2: daily 집계 문서(dayly_reader_count / dayly_total_time)에서 aggregateReaders 동등 결과를 구성한다.
+//
+// 절감 효과: generateHomeDynamic 에서 read_time_logs 전건 스캔 대신 N개(= windowDays) doc 읽기.
+//   현재 TRENDING_WINDOW_DAYS=3 이면 read-3docs vs 전건 스캔.
+//
+// ⚠️  알려진 한계(equivalence 불일치):
+//   - 크로스데이 중복 독자: 같은 user 가 book A 를 월요일/화요일 모두 읽으면
+//     각 날짜 reader_count 에 1씩 포함돼 합산 시 2 로 과다 카운트.
+//     raw-log 방식은 user 당 '가장 최근 가중치'만 1회 반영해 1 이다.
+//   - 영향: reader_count / weighted_readers 가 실제보다 높게 나와 트렌딩이
+//     일별 재방문 독자가 많은 책에 유리하게 편향될 수 있음.
+//   - 권장: generateHomeDynamic 교체 전에 1주일 병행 실행 후 결과 비교 필수.
+//
+// @param {FirebaseFirestore.Firestore} db
+// @param {Date} now
+// @param {number} windowDays
+// @param {{ halfLife?: number }} opts
+// @returns {Promise<Array<{book_id: string, reader_count: number, weighted_readers: number, total_read_time: number}>>}
+async function aggregateReadersFromDailyDocs(db, now = new Date(), windowDays = TRENDING_WINDOW_DAYS, opts = {}) {
+  const halfLife = opts.halfLife || HALFLIFE_DAYS;
+  const nowMs = now instanceof Date ? now.getTime() : new Date(now).getTime();
+
+  const dateStrings = [];
+  for (let d = 0; d < windowDays; d++) {
+    const t = new Date(nowMs - d * DAY_MS);
+    dateStrings.push(kstDateString(t));
+  }
+
+  // N개 일별 집계 문서를 병렬 조회
+  const [readerSnaps, timeSnaps] = await Promise.all([
+    Promise.all(dateStrings.map((date) => db.collection('dayly_reader_count').doc(date).get())),
+    Promise.all(dateStrings.map((date) => db.collection('dayly_total_time').doc(date).get())),
+  ]);
+
+  // book별 가중 독자 합산 및 총 독서시간
+  const bookMap = new Map(); // book_id → { reader_count_approx, weighted_readers, total_read_time }
+
+  for (let i = 0; i < dateStrings.length; i++) {
+    const daysAgo = i; // 오늘=0, 어제=1, ...
+    const w = decayWeight(daysAgo, halfLife);
+
+    const readerSnap = readerSnaps[i];
+    if (readerSnap.exists) {
+      const rc = (readerSnap.data() || {}).reader_count || {};
+      for (const [book_id, cnt] of Object.entries(rc)) {
+        let e = bookMap.get(book_id);
+        if (!e) {
+          e = { reader_count: 0, weighted_readers: 0, total_read_time: 0 };
+          bookMap.set(book_id, e);
+        }
+        e.reader_count += cnt;          // 크로스데이 중복 포함(알려진 한계)
+        e.weighted_readers += cnt * w;  // 날짜별 감쇠 적용
+      }
+    }
+
+    const timeSnap = timeSnaps[i];
+    if (timeSnap.exists) {
+      const tc = (timeSnap.data() || {}).total_count || {};
+      for (const [book_id, sec] of Object.entries(tc)) {
+        let e = bookMap.get(book_id);
+        if (!e) {
+          e = { reader_count: 0, weighted_readers: 0, total_read_time: 0 };
+          bookMap.set(book_id, e);
+        }
+        e.total_read_time += sec;
+      }
+    }
+  }
+
+  return [...bookMap.entries()].map(([book_id, e]) => ({
+    book_id,
+    reader_count: e.reader_count,
+    weighted_readers: e.weighted_readers,
+    total_read_time: e.total_read_time,
+  }));
+}
+
 module.exports = {
   // 튜닝 상수 (테스트/문서용 노출)
   TRENDING_WINDOW_DAYS,
@@ -379,4 +456,5 @@ module.exports = {
   buildAutoSuggestDocs,
   generateHomeDynamic,
   formatCurationMessage,
+  aggregateReadersFromDailyDocs,
 };
