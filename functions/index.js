@@ -27,6 +27,7 @@ const { sendDauReport } = require('./analytics_discord');
 const { notifyDiscord, discordWebhook } = require('./discord');
 const { handleWebBook } = require('./web_book');
 const { getActiveBooks, rebuildActiveBooksCache } = require('./event_cache');
+const { sendDailyPersonalizedPush } = require('./personalized_push');
 
 // read_time_logs 보관 기간(일). TTL 정책용 expireAt 필드 계산에 사용.
 // Firestore 네이티브 TTL: Firebase Console → Firestore → Indexes → TTL → read_time_logs / expireAt
@@ -900,6 +901,42 @@ exports.daily_dau_report = functions
     }
     return null;
   });
+
+// 매일 KST 20:30에 최근 독서 이력이 있는 토큰 보유 사용자에게 이어읽기 푸시를 보낸다.
+// 앱 배포 전/토큰 적재 전에는 tokenCount=0으로 종료된다.
+exports.daily_personalized_push = functions
+  .runWith({
+    timeoutSeconds: 300,
+    memory: '512MB',
+  })
+  .pubsub.schedule('every day 20:30')
+  .timeZone('Asia/Seoul')
+  .onRun(async () => {
+    const result = await sendDailyPersonalizedPush({
+      db,
+      admin,
+      messaging: admin.messaging(),
+      dryRun: false,
+    });
+    console.log('daily_personalized_push done', JSON.stringify(result));
+    return null;
+  });
+
+// 수동 검증용 엔드포인트. 기본은 dryRun=1이며, 실제 발송은 ?dryRun=0 으로 호출한다.
+exports.personalized_push_now = functions.https.onRequest(async (req, res) => {
+  try {
+    const result = await sendDailyPersonalizedPush({
+      db,
+      admin,
+      messaging: admin.messaging(),
+      dryRun: req.query.dryRun !== '0',
+    });
+    res.status(200).json(result);
+  } catch (e) {
+    console.error('personalized_push_now failed', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 
 // SEO 용 공개 웹 페이지: hosting rewrite(/book/**, /sitemap.xml)가 이 함수로 연결된다.
 // 책 본문은 노출하지 않는다(앱 설치 유도). 상세 로직은 web_book.js 참고.
