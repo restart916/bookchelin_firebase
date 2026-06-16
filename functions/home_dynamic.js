@@ -8,7 +8,7 @@ const KST = 'Asia/Seoul';
 
 // ── 트렌딩 튜닝 파라미터 (여기만 바꿔서 조정) ───────────────────────────────
 // 트렌딩 집계 윈도우(일). 이 기간 내 read_time_logs 만 본다.
-const TRENDING_WINDOW_DAYS = 7;
+const TRENDING_WINDOW_DAYS = 3;
 // (1) 시간 감쇠: read_time_log 의 경과일 days_ago 에 weight = 0.5^(days_ago/HALFLIFE_DAYS).
 //     작을수록 최신 로그를 더 강하게 반영. 3 이면 3일 전 로그가 가중치 1/2.
 const HALFLIFE_DAYS = 3;

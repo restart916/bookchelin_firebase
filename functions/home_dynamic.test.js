@@ -311,7 +311,8 @@ test('selectTrendingWithCooldown: 풀 부족 fallback — 쿨다운/안전장치
 test('generateHomeDynamic: _trending_state 를 읽어 streak 누적하고 새 상태를 기록(연속 실행 배선)', async () => {
   const now = new Date('2026-06-07T03:00:00Z');
   const dayIndex = hd.kstDayIndex(now);
-  const recent = '2026-06-05T00:00:00Z';
+  // nextDay 기준 3일 윈도우(cutoff = 06-05T03Z)에도 들어오도록 06-06 사용.
+  const recent = '2026-06-06T00:00:00Z';
   const baseArgs = {
     readTimeLogs: [
       { id: 'l1', book_id: 'A', user_uid: 'u1', read_time: 30, createdAt: recent },
