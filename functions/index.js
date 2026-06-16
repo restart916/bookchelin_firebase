@@ -30,7 +30,7 @@ const { getActiveBooks, rebuildActiveBooksCache } = require('./event_cache');
 
 // read_time_logs 보관 기간(일). TTL 정책용 expireAt 필드 계산에 사용.
 // Firestore 네이티브 TTL: Firebase Console → Firestore → Indexes → TTL → read_time_logs / expireAt
-const RETENTION_DAYS = 90;
+const RETENTION_DAYS = 180;
 
 // [START trigger]
 exports.date = functions.https.onRequest((req, res) => {

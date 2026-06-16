@@ -19,7 +19,7 @@ const KEY_PATH =
 admin.initializeApp({ credential: admin.credential.cert(require(KEY_PATH)) });
 
 const db = admin.firestore();
-const RETENTION_DAYS = 90;
+const RETENTION_DAYS = 180; // functions/index.js의 RETENTION_DAYS와 동일하게 유지
 const BATCH_SIZE = 500;
 
 const DRY_RUN = process.argv.includes('--dry-run');
