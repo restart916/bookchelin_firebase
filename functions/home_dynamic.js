@@ -424,15 +424,21 @@ async function generateHomeDynamic(db, now = new Date()) {
   const logs = rtSnap.docs.map((d) => d.data());
 
   const booksSnap = await db.collection('books').where('hidden', '==', false).get();
-  const visibleIds = booksSnap.docs.map((d) => d.id);
+  const books = booksSnap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
+  const visibleIds = books.map((b) => b.id);
   // Discord 알림 등에서 책 제목을 보여주기 위한 id→title 맵(보이는 책 한정, 없으면 id 폴백).
   const titleById = new Map(
-    booksSnap.docs.map((d) => [d.id, (d.data() || {}).title])
+    books.map((b) => [b.id, b.title])
   );
   const titleOf = (id) => titleById.get(id) || id;
 
-  const mbSnap = await db.collection('main_books').get();
-  const pinIds = mbSnap.docs.map((d) => d.data().book_id).filter(Boolean);
+  const pinSnap = await db.collection('home_carousel_pins').get();
+  const pins = activePins(
+    pinSnap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })),
+    kstDateString(now),
+    visibleIds
+  );
+  const pinIds = pins.map((p) => p.book_id);
 
   const aggregates = aggregateReaders(logs, now);
   const ranked = rankTrending(aggregates, {
@@ -473,21 +479,27 @@ async function generateHomeDynamic(db, now = new Date()) {
   const orderedPool = dormant.concat(active);
 
   const discover = selectDiscover({ pool: orderedPool, dayIndex, window: 10 });
-  // 상단 캐러셀: 큐레이션 핀(main_books)을 날짜 윈도우로 매일 회전(내리고/올리기).
-  const carousel = selectDiscover({ pool: pinIds, dayIndex, window: 10 });
 
-  // 캐러셀 핀은 숨김(hidden==true) 책일 수 있어 booksSnap(hidden==false)에 없다 →
-  // 알림 제목 표시를 위해 맵에 빠진 핀만 개별 조회해 제목을 채운다(보통 ≤10건).
-  const missingTitleIds = carousel.filter((id) => !titleById.has(id));
-  if (missingTitleIds.length) {
-    const snaps = await Promise.all(
-      missingTitleIds.map((id) => db.collection('books').doc(id).get())
-    );
-    snaps.forEach((s, i) => {
-      const t = s && s.exists ? (s.data() || {}).title : undefined;
-      if (typeof t === 'string' && t) titleById.set(missingTitleIds[i], t);
-    });
-  }
+  const carouselStateRef = db.collection('home_dynamic').doc('_carousel_state');
+  const carouselStateSnap = await carouselStateRef.get();
+  const carouselState =
+    (carouselStateSnap && carouselStateSnap.exists ? carouselStateSnap.data() : null) || {};
+  const carouselBaseline =
+    carouselState.day === dayIndex
+      ? carouselState.baseline || {}
+      : carouselState.last_shown_day_by_book || {};
+  const trendingIds = trending.map((t) => t.book_id);
+  const automaticCarousel = selectAutomaticCarousel({
+    books,
+    aggregates,
+    rankedTrending: ranked,
+    excludedIds: [...pinIds, ...trendingIds, ...discover],
+    previousExposure: carouselBaseline,
+    dayIndex,
+    cooldownDays: 14,
+    limit: 5,
+  });
+  const carousel = mergeCarouselPins(automaticCarousel, pins);
 
   const autoDocs = buildAutoSuggestDocs(trending, discover);
 
@@ -504,6 +516,17 @@ async function generateHomeDynamic(db, now = new Date()) {
   batch.set(db.collection('suggest_group').doc('_auto_discover'), autoDocs._auto_discover);
   // baseline = 이번 실행에 쓴 입력 상태. 같은 날 재실행 시 멱등성을 위해 함께 저장.
   batch.set(stateRef, { updated_at: now, day: dayIndex, state: nextState, baseline: prevState });
+  batch.set(carouselStateRef, {
+    updated_at: now,
+    day: dayIndex,
+    baseline: carouselBaseline,
+    last_shown_day_by_book: buildCarouselExposureState(
+      carouselBaseline,
+      automaticCarousel,
+      visibleIds,
+      dayIndex
+    ),
+  });
   await batch.commit();
 
   // 반환값: 알림/검증에서 쓰도록 제목과 '오늘 새로 진입(streak===1)' 표시를 덧붙인 상세 리스트.
