@@ -3,7 +3,7 @@
     <router-link to="/edit">기본 도서 등록</router-link>
     <router-link to="/edit-banner">공지 이벤트</router-link>
     <router-link to="/edit-time-event">NEW 추천 책 등록</router-link>
-    <router-link to="/edit-main-book">NEW 추천 롤링 베너</router-link>
+    <router-link to="/edit-main-book">홈 상단 관리</router-link>
     <router-link to="/edit-limit-event">프리뷰 책 등록</router-link>
     <router-link to="/edit-suggest-book">기획전</router-link>
     <router-link to="/edit-link-select">링크셀렉트</router-link>
