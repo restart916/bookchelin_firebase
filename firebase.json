@@ -52,5 +52,21 @@
         "function": "web_book"
       }
     ]
-  }
+  },
+  "apphosting": [
+    {
+      "backendId": "bookchelin-web",
+      "rootDir": "./nextjs-web",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions",
+        "vue-project",
+        "public",
+        "scripts"
+      ]
+    }
+  ]
 }
