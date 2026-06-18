@@ -78,6 +78,49 @@ test('selectDiscover: 날짜 인덱스 슬라이딩 윈도우(랩어라운드)',
   assert.deepStrictEqual(hd.selectDiscover({ pool: [], dayIndex: 3, window: 10 }), []);
 });
 
+test('activePins: 활성·기간·가시성·책중복을 검증하고 위치순으로 정렬', () => {
+  const rows = [
+    { id: 'p2', book_id: 'B', position: 4, is_active: true, start_date: '2026-06-01' },
+    { id: 'p1', book_id: 'A', position: 1, is_active: true, end_date: '2026-06-18' },
+    { id: 'dup', book_id: 'A', position: 2, is_active: true },
+    { id: 'future', book_id: 'C', position: 3, is_active: true, start_date: '2026-06-19' },
+    { id: 'hidden', book_id: 'H', position: 5, is_active: true },
+    { id: 'off', book_id: 'D', position: 6, is_active: false },
+  ];
+  assert.deepStrictEqual(
+    hd.activePins(rows, '2026-06-18', ['A', 'B', 'C', 'D']),
+    [
+      { id: 'p1', book_id: 'A', position: 1 },
+      { id: 'p2', book_id: 'B', position: 4 },
+    ]
+  );
+});
+
+test('mergeCarouselPins: 핀 위치를 먼저 채우고 자동책 5권을 빈칸에 유지', () => {
+  const merged = hd.mergeCarouselPins(
+    ['a1', 'a2', 'a3', 'a4', 'a5'],
+    [
+      { id: 'p1', book_id: 'P1', position: 1 },
+      { id: 'p2', book_id: 'P2', position: 4 },
+    ]
+  );
+  assert.deepStrictEqual(merged, ['P1', 'a1', 'a2', 'P2', 'a3', 'a4', 'a5']);
+});
+
+test('mergeCarouselPins: 충돌·범위초과·중복책을 결정적으로 보정', () => {
+  const merged = hd.mergeCarouselPins(
+    ['a1', 'P1', 'a2', 'a3', 'a4'],
+    [
+      { id: 'first', book_id: 'P1', position: 99 },
+      { id: 'second', book_id: 'P2', position: 99 },
+      { id: 'duplicate', book_id: 'P1', position: 1 },
+    ]
+  );
+  assert.strictEqual(new Set(merged).size, merged.length);
+  assert.strictEqual(merged.length, 6);
+  assert.deepStrictEqual(merged, ['P2', 'a1', 'a2', 'a3', 'a4', 'P1']);
+});
+
 test('buildAutoSuggestDocs: order "0"/"00", auto:true, 제목/books 매핑', () => {
   const trending = [{ book_id: 'A', reader_count: 5 }, { book_id: 'B', reader_count: 3 }];
   const discover = ['x', 'y', 'z'];

@@ -218,6 +218,57 @@ function selectDiscover(opts) {
   return out;
 }
 
+function activePins(pinRows, dateString, visibleBookIds) {
+  const visible = new Set(visibleBookIds);
+  const seenBooks = new Set();
+  return pinRows
+    .filter((p) => p && p.is_active === true && typeof p.book_id === 'string')
+    .filter((p) => !p.start_date || p.start_date <= dateString)
+    .filter((p) => !p.end_date || p.end_date >= dateString)
+    .filter((p) => visible.has(p.book_id))
+    .sort(
+      (a, b) =>
+        (Number(a.position) || Number.MAX_SAFE_INTEGER) -
+          (Number(b.position) || Number.MAX_SAFE_INTEGER) ||
+        String(a.created_at || '').localeCompare(String(b.created_at || '')) ||
+        String(a.id).localeCompare(String(b.id))
+    )
+    .filter((p) => {
+      if (seenBooks.has(p.book_id)) return false;
+      seenBooks.add(p.book_id);
+      return true;
+    })
+    .map((p) => ({
+      id: p.id,
+      book_id: p.book_id,
+      position: Math.max(1, Number(p.position) || Number.MAX_SAFE_INTEGER),
+    }));
+}
+
+function mergeCarouselPins(autoIds, pins) {
+  const pinBookIds = new Set();
+  const uniquePins = [];
+  for (const pin of pins) {
+    if (!pin || !pin.book_id || pinBookIds.has(pin.book_id)) continue;
+    pinBookIds.add(pin.book_id);
+    uniquePins.push(pin);
+  }
+  const autos = [...new Set(autoIds)].filter((id) => !pinBookIds.has(id));
+  const size = uniquePins.length + autos.length;
+  const slots = new Array(size);
+  for (const pin of uniquePins) {
+    let index = Math.min(Math.max(1, pin.position || size), size) - 1;
+    while (index < size && slots[index]) index += 1;
+    if (index >= size) index = slots.findIndex((v) => !v);
+    slots[index] = pin.book_id;
+  }
+  let autoIndex = 0;
+  for (let i = 0; i < slots.length; i++) {
+    if (!slots[i]) slots[i] = autos[autoIndex++];
+  }
+  return slots.filter(Boolean);
+}
+
 function buildAutoSuggestDocs(trending, discover) {
   return {
     _auto_trending: {
@@ -453,6 +504,8 @@ module.exports = {
   selectTrending,
   selectTrendingWithCooldown,
   selectDiscover,
+  activePins,
+  mergeCarouselPins,
   buildAutoSuggestDocs,
   generateHomeDynamic,
   formatCurationMessage,
