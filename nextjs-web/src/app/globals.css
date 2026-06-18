@@ -145,7 +145,11 @@ button, input { font: inherit; }
   .container, .site-header__inner, .site-footer__inner { width: min(100% - 28px, 1180px); }
   .site-header__inner { min-height: 64px; }
   .site-nav > a:first-child { display: none; }
-  .book-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 16px; }
+  .book-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px 8px; }
+  .book-card__cover { margin-bottom: 9px; border-radius: 3px 7px 7px 3px; }
+  .book-card .eyebrow { font-size: 0.6rem; letter-spacing: 0; }
+  .book-card h3 { margin-top: 3px; font-size: 0.74rem; }
+  .book-card p { display: none; }
   .hero__inner { min-height: auto; grid-template-columns: 1fr; gap: 20px; padding: 75px 0 45px; }
   .hero h1 { font-size: 2.55rem; }
   .hero__shelf { height: 310px; }
