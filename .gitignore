@@ -77,6 +77,7 @@ node_modules/
 
 # dotenv environment variables file
 .env
+!nextjs-web/.env.example
 
 # Script-generated artifacts (verify-book-images 등)
 scripts/output/
