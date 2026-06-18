@@ -16,6 +16,8 @@
 
 책 본문은 웹에 노출하지 않는다. 읽기는 앱 설치·실행으로 연결한다.
 
+공개 웹에는 사용자 로그인, 대여함, 읽기 기록 동기화, EPUB/PDF 웹 리더를 제공하지 않는다. 광고 수익 구조상 실제 독서는 앱에서만 제공한다.
+
 ## 기술 구조
 
 - Next.js App Router + TypeScript
@@ -66,6 +68,8 @@ Firebase Analytics 측정 ID `G-XCM430STF8`을 사용한다.
 - 기존 관리자: `https://bookchelin.web.app/admin/` 유지
 - `.well-known/assetlinks.json`과 `apple-app-site-association`을 새 웹에도 제공
 - Android App Links와 iOS Universal Links가 `bookchelin.com`을 직접 열려면 두 모바일 앱의 도메인 설정과 재배포가 필요하다. 웹 출시와 별도 후속 작업으로 명시한다
+- 기존 `bookchelin.web.app/admin/epub-viewer/{bookId}`는 Flutter 앱이 사용하는 앱 전용 WebView이므로 Next.js에 이관하거나 공개 링크를 만들지 않는다
+- 기존 뷰어는 관리자 SPA 전체의 `noindex,nofollow` 아래에 유지한다. 외부 사용자를 기술적으로 차단하려면 앱이 발급받는 단기 토큰 검증과 모바일 앱 재배포가 필요하므로 별도 보안 작업으로 분리한다
 
 ## 배포
 
