@@ -27,21 +27,21 @@
 - Produces: Next.js `MetadataRoute.Manifest` at `/manifest.webmanifest`.
 - Consumes: committed `/icons/icon-192.png` and `/icons/icon-512.png` paths from Task 2.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
-Create a Vitest test that imports the manifest and expects `name: "북슐랭"`, `display: "standalone"`, theme/background color `#fb3f38`, and 192×192 plus 512×512 icon declarations.
+Create a Vitest test that imports the manifest and expects `name: "북슐랭"`, `display: "standalone"`, theme/background color `#f44336` sampled from the source artwork, and 192×192 plus 512×512 icon declarations.
 
-- [ ] **Step 2: Verify the test fails**
+- [x] **Step 2: Verify the test fails**
 
 Run: `nvm use stable && cd nextjs-web && npm test -- --run src/app/manifest.test.ts`
 
 Expected: FAIL because `manifest.ts` does not exist.
 
-- [ ] **Step 3: Implement the manifest**
+- [x] **Step 3: Implement the manifest**
 
 Export a default `manifest(): MetadataRoute.Manifest` function containing the tested values, `start_url: "/"`, and PNG icon MIME types.
 
-- [ ] **Step 4: Verify the test passes**
+- [x] **Step 4: Verify the test passes**
 
 Run the same targeted test and expect one passing test file.
 
@@ -58,15 +58,15 @@ Run the same targeted test and expect one passing test file.
 - Consumes: the read-only 1024×1024 official application icon.
 - Produces: browser, Apple touch, and installable web app images.
 
-- [ ] **Step 1: Generate PNG derivatives**
+- [x] **Step 1: Generate PNG derivatives**
 
 Use `sips --resampleHeightWidth` to create 512×512, 180×180, and 192×192 square PNG files from the source image. Generate `favicon.ico` from a 48×48 derivative using the writable ICO format supported by `sips`.
 
-- [ ] **Step 2: Verify image dimensions and formats**
+- [x] **Step 2: Verify image dimensions and formats**
 
 Run `file` and `sips -g pixelWidth -g pixelHeight` for every generated asset. Expect ICO for favicon and exact PNG dimensions of 512, 180, 192, and 512 pixels.
 
-- [ ] **Step 3: Verify mobile repositories are unchanged**
+- [x] **Step 3: Verify mobile repositories are unchanged**
 
 Run `git -C ../bookchelin_android status --short` and `git -C ../bookchelin_flutter status --short`, comparing against their pre-task state. No new mobile changes may appear.
 
@@ -79,17 +79,16 @@ Run `git -C ../bookchelin_android status --short` and `git -C ../bookchelin_flut
 - Consumes: completed manifest and generated assets.
 - Produces: a deployable Next.js build.
 
-- [ ] **Step 1: Run full web verification**
+- [x] **Step 1: Run full web verification**
 
 Run: `nvm use stable && cd nextjs-web && npm test && npm run lint && npm run typecheck && npm run build`
 
 Expected: all tests pass and the production build lists `/manifest.webmanifest` plus icon metadata routes.
 
-- [ ] **Step 2: Inspect the production metadata**
+- [x] **Step 2: Inspect the production metadata**
 
 Start the production server locally and verify `/favicon.ico`, `/icon.png`, `/apple-icon.png`, `/icons/icon-192.png`, `/icons/icon-512.png`, and `/manifest.webmanifest` return HTTP 200 with correct content types.
 
 - [ ] **Step 3: Commit, push, and deploy**
 
 Commit only the web icon implementation and this plan. Push `master`, create an App Hosting rollout for that commit, and verify the same URLs on `https://bookchelin.com`.
-
