@@ -807,6 +807,21 @@ exports.regenerate_home_dynamic = functions
     }
   });
 
+// 어드민에서 수동 핀을 바꾸면 다음 daily_job을 기다리지 않고 즉시 홈 편성을 갱신한다.
+// 핀 편집마다 Discord 알림을 보내면 운영 채널이 시끄러워지므로 결과만 로그로 남긴다.
+exports.regenerate_home_dynamic_on_pin_write = functions.firestore
+  .document('home_carousel_pins/{pinId}')
+  .onWrite(async (change, context) => {
+    const result = await generateHomeDynamic(db);
+    console.log(
+      'regenerate_home_dynamic_on_pin_write done',
+      context.params.pinId,
+      result.date,
+      result.carousel.length
+    );
+    return null;
+  });
+
 // 활성 이벤트 캐시(event_state/active_books)를 수동으로 즉시 재빌드한다.
 // 신규 이벤트를 Firebase Console 등 외부에서 생성한 직후, daily_job을 기다리지 않고
 // 이 엔드포인트를 호출하면 로그 트리거가 바로 그 이벤트를 인식할 수 있다.
