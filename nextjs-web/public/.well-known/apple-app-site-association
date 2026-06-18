@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["BWRD4QG7TL.bookchelin.bookchelin"],
+        "appID": "BWRD4QG7TL.bookchelin.bookchelin",
+        "paths": ["/book/*"],
+        "components": [
+          {
+            "/": "/book/*",
+            "comment": "책 상세 페이지는 앱으로 연다"
+          }
+        ]
+      }
+    ]
+  }
+}

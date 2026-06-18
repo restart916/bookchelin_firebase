@@ -25,6 +25,19 @@ export function StoreCta({
 
   return (
     <div className={`store-cta${compact ? " store-cta--compact" : ""}`}>
+      {bookId ? (
+        <a
+          className="button button--outline"
+          href={`bookchelin://book/${encodeURIComponent(bookId)}`}
+          onClick={() => void trackEvent("open_app_click", {
+            placement,
+            book_id: bookId,
+            source,
+          })}
+        >
+          앱에서 바로 열기
+        </a>
+      ) : null}
       <a
         className="button"
         href={IOS_STORE_URL}

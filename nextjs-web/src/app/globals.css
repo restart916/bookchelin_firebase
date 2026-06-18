@@ -34,6 +34,8 @@ button, input { font: inherit; }
 .button--small { min-height: 38px; padding-inline: 18px; }
 .button--dark { background: var(--green); box-shadow: 0 8px 24px rgba(21, 63, 53, 0.16); }
 .button--dark:hover { background: #0a2c24; }
+.button--outline { color: var(--brand-dark); border: 1px solid #e9b3c4; background: white; box-shadow: none; }
+.button--outline:hover { color: white; }
 .eyebrow { color: var(--brand-dark); font-size: 0.76rem; font-weight: 850; letter-spacing: 0.06em; }
 .book-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 30px 20px; }
 .book-card { min-width: 0; }
@@ -96,6 +98,41 @@ button, input { font: inherit; }
 .result-count { margin: 25px 0; color: var(--muted); font-size: .88rem; }
 .empty-state { padding: 90px 20px; text-align: center; border-radius: 12px; background: var(--soft); }
 .empty-state p { color: var(--muted); }
+.breadcrumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 48px; color: var(--muted); font-size: .82rem; }
+.book-detail { padding-top: 45px; }
+.book-detail__hero { display: grid; grid-template-columns: 330px 1fr; align-items: center; gap: 85px; max-width: 960px; margin-inline: auto; padding: 45px 0 90px; }
+.book-detail__cover { aspect-ratio: 2 / 3; display: grid; place-items: center; overflow: hidden; color: var(--brand-dark); border-radius: 6px 16px 16px 6px; background: var(--soft); box-shadow: var(--shadow); }
+.book-detail__cover img { width: 100%; height: 100%; object-fit: cover; }
+.book-detail__intro h1 { margin: 13px 0 8px; font-family: Georgia, "Noto Serif KR", serif; font-size: clamp(2.3rem, 5vw, 4.2rem); line-height: 1.16; letter-spacing: -.06em; }
+.publisher { color: var(--muted); }
+.rating { color: #c48408; font-weight: 850; }
+.rating span { color: var(--muted); font-size: .82rem; font-weight: 500; }
+.book-detail__lede { max-width: 520px; margin: 28px 0 22px; color: var(--muted); line-height: 1.7; }
+.book-detail__intro .store-cta { justify-content: flex-start; }
+.book-detail__body { max-width: 760px; margin-inline: auto; }
+.book-detail__body section { padding: 45px 0; border-top: 1px solid var(--line); }
+.book-detail__body h2 { margin: 0 0 20px; font-family: Georgia, "Noto Serif KR", serif; font-size: 1.5rem; }
+.preline { white-space: pre-line; color: #4f464a; line-height: 1.9; }
+.toc { max-height: 520px; overflow: auto; font-size: .92rem; }
+.review-list { display: grid; gap: 12px; }
+.review-list blockquote { margin: 0; padding: 20px; border-radius: 8px; background: var(--soft); }
+.review-list blockquote p { margin: 0 0 10px; line-height: 1.7; }
+.review-list footer { color: #b57b0c; font-size: .82rem; }
+.external-links { display: flex; flex-wrap: wrap; gap: 10px; }
+.external-links a { padding: 10px 15px; border: 1px solid var(--line); border-radius: 999px; font-size: .85rem; font-weight: 700; }
+.not-found { padding: 120px 0; text-align: center; }
+.not-found h1 { font-family: Georgia, "Noto Serif KR", serif; font-size: clamp(2.2rem, 5vw, 4rem); letter-spacing: -.06em; }
+.not-found p { margin-bottom: 30px; color: var(--muted); }
+.policy { max-width: 780px; padding-top: 75px; }
+.policy header { padding-bottom: 35px; border-bottom: 1px solid var(--line); }
+.policy h1 { margin: 10px 0; font-family: Georgia, "Noto Serif KR", serif; font-size: clamp(2.5rem, 5vw, 4rem); letter-spacing: -.06em; }
+.policy header p, .policy__lead { color: var(--muted); }
+.policy__lead { margin: 38px 0; font-size: 1.05rem; line-height: 1.9; }
+.policy section { padding: 24px 0; }
+.policy h2 { font-size: 1.13rem; }
+.policy p, .policy li { color: #51474b; line-height: 1.85; }
+.policy a { color: var(--brand-dark); text-decoration: underline; }
+.policy-box { padding: 18px 20px; border-radius: 8px; background: var(--soft); line-height: 1.8; }
 .site-footer { margin-top: 100px; color: #ddd1d4; background: #241d20; }
 .site-footer__inner { width: min(1180px, calc(100% - 40px)); margin-inline: auto; padding: 54px 0 38px; display: grid; grid-template-columns: 1fr auto; gap: 30px; }
 .site-footer strong { color: white; font-size: 1.12rem; }
@@ -125,6 +162,10 @@ button, input { font: inherit; }
   .download-section { margin-top: 75px; padding: 75px 0; }
   .page-shell { padding-top: 50px; }
   .page-heading--category { padding: 30px 24px; }
+  .book-detail__hero { grid-template-columns: 1fr; gap: 40px; padding-top: 15px; }
+  .book-detail__cover { width: min(230px, 70vw); margin-inline: auto; }
+  .book-detail__intro { text-align: center; }
+  .book-detail__intro .store-cta { justify-content: center; }
   .site-footer { margin-top: 72px; }
   .site-footer__inner { grid-template-columns: 1fr; }
   .site-footer small { grid-column: auto; }
