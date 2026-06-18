@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { PRIVACY_OFFICER } from "@/lib/privacy-policy";
+
 export const metadata: Metadata = {
   title: "개인정보 처리방침",
   description: "북슐랭 개인정보 처리방침과 개인정보 보호책임자 안내입니다.",
@@ -19,7 +21,7 @@ export default function PrivacyPage() {
       <section><h2>6. 처리 및 보유기간</h2><p>법령 또는 동의받은 보유·이용기간 내에서 처리합니다. 앱 이용 정보는 원칙적으로 앱 탈퇴 시까지 보유하며, 법령 위반 조사나 채권·채무 관계가 남은 경우 해당 사유가 종료될 때까지 보유할 수 있습니다. 전자상거래 관련 기록은 법률이 정한 6개월, 3년 또는 5년 동안 보관할 수 있고 통신사실확인자료는 관련 법률이 정한 기간 동안 보관할 수 있습니다.</p></section>
       <section><h2>7. 개인정보의 파기</h2><p>처리 목적이 달성되거나 보유기간이 지나 불필요해진 개인정보는 지체 없이 파기합니다. 전자적 파일은 복구할 수 없는 기술적 방법으로 삭제합니다.</p></section>
       <section><h2>8. 안전성 확보 조치</h2><p>개인정보 취급자의 최소화와 교육, 데이터베이스 접근 권한 관리 및 접근 통제, 개인정보가 포함된 문서와 보조저장매체의 안전한 보관 등 필요한 조치를 시행합니다.</p></section>
-      <section><h2>9. 개인정보 보호책임자</h2><div className="policy-box"><strong>개인정보 보호책임자 및 열람 청구 접수</strong><br />성명: 김주현<br />전화: 010-3295-1231<br />이메일: <a href="mailto:bookchelin@naver.com">bookchelin@naver.com</a></div></section>
+      <section><h2>9. 개인정보 보호책임자</h2><div className="policy-box"><strong>개인정보 보호책임자 및 열람 청구 접수</strong><br />성명: {PRIVACY_OFFICER.name}<br />전화: {PRIVACY_OFFICER.phone}<br />이메일: <a href={`mailto:${PRIVACY_OFFICER.email}`}>{PRIVACY_OFFICER.email}</a></div></section>
       <section><h2>10. 개인정보 열람 청구와 피해구제</h2><p>개인정보 침해 신고와 상담은 개인정보침해 신고센터(국번 없이 118, <a href="https://privacy.kisa.or.kr" target="_blank" rel="noopener noreferrer">privacy.kisa.or.kr</a>), 개인정보 분쟁조정위원회, 대검찰청 또는 경찰청의 관련 기관에 문의할 수 있습니다.</p></section>
       <section><h2>11. 처리방침 변경</h2><p>이 방침은 시행일부터 적용되며 법령과 방침에 따른 추가·삭제·정정이 있을 경우 시행 7일 전부터 공지합니다.</p></section>
     </article>
