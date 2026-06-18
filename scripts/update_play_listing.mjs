@@ -40,7 +40,7 @@ const LISTINGS = {
 ■ 문의
 이메일 : bookchelin@naver.com
 블로그 : https://blog.naver.com/bookchelin/221495798522
-웹 : https://bookchelin.web.app
+웹 : https://bookchelin.com
 
 ■ 콘텐츠 제휴(파트너십)
 이메일 : helgi2019@gmail.com`,
@@ -71,7 +71,7 @@ BookChelin is ad-supported. 100% of the revenue from unlimited books goes to pub
 
 ■ Contact
 Email: bookchelin@naver.com
-Web: https://bookchelin.web.app
+Web: https://bookchelin.com
 
 ■ Content partnership
 Email: helgi2019@gmail.com`,

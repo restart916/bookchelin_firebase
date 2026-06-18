@@ -4,6 +4,7 @@ import { mapBook } from "./books";
 import {
   buildBookJsonLd,
   buildBreadcrumbJsonLd,
+  buildHomeJsonLd,
   buildSitemapEntries,
 } from "./seo";
 import type { BookReviewSummary, BookSummary } from "./types";
@@ -48,4 +49,22 @@ test("sitemap entries exclude hidden books", () => {
   const entries = buildSitemapEntries([book, hidden]);
   expect(entries.some((entry) => entry.url.endsWith("/book/book-1"))).toBe(true);
   expect(entries.some((entry) => entry.url.includes("hidden"))).toBe(false);
+});
+
+test("home structured data identifies the website, publisher, and mobile app", () => {
+  const jsonLd = buildHomeJsonLd();
+
+  expect(jsonLd.map((item) => item["@type"])).toEqual([
+    "Organization",
+    "WebSite",
+    "MobileApplication",
+  ]);
+  expect(jsonLd).toEqual(expect.arrayContaining([
+    expect.objectContaining({ "@type": "WebSite", url: "https://bookchelin.com" }),
+    expect.objectContaining({
+      "@type": "MobileApplication",
+      name: "북슐랭",
+      operatingSystem: "Android, iOS",
+    }),
+  ]));
 });

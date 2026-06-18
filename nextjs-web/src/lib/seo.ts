@@ -1,10 +1,47 @@
 import type { MetadataRoute } from "next";
 
-import { CATEGORY_BY_ID, SITE_URL } from "./constants";
+import {
+  ANDROID_STORE_URL,
+  CATEGORY_BY_ID,
+  IOS_STORE_URL,
+  SITE_URL,
+} from "./constants";
 import type { BookReviewSummary, BookSummary } from "./types";
 
 function bookUrl(book: BookSummary): string {
   return `${SITE_URL}/book/${encodeURIComponent(book.id)}`;
+}
+
+export function buildHomeJsonLd() {
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "북슐랭",
+      alternateName: "Bookchelin",
+      url: SITE_URL,
+      sameAs: [IOS_STORE_URL, ANDROID_STORE_URL],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "북슐랭",
+      alternateName: "Bookchelin",
+      url: SITE_URL,
+      inLanguage: "ko-KR",
+      publisher: { "@type": "Organization", name: "북슐랭" },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "MobileApplication",
+      name: "북슐랭",
+      operatingSystem: "Android, iOS",
+      applicationCategory: "BookApplication",
+      isAccessibleForFree: true,
+      url: SITE_URL,
+      downloadUrl: [IOS_STORE_URL, ANDROID_STORE_URL],
+    },
+  ];
 }
 
 export function buildBookJsonLd(book: BookSummary, reviews: BookReviewSummary) {

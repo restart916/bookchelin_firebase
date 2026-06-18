@@ -4,6 +4,7 @@ import { BookCard } from "@/components/book-card";
 import { StoreCta } from "@/components/store-cta";
 import { getHomeData } from "@/lib/book-repository";
 import { CATEGORY_BY_ID } from "@/lib/constants";
+import { buildHomeJsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,10 @@ export default async function HomePage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify([...buildHomeJsonLd(), faqJsonLd]) }}
+      />
       <section className="hero">
         <div className="container hero__inner">
           <div className="hero__copy">

@@ -7,7 +7,8 @@
 // iOS 는 Smart App Banner(apple-itunes-app)가 설치 시 "열기", 미설치 시 App Store 로 안내.
 // Android 는 Play 스토어 페이지가 설치 시 "열기" 버튼을 보여준다.
 
-const WEB_BASE_URL = 'https://bookchelin.web.app';
+const WEB_BASE_URL = 'https://bookchelin.com';
+const CANONICAL_WEB_BASE_URL = 'https://bookchelin.com';
 const IOS_APP_ID = '1544648278';
 const IOS_STORE_URL = `https://apps.apple.com/kr/app/id${IOS_APP_ID}`;
 const ANDROID_PACKAGE = 'com.bookchelin.bookchelin';
@@ -213,7 +214,7 @@ ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ''}
       var fallback = encodeURIComponent('${ANDROID_STORE_URL}');
       openApp.setAttribute(
         'href',
-        'intent://bookchelin.web.app/book/${bookId}#Intent;scheme=https;package=${ANDROID_PACKAGE};S.browser_fallback_url=' +
+        'intent://bookchelin.com/book/${bookId}#Intent;scheme=https;package=${ANDROID_PACKAGE};S.browser_fallback_url=' +
           fallback + ';end'
       );
       storeIos.style.display = 'none';
@@ -606,40 +607,20 @@ ${urls.join('\n')}
   res.status(200).send(xml);
 }
 
-async function handleWebBook(db, req, res) {
+async function handleWebBook(_db, req, res) {
   const path = req.path || '/';
+  const originalUrl = req.originalUrl || req.url || path;
+  const queryIndex = originalUrl.indexOf('?');
+  const search = queryIndex >= 0 ? originalUrl.slice(queryIndex) : '';
 
-  if (path === '/' || path === '') {
-    return renderLanding(db, res);
-  }
-
-  if (path === '/sitemap.xml') {
-    return renderSitemap(db, res);
-  }
-
-  if (path === '/privacy' || path === '/privacy/') {
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.set('Cache-Control', 'public, max-age=3600, s-maxage=86400');
-    return res.status(200).send(renderPrivacyHtml());
-  }
-
-  const m = path.match(/^\/book\/([A-Za-z0-9]{10,40})\/?$/);
-  if (!m) {
-    res.set('Cache-Control', 'public, max-age=300');
-    return res.status(404).send(render404());
-  }
-  const bookId = m[1];
-
-  const doc = await db.collection('books').doc(bookId).get();
-  if (!doc.exists || doc.data().hidden === true) {
-    res.set('Cache-Control', 'public, max-age=300');
-    return res.status(404).send(render404());
-  }
-
-  const reviews = await loadReviews(db, bookId);
-  res.set('Content-Type', 'text/html; charset=utf-8');
-  res.set('Cache-Control', 'public, max-age=600, s-maxage=86400');
-  return res.status(200).send(renderBookHtml(bookId, doc.data(), reviews));
+  res.set('Cache-Control', 'public, max-age=3600');
+  return res.redirect(301, buildCanonicalRedirect(path, search));
 }
 
-module.exports = { handleWebBook };
+function buildCanonicalRedirect(path, search) {
+  const normalizedPath = path && path.startsWith('/') ? path : `/${path || ''}`;
+  const normalizedSearch = search && search.startsWith('?') ? search : '';
+  return `${CANONICAL_WEB_BASE_URL}${normalizedPath}${normalizedSearch}`;
+}
+
+module.exports = { buildCanonicalRedirect, handleWebBook };

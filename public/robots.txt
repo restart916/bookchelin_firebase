@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://bookchelin.web.app/sitemap.xml
+Sitemap: https://bookchelin.com/sitemap.xml
