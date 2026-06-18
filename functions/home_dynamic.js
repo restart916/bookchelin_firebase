@@ -269,6 +269,134 @@ function mergeCarouselPins(autoIds, pins) {
   return slots.filter(Boolean);
 }
 
+function selectAutomaticCarousel(opts) {
+  const {
+    books = [],
+    aggregates = [],
+    rankedTrending = [],
+    excludedIds = [],
+    previousExposure = {},
+    dayIndex,
+    cooldownDays = 14,
+    limit = 5,
+  } = opts || {};
+  const excluded = new Set(excludedIds);
+  const eligible = books
+    .filter(
+      (b) =>
+        b &&
+        typeof b.id === 'string' &&
+        typeof b.image_url === 'string' &&
+        b.image_url.trim() !== '' &&
+        !excluded.has(b.id)
+    )
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const byId = new Map(eligible.map((b) => [b.id, b]));
+  const aggregateById = new Map(aggregates.map((a) => [a.book_id, a]));
+  const lastShown = (id) =>
+    typeof previousExposure[id] === 'number'
+      ? previousExposure[id]
+      : Number.MIN_SAFE_INTEGER;
+  const isCoolingDown = (id) => dayIndex - lastShown(id) < cooldownDays;
+  const availableIds = new Set(
+    eligible.filter((b) => !isCoolingDown(b.id)).map((b) => b.id)
+  );
+  const selected = [];
+  const selectedSet = new Set();
+  const take = (id) => {
+    if (!id || !availableIds.has(id) || selectedSet.has(id) || selected.length >= limit) {
+      return false;
+    }
+    selected.push(id);
+    selectedSet.add(id);
+    return true;
+  };
+
+  // 1) 최근 상승: 기존 트렌딩 전체 랭킹에서 홈 중복·쿨다운을 통과한 첫 책.
+  for (const candidate of rankedTrending) {
+    if (take(candidate.book_id)) break;
+  }
+
+  // 2) 꾸준히 읽힘: 남은 책을 최근 총 독서시간, 독자수, id 순으로 평가.
+  const steady = aggregates
+    .filter((a) => byId.has(a.book_id))
+    .sort(
+      (a, b) =>
+        (b.total_read_time || 0) - (a.total_read_time || 0) ||
+        (b.reader_count || 0) - (a.reader_count || 0) ||
+        a.book_id.localeCompare(b.book_id)
+    );
+  for (const candidate of steady) {
+    if (take(candidate.book_id)) break;
+  }
+
+  // 3) 카테고리 대표: 오늘의 시작 카테고리부터 순환하며 order가 높은 책.
+  const categories = [...new Set(eligible.map((b) => String(b.category || '')))].sort();
+  if (categories.length > 0) {
+    const categoryStart = ((dayIndex % categories.length) + categories.length) % categories.length;
+    for (let offset = 0; offset < categories.length; offset++) {
+      const category = categories[(categoryStart + offset) % categories.length];
+      const candidates = eligible
+        .filter((b) => String(b.category || '') === category)
+        .sort(
+          (a, b) =>
+            (Number(b.order) || 0) - (Number(a.order) || 0) ||
+            lastShown(a.id) - lastShown(b.id) ||
+            a.id.localeCompare(b.id)
+        );
+      if (candidates.some((b) => take(b.id))) break;
+    }
+  }
+
+  // 4) 재발견: 최근 집계에 없는 책 중 가장 오래 미노출된 책.
+  const dormant = eligible
+    .filter((b) => !aggregateById.has(b.id))
+    .sort((a, b) => lastShown(a.id) - lastShown(b.id) || a.id.localeCompare(b.id));
+  for (const candidate of dormant) {
+    if (take(candidate.id)) break;
+  }
+
+  // 5) 탐색: 남은 적격 후보를 날짜별 결정적 시작점에서 순환.
+  const exploration = eligible.filter(
+    (b) => availableIds.has(b.id) && !selectedSet.has(b.id)
+  );
+  if (exploration.length > 0) {
+    const start = ((dayIndex % exploration.length) + exploration.length) % exploration.length;
+    for (let i = 0; i < exploration.length; i++) {
+      if (take(exploration[(start + i) % exploration.length].id)) break;
+    }
+  }
+
+  // 역할 후보 부족 시 미노출 순으로 채우고, 그래도 부족하면 쿨다운을 완화한다.
+  const oldestFirst = (a, b) =>
+    lastShown(a.id) - lastShown(b.id) || a.id.localeCompare(b.id);
+  for (const candidate of eligible.filter((b) => availableIds.has(b.id)).sort(oldestFirst)) {
+    if (selected.length >= limit) break;
+    take(candidate.id);
+  }
+  if (selected.length < limit) {
+    for (const candidate of eligible.sort(oldestFirst)) {
+      if (selected.length >= limit) break;
+      if (!selectedSet.has(candidate.id)) {
+        selected.push(candidate.id);
+        selectedSet.add(candidate.id);
+      }
+    }
+  }
+
+  return selected;
+}
+
+function buildCarouselExposureState(previous, selectedIds, visibleIds, dayIndex) {
+  const visible = new Set(visibleIds);
+  const next = {};
+  for (const [id, shownDay] of Object.entries(previous || {})) {
+    if (visible.has(id) && typeof shownDay === 'number') next[id] = shownDay;
+  }
+  for (const id of selectedIds) next[id] = dayIndex;
+  return next;
+}
+
 function buildAutoSuggestDocs(trending, discover) {
   return {
     _auto_trending: {
@@ -506,6 +634,8 @@ module.exports = {
   selectDiscover,
   activePins,
   mergeCarouselPins,
+  selectAutomaticCarousel,
+  buildCarouselExposureState,
   buildAutoSuggestDocs,
   generateHomeDynamic,
   formatCurationMessage,
