@@ -28,10 +28,18 @@ const { notifyDiscord, discordWebhook } = require('./discord');
 const { handleWebBook } = require('./web_book');
 const { getActiveBooks, rebuildActiveBooksCache } = require('./event_cache');
 const { sendDailyPersonalizedPush } = require('./personalized_push');
+const { createReviewHandlers } = require('./reviews');
 
 // read_time_logs 보관 기간(일). TTL 정책용 expireAt 필드 계산에 사용.
 // Firestore 네이티브 TTL: Firebase Console → Firestore → Indexes → TTL → read_time_logs / expireAt
 const RETENTION_DAYS = 180;
+
+const reviewHandlers = createReviewHandlers({ db, admin });
+exports.submitReview = functions.https.onCall(reviewHandlers.submitReview);
+exports.deleteReview = functions.https.onCall(reviewHandlers.deleteReview);
+exports.reportReview = functions.https.onCall(reviewHandlers.reportReview);
+exports.adminListReviewReports = functions.https.onCall(reviewHandlers.adminListReviewReports);
+exports.adminModerateReview = functions.https.onCall(reviewHandlers.adminModerateReview);
 
 // [START trigger]
 exports.date = functions.https.onRequest((req, res) => {
