@@ -8,6 +8,11 @@ import {
   type EpubTheme,
   type ViewerSettings,
 } from "@/lib/epub-viewer";
+import {
+  displayInitialSection,
+  runGuardedTocDisplay,
+  TocPreloadGuard,
+} from "@/lib/epub-toc-navigation";
 
 declare global {
   interface Window {
@@ -54,6 +59,8 @@ export function EpubReader({
 }) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const renditionRef = useRef<Rendition | null>(null);
+  const tocPreloadGuardRef = useRef<TocPreloadGuard | null>(null);
+  const tocNavigationRef = useRef(false);
 
   const [loading, setLoading] = useState(true);
   const [toc, setToc] = useState<NavItem[]>([]);
@@ -91,6 +98,8 @@ export function EpubReader({
       });
       renditionRef.current = rendition;
       cleanupBook = () => {
+        tocPreloadGuardRef.current?.destroy();
+        tocPreloadGuardRef.current = null;
         rendition.destroy();
         book.destroy();
       };
@@ -105,16 +114,21 @@ export function EpubReader({
       rendition.on("relocated", (location: { end?: { cfi?: string } }) => {
         const cfi = location?.end?.cfi;
         if (cfi) notifyApp("relocated", cfi);
-        // epubjs resets injected theme rules per section — reapply.
-        applyFontSize(rendition, fontSizeRef.current);
-        applySideMargin(rendition, sideMarginRef.current);
       });
 
       rendition.themes.select(theme);
       applyFontSize(rendition, settings.fontSize);
       applySideMargin(rendition, settings.sideMargin);
 
-      await rendition.display(settings.cfi);
+      const tocPreloadGuard = await displayInitialSection(
+        rendition as unknown as Parameters<typeof displayInitialSection>[0],
+        settings.cfi,
+      );
+      if (cancelled) {
+        tocPreloadGuard?.destroy();
+        return;
+      }
+      tocPreloadGuardRef.current = tocPreloadGuard;
       if (!cancelled) setLoading(false);
     })();
 
@@ -159,9 +173,24 @@ export function EpubReader({
   function goNext() {
     renditionRef.current?.next();
   }
-  function openChapter(item: NavItem) {
-    renditionRef.current?.display(item.href);
+  async function openChapter(item: NavItem) {
+    const rendition = renditionRef.current;
+    if (!rendition || tocNavigationRef.current) return;
+
+    tocNavigationRef.current = true;
     setShowToc(false);
+    try {
+      const guard = tocPreloadGuardRef.current;
+      if (guard) {
+        await runGuardedTocDisplay(guard, () => rendition.display(item.href));
+      } else {
+        await rendition.display(item.href);
+      }
+    } catch (error) {
+      console.error("Failed to display EPUB TOC target", error);
+    } finally {
+      tocNavigationRef.current = false;
+    }
   }
 
   return (
@@ -240,6 +269,7 @@ html, body { height: 100%; margin: 0; }
 .epub-root { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; background: #fff; }
 .epub-root.epub-dark { background: #141414; }
 .epub-viewport { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.epub-viewport .epub-container { overflow-anchor: none; }
 .epub-bar { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 8px 12px; border-top: 1px solid #777; background: #fff; flex-wrap: wrap; }
 .epub-bar button { background: none; border: none; font-size: 15px; color: #212121; cursor: pointer; padding: 4px 2px; }
 .epub-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
