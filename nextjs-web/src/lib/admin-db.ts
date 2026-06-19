@@ -81,14 +81,16 @@ export async function deleteDocAt(path: string, id: string): Promise<void> {
   await deleteDoc(doc(db, path, id));
 }
 
-/** Upload a file to Storage at `storagePath` (overwrites). */
+/** Upload a file to Storage at `storagePath` (overwrites); returns the download URL. */
 export async function uploadToStorage(
   storagePath: string,
   file: File | Blob,
-): Promise<void> {
+): Promise<string> {
   const storage = await getFirebaseStorage();
-  const { ref, uploadBytes } = await import("firebase/storage");
-  await uploadBytes(ref(storage, storagePath), file);
+  const { getDownloadURL, ref, uploadBytes } = await import("firebase/storage");
+  const fileRef = ref(storage, storagePath);
+  await uploadBytes(fileRef, file);
+  return getDownloadURL(fileRef);
 }
 
 /** Coerce an unknown Firestore value to string for form inputs. */

@@ -12,9 +12,9 @@ export interface AdminSection {
 export const ADMIN_SECTIONS: AdminSection[] = [
   { href: "/admin/edit", label: "책 관리", description: "책 CRUD · 카테고리 · 출판사", group: "콘텐츠", ready: true },
   { href: "/admin/export", label: "책 내보내기", description: "책 목록 export", group: "콘텐츠", ready: true },
-  { href: "/admin/edit-banner", label: "배너", description: "배너 관리", group: "홈 구성", ready: false },
-  { href: "/admin/edit-main-book", label: "메인/캐러셀", description: "홈 메인북 · 캐러셀 핀", group: "홈 구성", ready: false },
-  { href: "/admin/edit-suggest-book", label: "추천 그룹", description: "suggest_group 구성", group: "홈 구성", ready: false },
+  { href: "/admin/edit-banner", label: "배너", description: "배너 관리", group: "홈 구성", ready: true },
+  { href: "/admin/edit-main-book", label: "메인/캐러셀", description: "홈 메인북 · 캐러셀 핀", group: "홈 구성", ready: true },
+  { href: "/admin/edit-suggest-book", label: "추천 그룹", description: "suggest_group 구성", group: "홈 구성", ready: true },
   { href: "/admin/edit-link-select", label: "링크 셀렉트", description: "link_select 관리", group: "홈 구성", ready: false },
   { href: "/admin/edit-log-select", label: "로그 셀렉트", description: "log_select 관리", group: "홈 구성", ready: false },
   { href: "/admin/edit-time-event", label: "타임 이벤트", description: "time_event 편집", group: "이벤트", ready: false },
