@@ -9,6 +9,7 @@ import Firebase from 'firebase';
 // 어드민으로 허용할 구글 계정. 추가 시 여기에 이메일을 넣으면 된다.
 export const ADMIN_EMAILS = [
   'restart916@gmail.com',
+  'helgi2019@gmail.com',
 ];
 
 export function isAdmin(user) {

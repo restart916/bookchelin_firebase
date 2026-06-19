@@ -15,6 +15,9 @@
           <p class='control'>
             <span class='tag is-light'>표시 {{ filteredReviews.length }} / 전체 {{ reviews.length }}</span>
           </p>
+          <p class='control'>
+            <span class='tag is-danger'>미처리 신고 {{ reports.length }}</span>
+          </p>
         </div>
       </div>
     </section>
@@ -29,9 +32,19 @@
               {{ review.review }}<br>
               <small style='color:#888'>{{ review.user_name }}</small><br>
               <span v-if="review.hide === '1'" class='tag is-warning'>숨김</span>
+              <span v-if="review.moderation_status === 'pending'" class='tag is-info'>검토 대기</span>
+              <span v-if="reportCount(review)" class='tag is-danger'>신고 {{ reportCount(review) }}건</span>
+              <div v-for="report in reportsFor(review)" :key="report.id" class='report-line'>
+                {{ report.reason }}<span v-if="report.detail"> — {{ report.detail }}</span>
+              </div>
             </div>
-            <div class='button' @click="toggleHideReview(review)">
-              {{ review.hide === '1' ? '다시 보이기' : '숨기기' }}
+            <div class='actions'>
+              <button class='button' @click="moderate(review, review.hide === '1' ? 'restore' : 'hide')">
+                {{ review.hide === '1' ? '다시 보이기' : '숨기기' }}
+              </button>
+              <button v-if="reportCount(review)" class='button' @click="moderate(review, 'dismiss')">신고 종결</button>
+              <button class='button is-danger' @click="moderate(review, 'ban')">작성 제한</button>
+              <button class='button' @click="moderate(review, 'unban')">제한 해제</button>
             </div>
           </div>
         </div>
@@ -41,7 +54,7 @@
 </template>
 
 <script>
-import { firestore, fireauth } from '../main'
+import { firestore, firebaseFunctions } from '../main'
 import Header from './components/Header'
 
 export default {
@@ -60,6 +73,8 @@ export default {
       bookTitles: {},   // { book_id: title } — search_index/books 단일 문서에서 1회 로드
       filterText: '',
       onlyVisible: false,
+      reports: [],
+      pendingReviews: [],
     }
   },
   computed: {
@@ -79,9 +94,7 @@ export default {
     }
   },
   mounted () {
-    if (!fireauth.currentUser) fireauth.signInAnonymously().catch(function (error) {
-      console.log('login error', error)
-    })
+    this.loadModerationQueue()
     // 책 제목 매핑: books 컬렉션을 통째로 읽지 않고 search_index/books(경량 카탈로그) 1건만 읽는다.
     firestore.collection('search_index').doc('books').get().then((doc) => {
       const data = doc.exists ? doc.data() : null
@@ -92,16 +105,34 @@ export default {
     }).catch((e) => console.error('search_index 로드 실패', e))
   },
   methods: {
-    toggleHideReview (review) {
+    async loadModerationQueue () {
+      try {
+        const result = await firebaseFunctions.httpsCallable('adminListReviewReports')({})
+        this.reports = result.data.reports || []
+        this.pendingReviews = result.data.pending || []
+      } catch (error) {
+        console.error('신고 목록 로드 실패', error)
+        alert('신고 목록을 불러오지 못했습니다: ' + error.message)
+      }
+    },
+    reportsFor (review) {
       const key = review['.key']
-      // 클라이언트(Android)·web_book 공용 규약: hide:"1" 이면 숨김, 그 외(없음)면 노출.
-      const next = review.hide === '1' ? null : '1'
-      firestore.collection('book_reviews').doc(key).update({ hide: next }).then(() => {
-        console.log('리뷰 숨김 상태 변경', key, next)
-      }).catch((error) => {
-        console.error('숨김 처리 실패', error)
+      return this.reports.filter(report => report.review_id === key)
+    },
+    reportCount (review) {
+      return this.reportsFor(review).length || Number(review.report_count) || 0
+    },
+    async moderate (review, action) {
+      try {
+        await firebaseFunctions.httpsCallable('adminModerateReview')({
+          review_id: review['.key'],
+          action: action
+        })
+        await this.loadModerationQueue()
+      } catch (error) {
+        console.error('리뷰 운영 처리 실패', error)
         alert('처리 실패: ' + error.message)
-      })
+      }
     }
   }
 }
@@ -110,4 +141,6 @@ export default {
 <style scoped>
 .notification.card { display: flex; justify-content: space-between; align-items: center; }
 .notification.card h1 { font-size: 1.1em; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.report-line { margin-top: 4px; color: #b00020; font-size: 0.85em; }
 </style>

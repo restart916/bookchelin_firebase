@@ -34,6 +34,7 @@ let firebase = Firebase.initializeApp(config);
 export const fireauth = firebase.auth();
 export const firestore = firebase.firestore();
 export const firestorage = firebase.storage();
+export const firebaseFunctions = firebase.functions();
 
 new Vue({
   router,
