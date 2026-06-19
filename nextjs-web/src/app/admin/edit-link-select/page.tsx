@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   addDocTo,
   asNumber,
   asString,
+  countDocs,
   deleteDocAt,
   listDocs,
   updateDocAt,
@@ -40,35 +41,41 @@ const EMPTY_FORM = {
 
 export default function AdminEditLinkSelectPage() {
   const [items, setItems] = useState<DocRow[]>([]);
-  const [clicks, setClicks] = useState<DocRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loaded, setLoaded] = useState(false);
+
+  // filters / paging
+  const [searchText, setSearchText] = useState("");
+  const [filterStatus, setFilterStatus] = useState("active"); // default: 활성만
+  const [pageSize, setPageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // click counts loaded lazily per visible page (avoids scanning the whole
+  // link_select_click log on every page load).
+  const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
+  const clickCountsRef = useRef<Record<string, number>>({});
 
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
 
   async function reload() {
-    const [i, c, cat] = await Promise.all([
+    const [i, cat] = await Promise.all([
       listDocs("link_select", { field: "timestamp", dir: "desc" }),
-      listDocs("link_select_click"),
       listDocs("book_category", { field: "id", dir: "desc" }),
     ]);
     setItems(i);
-    setClicks(c);
     setCategories(cat.map((d) => ({ id: asString(d.id), name: asString(d["name"]) })));
   }
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const [i, c, cat] = await Promise.all([
+      const [i, cat] = await Promise.all([
         listDocs("link_select", { field: "timestamp", dir: "desc" }),
-        listDocs("link_select_click"),
         listDocs("book_category", { field: "id", dir: "desc" }),
       ]);
       if (!active) return;
       setItems(i);
-      setClicks(c);
       setCategories(cat.map((d) => ({ id: asString(d.id), name: asString(d["name"]) })));
       setLoaded(true);
     })();
@@ -77,15 +84,49 @@ export default function AdminEditLinkSelectPage() {
     };
   }, []);
 
-  const clickCountBy = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const c of clicks) {
-      const key = asString(c["link_select_id"]);
-      if (!key) continue;
-      m[key] = (m[key] ?? 0) + 1;
-    }
-    return m;
-  }, [clicks]);
+  const activeCount = items.filter((i) => i.hidden !== true).length;
+  const hiddenCount = items.filter((i) => i.hidden === true).length;
+
+  const filtered = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return items.filter((it) => {
+      if (q && !asString(it.title).toLowerCase().includes(q)) return false;
+      if (filterStatus === "active" && it.hidden === true) return false;
+      if (filterStatus === "hidden" && it.hidden !== true) return false;
+      return true;
+    });
+  }, [items, searchText, filterStatus]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const page = Math.min(currentPage, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((page - 1) * pageSize, page * pageSize),
+    [filtered, page, pageSize],
+  );
+
+  // Lazily fetch click counts for the rows currently on screen (cached).
+  const pageKey = paged.map((p) => p.id).join(",");
+  useEffect(() => {
+    let active = true;
+    const missing = paged.map((p) => p.id).filter((id) => clickCountsRef.current[id] === undefined);
+    if (missing.length === 0) return;
+    (async () => {
+      const entries = await Promise.all(
+        missing.map(
+          async (id) =>
+            [id, await countDocs("link_select_click", { field: "link_select_id", value: id })] as const,
+        ),
+      );
+      if (!active) return;
+      for (const [id, c] of entries) clickCountsRef.current[id] = c;
+      setClickCounts({ ...clickCountsRef.current });
+    })();
+    return () => {
+      active = false;
+    };
+    // pageKey captures the visible rows; counts are cached in the ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageKey]);
 
   function clearInput() {
     setForm({ ...EMPTY_FORM });
@@ -166,8 +207,31 @@ export default function AdminEditLinkSelectPage() {
     <div className="admin-content">
       <h1>링크 셀렉트 관리</h1>
       <p className="admin-sub">
-        총 <b>{items.length}</b>개 {loaded ? "" : "(불러오는 중…)"} — link_select_id를 비우고 저장하면 추가, 채워지면 수정.
+        총 <b>{items.length}</b>개 · 활성 <b>{activeCount}</b> · 숨김 <b>{hiddenCount}</b> — 필터 결과{" "}
+        <b>{filtered.length}</b>개 {loaded ? "" : "(불러오는 중…)"}
       </p>
+
+      <div className="ad-filters">
+        <input
+          value={searchText}
+          onChange={(e) => {
+            setSearchText(e.target.value);
+            setCurrentPage(1);
+          }}
+          placeholder="제목 검색"
+        />
+        <select
+          value={filterStatus}
+          onChange={(e) => {
+            setFilterStatus(e.target.value);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="active">활성만</option>
+          <option value="hidden">숨김만</option>
+          <option value="">전체</option>
+        </select>
+      </div>
 
       <section className="ad-form">
         <div className="ad-form__head">
@@ -229,7 +293,7 @@ export default function AdminEditLinkSelectPage() {
           </tr>
         </thead>
         <tbody>
-          {items.map((it) => (
+          {paged.map((it) => (
             <tr key={it.id}>
               <td>
                 {it.image_url ? (
@@ -238,7 +302,7 @@ export default function AdminEditLinkSelectPage() {
                 ) : null}
               </td>
               <td>{asString(it.title)}</td>
-              <td>{clickCountBy[it.id] ?? 0}</td>
+              <td>{clickCounts[it.id] ?? "…"}</td>
               <td>{fmtUnix(it.timestamp)}</td>
               <td>
                 <select value={asString(it.category ?? "0")} onChange={(e) => changeCategory(it, e.target.value)}>
@@ -276,15 +340,47 @@ export default function AdminEditLinkSelectPage() {
               </td>
             </tr>
           ))}
-          {items.length === 0 && (
+          {paged.length === 0 && (
             <tr>
               <td colSpan={7} style={{ textAlign: "center", color: "#aaa", padding: 30 }}>
-                {loaded ? "항목이 없습니다." : "불러오는 중…"}
+                {loaded ? "조건에 맞는 항목이 없습니다." : "불러오는 중…"}
               </td>
             </tr>
           )}
         </tbody>
       </table>
+
+      <div className="ad-pager">
+        <span>페이지당</span>
+        <select
+          value={pageSize}
+          onChange={(e) => {
+            setPageSize(Number(e.target.value));
+            setCurrentPage(1);
+          }}
+        >
+          {[10, 20, 50, 100].map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+        <button type="button" disabled={page <= 1} onClick={() => setCurrentPage(1)}>
+          « 처음
+        </button>
+        <button type="button" disabled={page <= 1} onClick={() => setCurrentPage(page - 1)}>
+          ‹ 이전
+        </button>
+        <span>
+          {page} / {totalPages} 페이지
+        </span>
+        <button type="button" disabled={page >= totalPages} onClick={() => setCurrentPage(page + 1)}>
+          다음 ›
+        </button>
+        <button type="button" disabled={page >= totalPages} onClick={() => setCurrentPage(totalPages)}>
+          끝 »
+        </button>
+      </div>
     </div>
   );
 }

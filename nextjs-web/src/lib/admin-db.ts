@@ -50,6 +50,25 @@ export async function listDocsByIdRange(
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/**
+ * Server-side document count, optionally filtered by an equality match. Uses
+ * Firestore's count aggregation so it never downloads the documents — far
+ * cheaper than reading a whole collection just to count (e.g. click logs).
+ */
+export async function countDocs(
+  path: string,
+  match?: { field: string; value: unknown },
+): Promise<number> {
+  const db = await getFirebaseDb();
+  const { collection, getCountFromServer, query, where } = await import(
+    "firebase/firestore"
+  );
+  const ref = collection(db, path);
+  const q = match ? query(ref, where(match.field, "==", match.value)) : query(ref);
+  const snap = await getCountFromServer(q);
+  return snap.data().count;
+}
+
 /** Call an onCall Cloud Function (default region us-central1) and return its data. */
 export async function callFunction<T = unknown>(
   name: string,
