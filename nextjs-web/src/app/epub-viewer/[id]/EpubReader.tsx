@@ -1,13 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { NavItem, Rendition } from "epubjs";
+import type { Contents, NavItem, Rendition } from "epubjs";
 
 import {
+  decideEdgeTurn,
   formatBridgeMessage,
   type EpubTheme,
   type ViewerSettings,
 } from "@/lib/epub-viewer";
+
+/** epubjs's scroll container lives on the (untyped) manager; read it defensively. */
+function getScroller(rendition: Rendition): HTMLElement | null {
+  const manager = (rendition as unknown as { manager?: { container?: HTMLElement } }).manager;
+  return manager?.container ?? null;
+}
 
 declare global {
   interface Window {
@@ -99,12 +106,63 @@ export function EpubReader({
         if (!cancelled) setToc(nav.toc ?? []);
       });
 
+      // Restore the old viewer's pull-to-turn gesture: in scrolled-doc flow
+      // epubjs shows one section at a time, so reaching an edge must call
+      // next()/prev(). Swipe up at the bottom → next, swipe down at the top → prev.
+      let touchStartY = 0;
+      let transitioning = false;
+      let movePrev = false;
+      rendition.hooks.content.register((contents: Contents) => {
+        const doc = contents.document;
+        doc.addEventListener(
+          "touchstart",
+          (e: Event) => {
+            touchStartY = (e as TouchEvent).changedTouches[0]?.clientY ?? 0;
+          },
+          { passive: true },
+        );
+        doc.addEventListener(
+          "touchend",
+          (e: Event) => {
+            if (transitioning) return;
+            const el = getScroller(rendition);
+            if (!el) return;
+            const endY = (e as TouchEvent).changedTouches[0]?.clientY ?? touchStartY;
+            const decision = decideEdgeTurn({
+              scrollTop: el.scrollTop,
+              clientHeight: el.clientHeight,
+              scrollHeight: el.scrollHeight,
+              swipeDeltaY: endY - touchStartY,
+            });
+            if (decision === "next" || decision === "prev") {
+              transitioning = true;
+              movePrev = decision === "prev";
+              if (decision === "next") rendition.next();
+              else rendition.prev();
+              // Fallback: at the first/last section the turn is a no-op and
+              // "relocated" never fires, so unlock the gesture after a beat.
+              window.setTimeout(() => {
+                transitioning = false;
+              }, 1000);
+            }
+          },
+          { passive: true },
+        );
+      });
+
       rendition.on("relocated", (location: { end?: { cfi?: string } }) => {
         const cfi = location?.end?.cfi;
         if (cfi) notifyApp("relocated", cfi);
         // epubjs resets injected theme rules per section — reapply.
         applyFontSize(rendition, fontSizeRef.current);
         applySideMargin(rendition, sideMarginRef.current);
+        // Arrived via prev(): show the end of the section so reading flows backward.
+        if (movePrev) {
+          const el = getScroller(rendition);
+          if (el) requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+        }
+        movePrev = false;
+        transitioning = false;
       });
 
       rendition.themes.select(theme);

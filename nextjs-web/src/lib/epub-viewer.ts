@@ -84,6 +84,45 @@ export function formatBridgeMessage(
   return `${event}:${value}`;
 }
 
+/** Scroll + gesture state used to decide whether an edge swipe turns the page. */
+export interface EdgeTurnInput {
+  scrollTop: number;
+  clientHeight: number;
+  scrollHeight: number;
+  /** Vertical swipe delta in px (endY - startY). Negative = swipe up. */
+  swipeDeltaY: number;
+}
+
+export interface EdgeTurnOptions {
+  /** Minimum swipe distance (px) to count as an intentional pull. Default 60. */
+  swipeThreshold?: number;
+  /** Tolerance (px) for treating the scroll as resting at an edge. Default 4. */
+  edgeTolerance?: number;
+}
+
+/**
+ * Decide whether an at-edge swipe should turn the page. In `scrolled-doc` flow
+ * epubjs renders one section at a time, so the reader gets stuck at a section's
+ * end unless we call next()/prev(). This restores the old viewer's pull-to-turn:
+ * swipe UP while resting at the bottom → next; swipe DOWN while at the top → prev.
+ * Returns null when the swipe is normal in-section scrolling.
+ */
+export function decideEdgeTurn(
+  input: EdgeTurnInput,
+  options: EdgeTurnOptions = {},
+): "next" | "prev" | null {
+  const swipeThreshold = options.swipeThreshold ?? 60;
+  const edgeTolerance = options.edgeTolerance ?? 4;
+  const { scrollTop, clientHeight, scrollHeight, swipeDeltaY } = input;
+
+  const atTop = scrollTop <= edgeTolerance;
+  const atBottom = scrollTop + clientHeight >= scrollHeight - edgeTolerance;
+
+  if (atBottom && swipeDeltaY <= -swipeThreshold) return "next";
+  if (atTop && swipeDeltaY >= swipeThreshold) return "prev";
+  return null;
+}
+
 const DEFAULT_STORAGE_BUCKET = "bookchelin.appspot.com";
 
 /**

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildFirebaseDownloadUrl,
+  decideEdgeTurn,
   DEFAULT_VIEWER_SETTINGS,
   formatBridgeMessage,
   parseViewerSettings,
@@ -54,6 +55,43 @@ describe("formatBridgeMessage", () => {
     const i = msg.indexOf(":");
     expect(msg.slice(0, i)).toBe("relocated");
     expect(msg.slice(i + 1)).toBe(cfi);
+  });
+});
+
+describe("decideEdgeTurn", () => {
+  // section taller than the viewport: top=0, viewport=600, content=2000
+  const tall = { clientHeight: 600, scrollHeight: 2000 };
+
+  it("turns to next when swiping up while resting at the bottom", () => {
+    expect(decideEdgeTurn({ ...tall, scrollTop: 1400, swipeDeltaY: -120 })).toBe("next");
+  });
+
+  it("turns to prev when swiping down while resting at the top", () => {
+    expect(decideEdgeTurn({ ...tall, scrollTop: 0, swipeDeltaY: 120 })).toBe("prev");
+  });
+
+  it("does nothing for normal in-section scrolling (not at an edge)", () => {
+    expect(decideEdgeTurn({ ...tall, scrollTop: 700, swipeDeltaY: -120 })).toBeNull();
+    expect(decideEdgeTurn({ ...tall, scrollTop: 700, swipeDeltaY: 120 })).toBeNull();
+  });
+
+  it("ignores a tiny swipe at the bottom (below threshold)", () => {
+    expect(decideEdgeTurn({ ...tall, scrollTop: 1400, swipeDeltaY: -20 })).toBeNull();
+  });
+
+  it("does not turn prev when swiping up at the bottom (wrong direction)", () => {
+    expect(decideEdgeTurn({ ...tall, scrollTop: 1400, swipeDeltaY: 120 })).toBeNull();
+  });
+
+  it("respects the edge tolerance near (but not at) the bottom", () => {
+    // 2px short of bottom is within the default 4px tolerance → still 'at bottom'
+    expect(decideEdgeTurn({ ...tall, scrollTop: 1398, swipeDeltaY: -120 })).toBe("next");
+  });
+
+  it("honors custom thresholds", () => {
+    expect(
+      decideEdgeTurn({ ...tall, scrollTop: 1400, swipeDeltaY: -40 }, { swipeThreshold: 30 }),
+    ).toBe("next");
   });
 });
 
