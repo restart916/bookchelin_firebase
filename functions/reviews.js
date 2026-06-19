@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const functions = require('firebase-functions');
+const functions = require('firebase-functions/v1');
 
 const REPORT_HIDE_THRESHOLD = 3;
 const ADMIN_EMAILS = new Set(['restart916@gmail.com', 'helgi2019@gmail.com']);

@@ -1,5 +1,8 @@
 // [START functionsimport]
-const functions = require('firebase-functions');
+// v1 API namespace (firebase-functions 7.x). These triggers stay on v1 — the
+// v2 migration is a separate, deliberate project (see CLAUDE.md). Importing the
+// explicit /v1 path keeps them working across major bumps.
+const functions = require('firebase-functions/v1');
 // [END functionsimport]
 // [START additionalimports]
 // Moments library to format dates.
