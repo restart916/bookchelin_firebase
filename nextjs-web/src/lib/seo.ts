@@ -90,7 +90,7 @@ export function buildBreadcrumbJsonLd(book: BookSummary) {
 }
 
 export function buildSitemapEntries(books: Array<BookSummary | null>): MetadataRoute.Sitemap {
-  const staticRoutes = ["", "/books", "/privacy"];
+  const staticRoutes = ["", "/books", "/privacy", "/community-guidelines"];
   const categoryRoutes = Object.values(CATEGORY_BY_ID).map((category) => `/category/${category.slug}`);
   return [
     ...staticRoutes.map((path) => ({ url: `${SITE_URL}${path}`, changeFrequency: "weekly" as const, priority: path === "" ? 1 : 0.7 })),

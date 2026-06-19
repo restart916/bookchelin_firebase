@@ -51,6 +51,13 @@ function classifyReview(review) {
     'pending' : 'published';
 }
 
+function resolveModerationStatus(classification, existing = {}) {
+  if (classification === 'pending') return 'pending';
+  if (existing.moderation_status === 'hidden' ||
+      Number(existing.report_count) >= REPORT_HIDE_THRESHOLD) return 'pending';
+  return 'published';
+}
+
 function requireAuth(context) {
   const uid = context && context.auth && context.auth.uid;
   if (!uid) {
@@ -87,7 +94,8 @@ function createReviewHandlers({ db, admin }) {
     const reviewId = reviewDocumentId(input.bookId, uid);
     const reviewRef = db.collection('book_reviews').doc(reviewId);
     const banRef = db.collection('review_user_bans').doc(uid);
-    const moderationStatus = classifyReview(input);
+    const classification = classifyReview(input);
+    let moderationStatus = classification;
 
     await db.runTransaction(async (transaction) => {
       const [reviewDoc, banDoc] = await Promise.all([
@@ -102,6 +110,7 @@ function createReviewHandlers({ db, admin }) {
         throw new functions.https.HttpsError('permission-denied', '수정 권한이 없습니다.');
       }
       const existing = reviewDoc.exists ? reviewDoc.data() : {};
+      moderationStatus = resolveModerationStatus(classification, existing);
       const document = {
         book_id: input.bookId,
         user_uid: uid,
@@ -136,6 +145,7 @@ function createReviewHandlers({ db, admin }) {
       }
       transaction.delete(reviewRef);
     });
+    await closeOpenReports(reviewId, 'reviewed');
     return { ok: true };
   }
 
@@ -202,9 +212,10 @@ function createReviewHandlers({ db, admin }) {
 
   async function closeOpenReports(reviewId, status) {
     const snapshot = await db.collection('review_reports')
-      .where('review_id', '==', reviewId).where('status', '==', 'open').get();
+      .where('review_id', '==', reviewId).get();
     const batch = db.batch();
-    snapshot.docs.forEach((doc) => batch.update(doc.ref, { status, reviewed_at: timestamp() }));
+    snapshot.docs.filter((doc) => doc.data().status === 'open')
+      .forEach((doc) => batch.update(doc.ref, { status, reviewed_at: timestamp() }));
     await batch.commit();
   }
 
@@ -263,6 +274,7 @@ module.exports = {
   createReviewHandlers,
   defaultNickname,
   reportDocumentId,
+  resolveModerationStatus,
   reviewDocumentId,
   validateReviewInput,
 };

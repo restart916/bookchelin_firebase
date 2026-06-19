@@ -6,6 +6,7 @@ const {
   classifyReview,
   defaultNickname,
   reportDocumentId,
+  resolveModerationStatus,
   reviewDocumentId,
   validateReviewInput,
 } = require('../reviews');
@@ -63,4 +64,13 @@ test('classifyReview holds contact information and links for moderation', () => 
 
 test('automatic hiding requires three distinct reporters', () => {
   assert.equal(REPORT_HIDE_THRESHOLD, 3);
+});
+
+test('editing an automatically hidden review cannot republish it', () => {
+  assert.equal(resolveModerationStatus('published', {
+    moderation_status: 'hidden', report_count: 3,
+  }), 'pending');
+  assert.equal(resolveModerationStatus('published', {
+    moderation_status: 'published', report_count: 0,
+  }), 'published');
 });

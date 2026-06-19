@@ -48,6 +48,7 @@ test("sitemap entries exclude hidden books", () => {
   const hidden = mapBook("hidden", { title: "숨긴 책", hidden: true });
   const entries = buildSitemapEntries([book, hidden]);
   expect(entries.some((entry) => entry.url.endsWith("/book/book-1"))).toBe(true);
+  expect(entries.some((entry) => entry.url.endsWith("/community-guidelines"))).toBe(true);
   expect(entries.some((entry) => entry.url.includes("hidden"))).toBe(false);
 });
 
