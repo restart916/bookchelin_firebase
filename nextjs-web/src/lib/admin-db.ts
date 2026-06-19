@@ -2,6 +2,7 @@
 // Vue admin's direct-write model (data protection is Firestore-rules' job —
 // tracked separately as security debt). Browser-only; call from "use client".
 import {
+  getFirebaseApp,
   getFirebaseDb,
   getFirebaseStorage,
 } from "./firebase-client";
@@ -27,6 +28,38 @@ export async function listDocs(
     ? await getDocs(query(ref, orderBy(order.field, order.dir ?? "asc")))
     : await getDocs(ref);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * Read documents whose ID falls in [startId, endId] (inclusive), ordered by
+ * document id. Either bound may be null for an open range. Used by the
+ * dayly_total_time range query (doc IDs are 'YYYY-MM-DD', so lexical = chrono).
+ */
+export async function listDocsByIdRange(
+  path: string,
+  startId: string | null,
+  endId: string | null,
+): Promise<DocRow[]> {
+  const db = await getFirebaseDb();
+  const { collection, documentId, endAt, getDocs, orderBy, query, startAt } =
+    await import("firebase/firestore");
+  let q = query(collection(db, path), orderBy(documentId()));
+  if (startId) q = query(q, startAt(startId));
+  if (endId) q = query(q, endAt(endId));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/** Call an onCall Cloud Function (default region us-central1) and return its data. */
+export async function callFunction<T = unknown>(
+  name: string,
+  payload: Record<string, unknown> = {},
+): Promise<T> {
+  const { getFunctions, httpsCallable } = await import("firebase/functions");
+  const functions = getFunctions(getFirebaseApp());
+  const callable = httpsCallable(functions, name);
+  const result = await callable(payload);
+  return result.data as T;
 }
 
 /** Read a single document, or null if missing. */

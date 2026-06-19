@@ -19,10 +19,10 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { href: "/admin/edit-log-select", label: "로그 셀렉트", description: "log_select 관리", group: "홈 구성", ready: true },
   { href: "/admin/edit-time-event", label: "타임 이벤트", description: "time_event 편집", group: "이벤트", ready: true },
   { href: "/admin/edit-limit-event", label: "리밋 이벤트", description: "limit_event 편집", group: "이벤트", ready: true },
-  { href: "/admin/event-count", label: "이벤트 카운트", description: "이벤트 집계", group: "통계", ready: false },
-  { href: "/admin/count", label: "일별 집계", description: "dayly_total", group: "통계", ready: false },
-  { href: "/admin/count-time", label: "독서시간 집계", description: "dayly_total_time", group: "통계", ready: false },
-  { href: "/admin/edit-review", label: "리뷰 모더레이션", description: "신고 큐 · 숨김 처리", group: "리뷰/기타", ready: false },
+  { href: "/admin/event-count", label: "이벤트 카운트", description: "이벤트 집계", group: "통계", ready: true },
+  { href: "/admin/count", label: "일별 집계", description: "dayly_total", group: "통계", ready: true },
+  { href: "/admin/count-time", label: "독서시간 집계", description: "dayly_total_time", group: "통계", ready: true },
+  { href: "/admin/edit-review", label: "리뷰 모더레이션", description: "신고 큐 · 숨김 처리", group: "리뷰/기타", ready: true },
 ];
 
 export const ADMIN_GROUPS: AdminSection["group"][] = [
