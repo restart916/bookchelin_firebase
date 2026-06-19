@@ -10,6 +10,7 @@ export function SiteFooter() {
         </div>
         <nav aria-label="하단 메뉴">
           <Link href="/books">책 둘러보기</Link>
+          <Link href="/community-guidelines">커뮤니티 가이드라인</Link>
           <Link href="/privacy">개인정보 처리방침</Link>
         </nav>
         <small>© Bookchelin. All rights reserved.</small>
