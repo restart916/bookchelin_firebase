@@ -127,7 +127,10 @@ async function main() {
     firestore_url: { stringValue: EPUB_PATH },
     category: { stringValue: '1' }, // 지식교양
     publisher: { stringValue: '' }, // 자체 콘텐츠 → 출판사 정산 제외
-    order: { stringValue: '9990' },
+    // 신간 노출용: 최근 추가된 자체 콘텐츠 배치(99990~99999대)와 같은 매그니튜드.
+    // 클라이언트 "새책"/카테고리 정렬이 order DESC 라 높을수록 상단/신간으로 노출된다.
+    // 지식교양 직전 최신(곁에 두고 읽는 우리 속담=99990) 바로 위에 둔다.
+    order: { stringValue: '99991' },
     hidden: { booleanValue: true },
     shop_yes24_link: { stringValue: '' },
     shop_bandi_link: { stringValue: '' },
