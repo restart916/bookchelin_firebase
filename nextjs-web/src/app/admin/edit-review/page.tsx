@@ -101,8 +101,6 @@ export default function AdminEditReviewPage() {
       const result = await listDocsPaginated("book_reviews", {
         pageSize: PAGE_SIZE,
         startAfter: cursorList[targetPage] ?? null,
-        orderField: "updated_at",
-        orderDir: "desc",
       });
       if (!isMounted.current) return;
       setReviews(result.docs);
