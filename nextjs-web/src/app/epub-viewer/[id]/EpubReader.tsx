@@ -88,6 +88,36 @@ export function EpubReader({
         if (cfi) notifyApp("relocated", cfi);
       });
 
+      // Intercept internal EPUB link clicks in capture phase before WKWebView can
+      // act on them. epubjs's built-in handleLinks calls
+      //   rendition.display(book.path.relative(href))
+      // which resolves to "../chap_01.xhtml" (wrong) because book.path.directory is
+      // "EPUB/" and path.relative("EPUB/", "chap_01.xhtml") = "../chap_01.xhtml".
+      // spine.get("../chap_01.xhtml") returns null, JS fails silently, then
+      // WKWebView navigates the whole WebView to the relative URL → Next.js 404.
+      // Fix: hook into each section's document with a capture listener that
+      // calls rendition.display(rawHref) directly — spine is indexed by the raw
+      // manifest href ("chap_01.xhtml") so lookup succeeds.
+      rendition.hooks.content.register((contents: unknown) => {
+        const doc = (contents as { document?: Document }).document;
+        if (!doc) return;
+        doc.addEventListener(
+          "click",
+          (e: Event) => {
+            const link = (e.target as Element).closest?.("a[href]") as HTMLAnchorElement | null;
+            if (!link) return;
+            const href = link.getAttribute("href");
+            if (!href) return;
+            // Leave external / mailto links alone.
+            if (href.startsWith("http") || href.startsWith("//") || href.startsWith("mailto:")) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            rendition.display(href);
+          },
+          true, // capture — fires before onclick and before WKWebView native handling
+        );
+      });
+
       // Single themes.default() call covers theme + fontSize + sideMargin in one
       // stylesheet block. Avoids the epubjs cascade bug where each named-theme
       // stylesheet (<style id="epubjs-inserted-css-dark">) keeps a permanent DOM
@@ -288,8 +318,8 @@ function applyAllSettings(
       "font-size": `${fontSize}% !important`,
     },
     img: {
-      "-webkit-filter": dark ? "invert(1) hue-rotate(180deg)" : "inherit",
-      filter: dark ? "invert(1) hue-rotate(180deg)" : "inherit",
+      // No filter in dark mode — images should show in natural colours.
+      // Body bg + p colour are enough; no page-level invert to counter.
       "max-width": "100% !important",
       "max-height": "100% !important",
     },

@@ -264,8 +264,6 @@ export default {
           "font-family": "'KoPubWorld Batang_Pro Light' !important",
         },
         "img": {
-          "-webkit-filter": dark ? "invert(1) hue-rotate(180deg)" : "inherit",
-          "filter": dark ? "invert(1) hue-rotate(180deg)" : "inherit",
           "max-width": "100% !important",
           "max-height": "100% !important",
         },
