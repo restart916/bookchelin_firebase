@@ -303,6 +303,27 @@ export default {
       }
     },
     initRendition() {
+      // Intercept internal EPUB link clicks before WKWebView navigates the whole
+      // WebView. epubjs handleLinks resolves hrefs via book.path.relative() which
+      // computes "../chap_01.xhtml" (wrong), spine.get() returns null, JS fails
+      // silently, then WKWebView navigates the parent to the relative URL → 404.
+      // Fix: capture-phase listener calls rendition.display(rawHref) directly.
+      const rendition = this.rendition;
+      this.rendition.hooks.content.register(function(contents) {
+        var doc = contents.document;
+        if (!doc) return;
+        doc.addEventListener('click', function(e) {
+          var target = e.target;
+          var link = target && target.closest && target.closest('a[href]');
+          if (!link) return;
+          var href = link.getAttribute('href');
+          if (!href || href.indexOf('http') === 0 || href.indexOf('//') === 0 || href.indexOf('mailto:') === 0) return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          rendition.display(href);
+        }, true);
+      });
+
       this.displayed = this.rendition.display(this.cfi);
 
       this.displayed.then((renderer) => {
