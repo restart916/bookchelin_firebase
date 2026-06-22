@@ -16,21 +16,31 @@ import {
 interface Report {
   id?: string;
   review_id?: string;
+  reporter_uid?: string;
   reason?: string;
   detail?: string;
+  status?: string;    // 'open' | 'reviewed' | 'dismissed'
 }
 
 interface ReportQueue {
   reports?: Report[];
+  closedReports?: Report[];
   pending?: unknown[];
 }
 
 const PAGE_SIZE = 25;
 
+const REASON_LABEL: Record<string, string> = {
+  spam: "스팸",
+  offensive: "공격적",
+  harassment: "괴롭힘",
+  inappropriate: "부적절",
+  other: "기타",
+};
+
 export default function AdminEditReviewPage() {
   // ── view state ─────────────────────────────────────────────────
   const [reviews, setReviews] = useState<DocRow[]>([]);
-  // cursors[n] = startAfter doc for page n (null = start of collection)
   const [cursors, setCursors] = useState<Array<DocumentSnapshot | null>>([null]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -45,7 +55,8 @@ export default function AdminEditReviewPage() {
 
   // ── data ───────────────────────────────────────────────────────
   const [bookTitles, setBookTitles] = useState<Record<string, string>>({});
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);         // open only
+  const [closedReports, setClosedReports] = useState<Report[]>([]); // reviewed + dismissed
 
   // ── refs ───────────────────────────────────────────────────────
   const isMounted = useRef(true);
@@ -53,7 +64,6 @@ export default function AdminEditReviewPage() {
 
   // ── derived ────────────────────────────────────────────────────
 
-  // book_ids matching filterText (up to 5)
   const matchingBookIds = useMemo(() => {
     const q = filterText.trim().toLowerCase();
     if (!q) return [] as string[];
@@ -70,11 +80,9 @@ export default function AdminEditReviewPage() {
     [reports],
   );
 
-  // Client-side filters applied on top of the already-loaded page
   const filteredReviews = useMemo(() => {
     let list = reviews;
     if (onlyVisible) list = list.filter((r) => r.hide !== "1");
-    // In reported mode, optionally narrow by book title
     if (onlyReported && matchingBookIds.length > 0) {
       const ids = new Set(matchingBookIds);
       list = list.filter((r) => ids.has(asString(r.book_id)));
@@ -145,7 +153,6 @@ export default function AdminEditReviewPage() {
     }
   }
 
-  // Main dispatch — callers pass current values to avoid stale closures
   function _load(opts: {
     page: number;
     cursors: Array<DocumentSnapshot | null>;
@@ -172,7 +179,7 @@ export default function AdminEditReviewPage() {
         getDocById("search_index", "books"),
         callFunction<ReportQueue>("adminListReviewReports", {}).catch((e) => {
           console.error("신고 목록 로드 실패", e);
-          return { reports: [] } as ReportQueue;
+          return {} as ReportQueue;
         }),
         countDocs("book_reviews"),
       ]);
@@ -186,7 +193,9 @@ export default function AdminEditReviewPage() {
       setBookTitles(map);
 
       const reps = queue.reports ?? [];
+      const closed = queue.closedReports ?? [];
       setReports(reps);
+      setClosedReports(closed);
       setTotalCount(count);
       setLoaded(true);
 
@@ -195,14 +204,13 @@ export default function AdminEditReviewPage() {
     return () => {
       isMounted.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── event handlers ─────────────────────────────────────────────
 
   function handleFilterTextChange(value: string) {
     setFilterText(value);
-    if (onlyReported) return; // reported mode: client-side book filter, no server reload
+    if (onlyReported) return;
     if (filterTimer.current) clearTimeout(filterTimer.current);
     filterTimer.current = setTimeout(() => {
       const q = value.trim().toLowerCase();
@@ -261,13 +269,16 @@ export default function AdminEditReviewPage() {
   async function moderate(review: DocRow, action: string) {
     try {
       await callFunction("adminModerateReview", { review_id: review.id, action });
-      // Refresh reports first, then reload view with fresh data
       const data = await callFunction<ReportQueue>(
         "adminListReviewReports",
         {},
-      ).catch(() => ({ reports: [] } as ReportQueue));
+      ).catch(() => ({}) as ReportQueue);
       const freshReports = data.reports ?? [];
-      if (isMounted.current) setReports(freshReports);
+      const freshClosed = data.closedReports ?? [];
+      if (isMounted.current) {
+        setReports(freshReports);
+        setClosedReports(freshClosed);
+      }
       _load({
         page,
         cursors,
@@ -278,20 +289,23 @@ export default function AdminEditReviewPage() {
       });
     } catch (e) {
       console.error("리뷰 운영 처리 실패", e);
-      alert(
-        "처리 실패: " + (e instanceof Error ? e.message : String(e)),
-      );
+      alert("처리 실패: " + (e instanceof Error ? e.message : String(e)));
     }
   }
 
   // ── utils ──────────────────────────────────────────────────────
 
-  function reportsFor(review: DocRow): Report[] {
-    return reports.filter((rep) => rep.review_id === review.id);
+  function openReportsFor(review: DocRow): Report[] {
+    return reports.filter((r) => r.review_id === review.id);
   }
 
-  function reportCount(review: DocRow): number {
-    return reportsFor(review).length || Number(review.report_count) || 0;
+  function closedReportsFor(review: DocRow): Report[] {
+    return closedReports.filter((r) => r.review_id === review.id);
+  }
+
+  function fmtReason(rep: Report): string {
+    const label = REASON_LABEL[rep.reason ?? ""] ?? rep.reason ?? "";
+    return rep.detail ? `${label} — ${rep.detail}` : label;
   }
 
   // ── render ─────────────────────────────────────────────────────
@@ -368,8 +382,12 @@ export default function AdminEditReviewPage() {
       )}
 
       {filteredReviews.map((review) => {
-        const count = reportCount(review);
+        const openReps = openReportsFor(review);
+        const closedReps = closedReportsFor(review);
+        const count = openReps.length || Number(review.report_count) || 0;
         const hidden = review.hide === "1";
+        const authorUid = asString(review.user_uid);
+
         return (
           <section
             key={review.id}
@@ -382,53 +400,76 @@ export default function AdminEditReviewPage() {
               gap: 16,
             }}
           >
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <strong style={{ fontSize: 15 }}>
                 {bookTitles[asString(review.book_id)] || "(제목 미확인)"}
               </strong>
               <br />
-              <small style={{ color: "#999" }}>{asString(review.book_id)}</small>
+              <small style={{ color: "#999" }}>book: {asString(review.book_id)}</small>
               <div style={{ margin: "6px 0" }}>★ {asString(review.rating)}</div>
-              <div>{asString(review.review)}</div>
-              <small style={{ color: "#888" }}>{asString(review.user_name)}</small>
-              <div
-                style={{
-                  marginTop: 6,
-                  display: "flex",
-                  gap: 6,
-                  flexWrap: "wrap",
-                }}
-              >
-                {hidden && (
-                  <span className="ad-badge ad-badge--hidden">숨김</span>
-                )}
-                {review.moderation_status === "pending" && (
-                  <span
-                    className="ad-badge"
-                    style={{ background: "#dceeff", color: "#245b88" }}
-                  >
-                    검토 대기
-                  </span>
-                )}
-                {count > 0 && (
-                  <span
-                    className="ad-badge"
-                    style={{ background: "#fde2e1", color: "#c0392b" }}
-                  >
-                    신고 {count}건
+              <div style={{ wordBreak: "break-word" }}>{asString(review.review)}</div>
+              {/* 작성자 닉네임 + uid */}
+              <div style={{ marginTop: 4, fontSize: 13, color: "#666" }}>
+                {asString(review.user_name)}
+                {authorUid && (
+                  <span style={{ marginLeft: 8, color: "#bbb", fontSize: 11, fontFamily: "monospace" }}>
+                    uid:{authorUid}
                   </span>
                 )}
               </div>
-              {reportsFor(review).map((rep, i) => (
-                <div
-                  key={rep.id ?? i}
-                  style={{ marginTop: 4, color: "#b00020", fontSize: 12 }}
-                >
-                  {rep.reason}
-                  {rep.detail ? ` — ${rep.detail}` : ""}
+
+              {/* 상태 뱃지 */}
+              <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {hidden && <span className="ad-badge ad-badge--hidden">숨김</span>}
+                {review.moderation_status === "pending" && (
+                  <span className="ad-badge" style={{ background: "#dceeff", color: "#245b88" }}>
+                    검토 대기
+                  </span>
+                )}
+                {/* 미처리 신고 (open) */}
+                {openReps.length > 0 && (
+                  <span className="ad-badge" style={{ background: "#fde2e1", color: "#c0392b" }}>
+                    미처리 신고 {openReps.length}건
+                  </span>
+                )}
+                {/* 처리된 신고 (reviewed/dismissed) */}
+                {closedReps.length > 0 && (
+                  <span className="ad-badge" style={{ background: "#f0f0f0", color: "#888" }}>
+                    처리된 신고 {closedReps.length}건
+                  </span>
+                )}
+              </div>
+
+              {/* 미처리 신고 상세 (빨간색) */}
+              {openReps.map((rep, i) => (
+                <div key={rep.id ?? `o${i}`} style={{ marginTop: 4, color: "#b00020", fontSize: 12 }}>
+                  {fmtReason(rep)}
+                  {rep.reporter_uid && (
+                    <span style={{ marginLeft: 6, color: "#d9534f", fontFamily: "monospace", fontSize: 11 }}>
+                      신고자:{rep.reporter_uid}
+                    </span>
+                  )}
                 </div>
               ))}
+
+              {/* 처리된 신고 상세 (회색) */}
+              {closedReps.length > 0 && (
+                <div style={{ marginTop: 4, borderTop: "1px solid #f0f0f0", paddingTop: 4 }}>
+                  {closedReps.map((rep, i) => (
+                    <div key={rep.id ?? `c${i}`} style={{ color: "#bbb", fontSize: 11, display: "flex", gap: 6, alignItems: "baseline" }}>
+                      <span style={{ color: rep.status === "dismissed" ? "#ccc" : "#aaa" }}>
+                        [{rep.status === "dismissed" ? "종결" : "처리"}]
+                      </span>
+                      <span>{fmtReason(rep)}</span>
+                      {rep.reporter_uid && (
+                        <span style={{ fontFamily: "monospace" }}>신고자:{rep.reporter_uid}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+
             <div
               style={{
                 display: "flex",
@@ -436,6 +477,7 @@ export default function AdminEditReviewPage() {
                 gap: 6,
                 justifyContent: "flex-end",
                 alignItems: "flex-start",
+                flexShrink: 0,
               }}
             >
               <button
@@ -445,10 +487,7 @@ export default function AdminEditReviewPage() {
                 {hidden ? "다시 보이기" : "숨기기"}
               </button>
               {count > 0 && (
-                <button
-                  type="button"
-                  onClick={() => moderate(review, "dismiss")}
-                >
+                <button type="button" onClick={() => moderate(review, "dismiss")}>
                   신고 종결
                 </button>
               )}
@@ -459,10 +498,7 @@ export default function AdminEditReviewPage() {
               >
                 작성 제한
               </button>
-              <button
-                type="button"
-                onClick={() => moderate(review, "unban")}
-              >
+              <button type="button" onClick={() => moderate(review, "unban")}>
                 제한 해제
               </button>
             </div>
@@ -476,7 +512,6 @@ export default function AdminEditReviewPage() {
         </p>
       )}
 
-      {/* 페이지네이션 — 일반 모드(전체 목록)에서만 표시 */}
       {!onlyReported && !bookMode && loaded && (
         <div
           style={{
