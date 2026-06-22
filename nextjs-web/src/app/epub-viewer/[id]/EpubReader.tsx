@@ -27,29 +27,6 @@ function notifyApp(event: "relocated" | "fontsize" | "margin" | "theme", value: 
   }
 }
 
-const THEMES: Record<EpubTheme, Record<string, Record<string, string>>> = {
-  normal: {
-    body: { "background-color": "inherit" },
-    p: { color: "inherit" },
-    img: {
-      "-webkit-filter": "inherit",
-      filter: "inherit",
-      "max-width": "100% !important",
-      "max-height": "100% !important",
-    },
-  },
-  dark: {
-    body: { "background-color": "#141414" },
-    p: { color: "#ffffff" },
-    img: {
-      "-webkit-filter": "invert(1) hue-rotate(180deg)",
-      filter: "invert(1) hue-rotate(180deg)",
-      "max-width": "100% !important",
-      "max-height": "100% !important",
-    },
-  },
-};
-
 export function EpubReader({
   url,
   settings,
@@ -72,12 +49,10 @@ export function EpubReader({
   // Keep the latest values for use inside epubjs callbacks without re-binding.
   const fontSizeRef = useRef(fontSize);
   const sideMarginRef = useRef(sideMargin);
-  useEffect(() => {
-    fontSizeRef.current = fontSize;
-  }, [fontSize]);
-  useEffect(() => {
-    sideMarginRef.current = sideMargin;
-  }, [sideMargin]);
+  const themeRef = useRef(theme);
+  useEffect(() => { fontSizeRef.current = fontSize; }, [fontSize]);
+  useEffect(() => { sideMarginRef.current = sideMargin; }, [sideMargin]);
+  useEffect(() => { themeRef.current = theme; }, [theme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,9 +79,6 @@ export function EpubReader({
         book.destroy();
       };
 
-      rendition.themes.register("normal", THEMES.normal);
-      rendition.themes.register("dark", THEMES.dark);
-
       book.loaded.navigation.then((nav) => {
         if (!cancelled) setToc(nav.toc ?? []);
       });
@@ -116,9 +88,12 @@ export function EpubReader({
         if (cfi) notifyApp("relocated", cfi);
       });
 
-      rendition.themes.select(theme);
-      applyFontSize(rendition, settings.fontSize);
-      applySideMargin(rendition, settings.sideMargin);
+      // Single themes.default() call covers theme + fontSize + sideMargin in one
+      // stylesheet block. Avoids the epubjs cascade bug where each named-theme
+      // stylesheet (<style id="epubjs-inserted-css-dark">) keeps a permanent DOM
+      // position: switching back to "normal" via themes.select() added the normal
+      // stylesheet *before* the dark one, so dark always won in the cascade.
+      applyAllSettings(rendition, settings.theme, settings.fontSize, settings.sideMargin);
 
       const tocPreloadGuard = await displayInitialSection(
         rendition as unknown as Parameters<typeof displayInitialSection>[0],
@@ -143,27 +118,24 @@ export function EpubReader({
 
   function changeFontSize(next: number) {
     const value = Math.max(10, next);
+    fontSizeRef.current = value;
     setFontSize(value);
-    applyFontSize(renditionRef.current, value);
+    applyAllSettings(renditionRef.current, themeRef.current, value, sideMarginRef.current);
     notifyApp("fontsize", value);
   }
 
   function changeSideMargin(next: number) {
     const value = Math.max(0, next);
+    sideMarginRef.current = value;
     setSideMargin(value);
-    applySideMargin(renditionRef.current, value);
+    applyAllSettings(renditionRef.current, themeRef.current, fontSizeRef.current, value);
     notifyApp("margin", value);
   }
 
   function changeTheme(next: EpubTheme) {
+    themeRef.current = next;
     setTheme(next);
-    const rendition = renditionRef.current;
-    if (rendition) {
-      rendition.themes.select(next);
-      // Re-applying size/margin keeps them after a theme swap.
-      applyFontSize(rendition, fontSizeRef.current);
-      applySideMargin(rendition, sideMarginRef.current);
-    }
+    applyAllSettings(renditionRef.current, next, fontSizeRef.current, sideMarginRef.current);
     notifyApp("theme", next);
   }
 
@@ -272,21 +244,54 @@ html, body { height: 100%; margin: 0; }
 .epub-viewport .epub-container { overflow-anchor: none; }
 .epub-bar { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 8px 12px; border-top: 1px solid #777; background: #fff; flex-wrap: wrap; }
 .epub-bar button { background: none; border: none; font-size: 15px; color: #212121; cursor: pointer; padding: 4px 2px; }
+.epub-root.epub-dark .epub-bar { background: #1c1c1c; border-top-color: #444; }
+.epub-root.epub-dark .epub-bar button { color: #e0e0e0; }
 .epub-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .epub-spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #eee; border-top-color: #ff1d5e; animation: epub-spin 1s linear infinite; }
 @keyframes epub-spin { to { transform: rotate(360deg); } }
 .epub-toc-backdrop { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.4); display: flex; justify-content: flex-end; }
 .epub-toc { width: min(80%, 320px); height: 100%; background: #fff; overflow-y: auto; box-shadow: -2px 0 8px rgba(0,0,0,0.2); }
-.epub-toc__head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; font-weight: 600; }
-.epub-toc__head button { background: none; border: none; font-size: 16px; cursor: pointer; }
+.epub-root.epub-dark .epub-toc { background: #1c1c1c; }
+.epub-toc__head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; font-weight: 600; color: #212121; }
+.epub-root.epub-dark .epub-toc__head { border-bottom-color: #444; color: #e0e0e0; }
+.epub-toc__head button { background: none; border: none; font-size: 16px; cursor: pointer; color: inherit; }
 .epub-toc ul { list-style: none; margin: 0; padding: 0; }
 .epub-toc li button { display: block; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid #f2f2f2; padding: 12px 16px; font-size: 14px; color: #212121; cursor: pointer; }
+.epub-root.epub-dark .epub-toc li button { color: #e0e0e0; border-bottom-color: #2e2e2e; }
 `;
 
-function applyFontSize(rendition: Rendition | null, percent: number) {
-  rendition?.themes.default({ p: { "font-size": `${percent}% !important` } });
-}
-
-function applySideMargin(rendition: Rendition | null, px: number) {
-  rendition?.themes.default({ body: { padding: `0px ${px}px !important` } });
+/**
+ * Apply all viewer settings (theme + fontSize + sideMargin) in a single
+ * themes.default() call so they land in one <style> block inside the EPUB
+ * iframe. This avoids the epubjs cascade ordering bug: named-theme stylesheets
+ * created by themes.select() get a fixed DOM position when first inserted;
+ * switching between "dark" and "normal" just adds rules to whichever sheet was
+ * inserted first, so the sheet inserted later always wins in the cascade.
+ * Using themes.default() exclusively means every call appends to the *same*
+ * sheet (epubjs-inserted-css-default), so the most-recent call always wins.
+ */
+function applyAllSettings(
+  rendition: Rendition | null,
+  theme: EpubTheme,
+  fontSize: number,
+  sideMargin: number,
+) {
+  if (!rendition) return;
+  const dark = theme === "dark";
+  rendition.themes.default({
+    body: {
+      "background-color": dark ? "#141414" : "inherit",
+      padding: `0px ${sideMargin}px !important`,
+    },
+    p: {
+      color: dark ? "#ffffff" : "inherit",
+      "font-size": `${fontSize}% !important`,
+    },
+    img: {
+      "-webkit-filter": dark ? "invert(1) hue-rotate(180deg)" : "inherit",
+      filter: dark ? "invert(1) hue-rotate(180deg)" : "inherit",
+      "max-width": "100% !important",
+      "max-height": "100% !important",
+    },
+  });
 }

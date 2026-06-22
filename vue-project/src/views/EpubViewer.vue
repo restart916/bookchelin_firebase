@@ -230,9 +230,7 @@ export default {
       this.updateFontSize()
     },
     updateFontSize() {
-      if (this.rendition) {
-        this.rendition.themes.default({ "p": { "font-size": `${this.fontSize}% !important`}})
-      }
+      this.applyAllSettings();
     },
     marginUp() {
       this.sideMargin += 10
@@ -245,26 +243,36 @@ export default {
       this.updateSideMargin()
     },
     updateSideMargin() {
-      if (this.rendition) {
-        this.rendition.themes.default({ "body": { "padding": `0px ${this.sideMargin}px !important`}})
-        console.log('updateSideMargin', this.sideMargin);
-      }
+      this.applyAllSettings();
     },
     changeThmem(theme) {
-      if (this.rendition) {
-        this.rendition.themes.select(theme);
-        this.rendition.start()
-
-        this.theme = theme;
-        this.flutterNotify('theme', this.theme)
-      }
+      this.theme = theme;
+      this.applyAllSettings();
+      this.flutterNotify('theme', this.theme)
+    },
+    applyAllSettings() {
+      if (!this.rendition) return;
+      const dark = this.theme === 'dark';
+      this.rendition.themes.default({
+        "body": {
+          "background-color": dark ? "#141414" : "inherit",
+          "padding": `0px ${this.sideMargin}px !important`,
+        },
+        "p": {
+          "color": dark ? "#ffffff" : "inherit",
+          "font-size": `${this.fontSize}% !important`,
+          "font-family": "'KoPubWorld Batang_Pro Light' !important",
+        },
+        "img": {
+          "-webkit-filter": dark ? "invert(1) hue-rotate(180deg)" : "inherit",
+          "filter": dark ? "invert(1) hue-rotate(180deg)" : "inherit",
+          "max-width": "100% !important",
+          "max-height": "100% !important",
+        },
+      });
     },
     changeFont(fontName) {
-      if (this.rendition) {
-        this.rendition.themes.default({ "p": { "font-family": `'${fontName}' !important`}})
-        // console.log(this.rendition);
-        // console.log(this.displayed);
-      }
+      // font-family is baked into applyAllSettings(); kept for API compat only.
     },
     showTocModal() {
       this.showModal = true;
@@ -352,9 +360,9 @@ export default {
 
         this.flutterNotify('relocated', this.cfi)
 
-        this.changeFont('KoPubWorld Batang_Pro Light')
-        this.updateFontSize()
-        this.updateSideMargin()
+        // Re-apply all settings on each chapter load so new iframes pick up
+        // current theme, font-size, and margin in one themes.default() call.
+        this.applyAllSettings()
       });
 
       this.rendition.on("rendered", function(section){
@@ -367,37 +375,7 @@ export default {
         // }
       });
 
-      this.rendition.themes.register(
-        "normal",
-        {
-          "body": { "background-color": "inherit" },
-          "p": { "color": "inherit"},
-          // "html": { "-webkit-filter": "inherit", "filter": "inherit" },
-          "img": {
-            "-webkit-filter": "inherit",
-            "filter": "inherit",
-            "max-width": "100% !important;",
-            "max-height": "100% !important;"
-          }
-        }
-      );
-
-      this.rendition.themes.register(
-        "dark",
-        {
-          "body": { "background-color": "#141414" },
-          "p": { "color": "#ffffff"},
-          // "html": { "-webkit-filter": "invert(1) hue-rotate(180deg)", "filter": "invert(1) hue-rotate(180deg)" },
-          "img": {
-            "-webkit-filter": "invert(1) hue-rotate(180deg)",
-            "filter": "invert(1) hue-rotate(180deg)",
-            "max-width": "100% !important;",
-            "max-height": "100% !important;"
-          }
-        }
-      );
-
-      this.changeThmem(this.theme)
+      this.applyAllSettings()
     },
     flutterNotify(key, value) {
       if (window.flutter_webview) {
