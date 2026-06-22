@@ -41,6 +41,13 @@ function isoWeekBucket(id: string): string {
   return `${weekYear}-W${String(week).padStart(2, "0")}`;
 }
 
+// Pure function — moved outside component so useMemo can reference it without dep churn.
+function bucketOf(id: string, unit: UnitKey): string {
+  if (unit === "day") return id;
+  if (unit === "week") return isoWeekBucket(id);
+  return id.slice(0, 7);
+}
+
 export default function AdminCountTimePage() {
   const [activeUnit, setActiveUnit] = useState<UnitKey>("month");
   const [activeDays, setActiveDays] = useState<number | null>(182);
@@ -56,17 +63,53 @@ export default function AdminCountTimePage() {
   const [buckets, setBuckets] = useState<string[]>([]);
   const [docCount, setDocCount] = useState(0);
 
-  function bucketOf(id: string, unit: UnitKey): string {
-    if (unit === "day") return id;
-    if (unit === "week") return isoWeekBucket(id);
-    return id.slice(0, 7);
-  }
+  // Option A: date → unique user count (Object.keys(dayly_total_time_by_user[date].data).length)
+  const [byUserMap, setByUserMap] = useState<Record<string, number>>({});
+  // Option B: date → bookId → reader count (dayly_reader_count[date].reader_count[bookId])
+  const [readerCountMap, setReaderCountMap] = useState<Record<string, Record<string, number>>>({});
+
+  // Aggregate Option A per bucket for column headers.
+  // day view → unique users; week/month → 연인원 (multi-day sum, not deduplicated).
+  const byUserBucketMap = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const [date, count] of Object.entries(byUserMap)) {
+      const b = bucketOf(date, activeUnit);
+      m[b] = (m[b] ?? 0) + count;
+    }
+    return m;
+  }, [byUserMap, activeUnit]);
+
+  // Aggregate Option B per bucket for table cells.
+  const bucketReaderMap = useMemo(() => {
+    const m: Record<string, Record<string, number>> = {};
+    for (const [date, byBook] of Object.entries(readerCountMap)) {
+      const b = bucketOf(date, activeUnit);
+      if (!m[b]) m[b] = {};
+      for (const [bookId, cnt] of Object.entries(byBook)) {
+        m[b][bookId] = (m[b][bookId] ?? 0) + cnt;
+      }
+    }
+    return m;
+  }, [readerCountMap, activeUnit]);
+
+  // Cumulative (연인원) reader count per book across all loaded buckets, for 합계 column.
+  const cumulativeReaders = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const byBook of Object.values(bucketReaderMap)) {
+      for (const [bookId, cnt] of Object.entries(byBook)) {
+        m[bookId] = (m[bookId] ?? 0) + cnt;
+      }
+    }
+    return m;
+  }, [bucketReaderMap]);
 
   async function runQuery(startId: string | null, endId: string | null, unit: UnitKey) {
     setLoading(true);
     setRows([]);
     setBuckets([]);
     setDocCount(0);
+    setByUserMap({});
+    setReaderCountMap({});
     try {
       // title map from the lean search_index/books doc (not the 700+ books collection)
       let titles = titleMap;
@@ -79,12 +122,40 @@ export default function AdminCountTimePage() {
         setTitleMap(map);
       }
 
-      const docs = await listDocsByIdRange("dayly_total_time", startId, endId);
-      setDocCount(docs.length);
+      // Load 3 collections in parallel for the same date range → N × 3 reads total.
+      const [timeDocs, byUserDocs, readerDocs] = await Promise.all([
+        listDocsByIdRange("dayly_total_time", startId, endId),
+        listDocsByIdRange("dayly_total_time_by_user", startId, endId),
+        listDocsByIdRange("dayly_reader_count", startId, endId),
+      ]);
+      setDocCount(timeDocs.length);
 
+      // Option A: count keys in .data field (each key is a user UID who read that day).
+      const newByUserMap: Record<string, number> = {};
+      for (const doc of byUserDocs) {
+        const dataField = doc.data as Record<string, unknown> | undefined;
+        newByUserMap[doc.id] =
+          dataField && typeof dataField === "object" ? Object.keys(dataField).length : 0;
+      }
+      setByUserMap(newByUserMap);
+
+      // Option B: reader_count is already {bookId: count} — pre-aggregated.
+      const newReaderCountMap: Record<string, Record<string, number>> = {};
+      for (const doc of readerDocs) {
+        const rc = (doc.reader_count ?? {}) as Record<string, unknown>;
+        const byBook: Record<string, number> = {};
+        for (const [bookId, cnt] of Object.entries(rc)) {
+          const n = asNumber(cnt);
+          if (n) byBook[bookId] = n;
+        }
+        newReaderCountMap[doc.id] = byBook;
+      }
+      setReaderCountMap(newReaderCountMap);
+
+      // Process reading-time data (unchanged logic).
       const byBook: Record<string, TimeRow> = {};
       const bucketSet = new Set<string>();
-      for (const doc of docs) {
+      for (const doc of timeDocs) {
         const bucket = bucketOf(doc.id, unit);
         bucketSet.add(bucket);
         const counts = (doc.total_count ?? {}) as Record<string, unknown>;
@@ -227,10 +298,24 @@ export default function AdminCountTimePage() {
             <tr>
               <th>책 제목</th>
               <th>bookId</th>
-              <th style={{ textAlign: "right" }}>합계</th>
+              {/* 합계 열: 독자수는 연인원이므로 헤더에 표기 */}
+              <th style={{ textAlign: "right" }}>
+                <div>합계</div>
+                <div style={{ fontWeight: 400, fontSize: 10, color: "#888", marginTop: 1 }}>
+                  (독자 연인원)
+                </div>
+              </th>
               {buckets.map((b) => (
                 <th key={b} style={{ textAlign: "right" }}>
-                  {b}
+                  <div>{b}</div>
+                  {/* Option A: 전체 유니크 유저 수 (일 단위) 또는 연인원 (주/월 단위) */}
+                  {(byUserBucketMap[b] ?? 0) > 0 && (
+                    <div style={{ fontWeight: 400, fontSize: 10, color: "#888", marginTop: 1 }}>
+                      {activeUnit === "day"
+                        ? `${byUserBucketMap[b]}명`
+                        : `연${byUserBucketMap[b]}명`}
+                    </div>
+                  )}
                 </th>
               ))}
             </tr>
@@ -243,10 +328,28 @@ export default function AdminCountTimePage() {
                   {hiddenSet[r.bookId] && <span className="ad-badge ad-badge--hidden" style={{ marginLeft: 6 }}>비공개</span>}
                 </td>
                 <td style={{ color: "#999", fontFamily: "monospace" }}>{r.bookId}</td>
-                <td style={{ textAlign: "right", fontWeight: 700 }}>{r.count.toLocaleString()}</td>
+                {/* 합계: 독서시간 합 + 연인원 */}
+                <td style={{ textAlign: "right", fontWeight: 700, verticalAlign: "top" }}>
+                  <div>{r.count.toLocaleString()}</div>
+                  {(cumulativeReaders[r.bookId] ?? 0) > 0 && (
+                    <div style={{ fontSize: 10, color: "#aaa", fontWeight: 400 }}>
+                      연{cumulativeReaders[r.bookId]}명
+                    </div>
+                  )}
+                </td>
                 {buckets.map((b) => (
-                  <td key={b} style={{ textAlign: "right" }}>
-                    {r.buckets[b] ? r.buckets[b].toLocaleString() : ""}
+                  <td key={b} style={{ textAlign: "right", verticalAlign: "top" }}>
+                    {r.buckets[b] ? (
+                      <>
+                        <div>{r.buckets[b].toLocaleString()}</div>
+                        {/* Option B: 책별 날짜별 유니크 독자 수 */}
+                        {(bucketReaderMap[b]?.[r.bookId] ?? 0) > 0 && (
+                          <div style={{ fontSize: 10, color: "#aaa" }}>
+                            {bucketReaderMap[b][r.bookId]}명
+                          </div>
+                        )}
+                      </>
+                    ) : ""}
                   </td>
                 ))}
               </tr>
