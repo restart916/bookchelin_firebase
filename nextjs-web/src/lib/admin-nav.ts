@@ -23,6 +23,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { href: "/admin/count", label: "일별 집계", description: "dayly_total", group: "통계", ready: true },
   { href: "/admin/count-time", label: "독서시간 집계", description: "dayly_total_time", group: "통계", ready: true },
   { href: "/admin/edit-review", label: "리뷰 모더레이션", description: "신고 큐 · 숨김 처리", group: "리뷰/기타", ready: true },
+  { href: "/admin/publisher", label: "출판사 통계", description: "출판사별 이벤트 집계", group: "리뷰/기타", ready: true },
 ];
 
 export const ADMIN_GROUPS: AdminSection["group"][] = [
