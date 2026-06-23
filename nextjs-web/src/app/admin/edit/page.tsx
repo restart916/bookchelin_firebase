@@ -164,7 +164,7 @@ export default function AdminEditBooksPage() {
       image_url: asString(b.image_url),
       firestore_url: asString(b.firestore_url),
       category: asString(b.category ?? "0"),
-      category_v2: asString(b.category_v2 ?? ""),
+      category_v2: asString(b.category_v2 ?? "") || asString(b.category ?? ""),
       publisher: asString(b.publisher ?? ""),
       order: asString(b.order ?? "0"),
       hidden: b.hidden === true,
