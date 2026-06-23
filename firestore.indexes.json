@@ -8,6 +8,15 @@
         { "fieldPath": "category", "order": "ASCENDING" },
         { "fieldPath": "order", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "books",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hidden", "order": "ASCENDING" },
+        { "fieldPath": "category_v2", "order": "ASCENDING" },
+        { "fieldPath": "order", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

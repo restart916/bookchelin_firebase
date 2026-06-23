@@ -11,6 +11,7 @@ export interface AdminSection {
 
 export const ADMIN_SECTIONS: AdminSection[] = [
   { href: "/admin/edit", label: "책 관리", description: "책 CRUD · 카테고리 · 출판사", group: "콘텐츠", ready: true },
+  { href: "/admin/categories", label: "카테고리 관리", description: "book_category_v2 CRUD · 아이콘", group: "콘텐츠", ready: true },
   { href: "/admin/export", label: "책 내보내기", description: "책 목록 export", group: "콘텐츠", ready: true },
   { href: "/admin/edit-banner", label: "배너", description: "배너 관리", group: "홈 구성", ready: true },
   { href: "/admin/edit-main-book", label: "메인/캐러셀", description: "홈 메인북 · 캐러셀 핀", group: "홈 구성", ready: true },

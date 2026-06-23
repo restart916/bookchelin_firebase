@@ -106,9 +106,38 @@ Tracks four targets:
 
 `firestore.rules` / `storage.rules` were exported from production into the repo. The convention now is **never edit rules in the Firebase Console** — all changes go through git → `firebase deploy --only firestore:rules`. The current production rules are highly permissive (everything readable/writable) and known-flagged as a security debt.
 
+### `book_category` — 동결 규칙 (구앱 크래시 방지) ⚠️
+
+**절대 금지 — 어기면 Flutter 구앱 즉시 크래시:**
+1. **문서를 추가하지 않는다.** 현재 6개. 7번째까지는 OK이나 9번째부터 Flutter Row overflow 크래시. 신규 카테고리는 반드시 `book_category_v2`에만 추가.
+2. **`order` 값을 바꾸지 않는다.** Flutter 구앱이 `int.parse(order)+1`로 로컬 에셋 파일명(`cat_00N.png`)을 계산함 — 변경 즉시 에셋 Not Found.
+3. **`id` 값을 바꾸지 않는다.** 구앱이 id로 카테고리를 식별함.
+
+허용: `icon_url` 필드 추가(additive, 구앱은 읽지 않음). 어드민에서 `book_category_v2` 아이콘 업로드 시 id "1"~"6"은 여기도 동시 업데이트.
+
+### `book_category_v2` — 신앱 전용 카테고리 소스
+
+신규 컬렉션(2026-06 도입). 구앱은 전혀 읽지 않으므로 개수·내용 자유롭게 변경 가능.
+
+```
+book_category_v2/{id}   ← doc ID = id 필드 값 ("1"~"6" 또는 새 slug)
+  id: string            필수
+  name: string          필수
+  order: number         필수 (integer 타입 — book_category의 string order와 다름)
+  icon_url: string      Storage 다운로드 URL. 어드민(/admin/categories)에서 업로드
+  description: string   옵션
+  hidden: boolean       옵션 (true면 신앱·웹 노출 제외)
+  parent_id: string     옵션 (향후 서브카테고리 계층용)
+```
+
+어드민 `/admin/categories`에서 CRUD + 아이콘 업로드. Storage 경로: `category-icons/{id}.{ext}`.
+
+`books.category_v2` 신규 필드: `book_category_v2.id` 값. 백필은 분류 기준 확정 후 별도 진행.
+미설정 책의 신앱 fallback: `category_v2` 없으면 `category` 필드 기반 매핑으로 동작(앱 코드 담당).
+
 ### Composite Firestore indexes (`firestore.indexes.json`)
 
-One index currently tracked: `books` collection with `hidden ASC + category ASC + order DESC` (required by the category-scoped paginated query in both mobile clients). Other indexes exist in production but are not yet in this file — running `firebase deploy --only firestore:indexes` will offer to delete them; **always answer "No"** until they are explicitly imported here.
+두 indexes 현재 추적: `books` 컬렉션 `hidden+category+order`(구앱 쿼리), `hidden+category_v2+order`(신앱 쿼리 대비). Other indexes exist in production but are not yet in this file — running `firebase deploy --only firestore:indexes` will offer to delete them; **always answer "No"** until they are explicitly imported here.
 
 ### `scripts/` (one-shot ops)
 
