@@ -18,7 +18,8 @@ interface Publisher {
   docId: string;
   name: string;
   code: string;
-  bookCount: number | null; // null = 미조회
+  bookCount: number | null;   // null = 미조회
+  activeCount: number | null; // hidden !== true 인 책 수
 }
 
 const EMPTY_FORM = { docId: "", name: "", code: "" };
@@ -29,6 +30,7 @@ function toPublisher(d: DocRow): Publisher {
     name: asString(d.name || d.publisher_name),
     code: asString(d.code),
     bookCount: null,
+    activeCount: null,
   };
 }
 
@@ -57,7 +59,7 @@ export default function AdminPublishersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 소속 책 수 lazy 조회: 테이블이 렌더된 뒤 순차적으로 채운다
+  // 소속 책 수 lazy 조회: 테이블 렌더 후 출판사별로 순차 조회
   useEffect(() => {
     if (publishers.length === 0) return;
     let active = true;
@@ -66,20 +68,16 @@ export default function AdminPublishersPage() {
         if (!active) break;
         if (pub.bookCount !== null || !pub.code) continue;
         try {
-          const result = await listDocsPaginated("books", {
-            pageSize: 1,
-            whereClauses: [["publisher", "==", pub.code]],
-          });
-          // 정확한 count가 필요하면 전체 조회 필요하나, 여기선 "있음/없음" + 대략 수
-          // 간단히 pageSize=200으로 재조회
           const all = await listDocsPaginated("books", {
             pageSize: 200,
             whereClauses: [["publisher", "==", pub.code]],
           });
           if (!active) break;
+          const bookCount = all.docs.length;
+          const activeCount = all.docs.filter((d) => d.hidden !== true).length;
           setPublishers((prev) =>
             prev.map((p) =>
-              p.docId === pub.docId ? { ...p, bookCount: all.docs.length } : p,
+              p.docId === pub.docId ? { ...p, bookCount, activeCount } : p,
             ),
           );
         } catch {
@@ -209,7 +207,7 @@ export default function AdminPublishersPage() {
             <tr>
               <th>출판사명</th>
               <th>코드 (로그인 비번)</th>
-              <th style={{ width: 70, textAlign: "right" }}>소속 책</th>
+              <th style={{ width: 120, textAlign: "right" }}>소속 책 (전체/활성)</th>
               <th style={{ width: 220 }}>관리</th>
             </tr>
           </thead>
@@ -234,7 +232,10 @@ export default function AdminPublishersPage() {
                   {p.bookCount === null ? (
                     <span style={{ color: "#bbb", fontSize: 11 }}>…</span>
                   ) : (
-                    p.bookCount
+                    <span>
+                      전체 {p.bookCount}{" "}
+                      <span style={{ color: "#22c55e", fontSize: 11 }}>/ 활성 {p.activeCount ?? 0}</span>
+                    </span>
                   )}
                 </td>
                 <td>
