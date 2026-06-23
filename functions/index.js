@@ -975,4 +975,12 @@ exports.web_book = functions.https.onRequest(async (req, res) => {
   }
 });
 
+// book_reviews 신규 문서에 created_at 자동 부여.
+// 클라이언트(Android/Flutter)는 이 필드를 쓰지 않으므로 서버에서 보완.
+exports.stamp_book_review = functions.firestore
+  .document('book_reviews/{reviewId}')
+  .onCreate((snap) =>
+    snap.ref.update({ created_at: admin.firestore.FieldValue.serverTimestamp() })
+  );
+
 // GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account.json" firebase emulators:start

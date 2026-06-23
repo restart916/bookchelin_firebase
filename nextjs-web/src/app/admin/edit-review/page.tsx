@@ -101,6 +101,8 @@ export default function AdminEditReviewPage() {
       const result = await listDocsPaginated("book_reviews", {
         pageSize: PAGE_SIZE,
         startAfter: cursorList[targetPage] ?? null,
+        orderField: "created_at",
+        orderDir: "desc",
       });
       if (!isMounted.current) return;
       setReviews(result.docs);
@@ -306,6 +308,22 @@ export default function AdminEditReviewPage() {
     return rep.detail ? `${label} — ${rep.detail}` : label;
   }
 
+  function fmtTimestamp(val: unknown): string {
+    if (!val) return "";
+    const v = val as Record<string, unknown>;
+    const date =
+      typeof v.toDate === "function"
+        ? (v.toDate as () => Date)()
+        : typeof v.seconds === "number"
+          ? new Date((v.seconds as number) * 1000)
+          : null;
+    if (!date) return "";
+    return date.toLocaleString("ko-KR", {
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit",
+    });
+  }
+
   // ── render ─────────────────────────────────────────────────────
 
   const statusLabel = loading
@@ -412,6 +430,11 @@ export default function AdminEditReviewPage() {
                 {authorUid && (
                   <span style={{ marginLeft: 8, color: "#bbb", fontSize: 11, fontFamily: "monospace" }}>
                     uid:{authorUid}
+                  </span>
+                )}
+                {review.created_at != null && (
+                  <span style={{ marginLeft: 8, color: "#bbb", fontSize: 11 }}>
+                    {fmtTimestamp(review.created_at)}
                   </span>
                 )}
               </div>
