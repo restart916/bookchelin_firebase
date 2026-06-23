@@ -11,6 +11,7 @@
 //   purchaseRevenue: 구매 수익 (인앱결제 등), totalRevenue: 전체 수익 (광고 수익 포함)
 //   dauPerMau: DAU/MAU 비율 (소수점, 예: 0.15 = 15%) — 스티키니스(stickiness) 지표
 //   dauPerWau: DAU/WAU 비율, wauPerMau: WAU/MAU 비율
+//   notificationOpen: notification_open 이벤트 수 (Firebase SDK 자동 기록 — 푸시 탭 횟수)
 
 const { GoogleAuth } = require('google-auth-library');
 
@@ -55,11 +56,11 @@ async function fetchAndStoreDau(db, opts = {}) {
   }
   console.log('GA4 DAU job: serviceAccount =', serviceAccount, 'property =', GA4_PROPERTY_ID, 'dateRange =', dateRange);
 
-  const data = await callGa4(
-    client,
-    `https://analyticsdata.googleapis.com/v1beta/properties/${GA4_PROPERTY_ID}:runReport`,
-    'POST',
-    {
+  const reportUrl = `https://analyticsdata.googleapis.com/v1beta/properties/${GA4_PROPERTY_ID}:runReport`;
+
+  // 두 GA4 쿼리를 병렬 실행: 기본 지표 + notification_open 이벤트 수
+  const [data, pushData] = await Promise.all([
+    callGa4(client, reportUrl, 'POST', {
       dateRanges: [dateRange],
       dimensions: [{ name: 'date' }],
       metrics: [
@@ -73,14 +74,34 @@ async function fetchAndStoreDau(db, opts = {}) {
         { name: 'wauPerMau' },         // WAU/MAU 비율
       ],
       orderBys: [{ dimension: { dimensionName: 'date' } }],
-    }
-  );
+    }),
+    callGa4(client, reportUrl, 'POST', {
+      dateRanges: [dateRange],
+      dimensions: [{ name: 'date' }],
+      metrics: [{ name: 'eventCount' }],
+      dimensionFilter: {
+        filter: {
+          fieldName: 'eventName',
+          stringFilter: { matchType: 'EXACT', value: 'notification_open' },
+        },
+      },
+      orderBys: [{ dimension: { dimensionName: 'date' } }],
+    }),
+  ]);
+
+  // notification_open 날짜별 맵 구성
+  const pushOpenByDate = new Map();
+  for (const row of (pushData.rows || [])) {
+    const date = row.dimensionValues[0].value;
+    pushOpenByDate.set(date, Number(row.metricValues[0].value));
+  }
 
   const rows = (data.rows || []).map((row) => {
     const date = row.dimensionValues[0].value; // YYYYMMDD
     const [dau, wau, mau, purchaseRevenue, totalRevenue, dauPerMau, dauPerWau, wauPerMau] =
       row.metricValues.map((m) => Number(m.value));
-    return { date, dau, wau, mau, purchaseRevenue, totalRevenue, dauPerMau, dauPerWau, wauPerMau };
+    const notificationOpen = pushOpenByDate.get(date) ?? 0;
+    return { date, dau, wau, mau, purchaseRevenue, totalRevenue, dauPerMau, dauPerWau, wauPerMau, notificationOpen };
   });
 
   // Firestore에 날짜별 문서로 upsert
@@ -99,6 +120,7 @@ async function fetchAndStoreDau(db, opts = {}) {
         dauPerMau: r.dauPerMau,   // 0~1 소수점, 예: 0.15 = 15%
         dauPerWau: r.dauPerWau,
         wauPerMau: r.wauPerMau,
+        notificationOpen: r.notificationOpen,
         property: GA4_PROPERTY_ID,
         updatedAt: new Date(),
       },

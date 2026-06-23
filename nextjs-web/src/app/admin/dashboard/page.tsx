@@ -54,6 +54,7 @@ interface DayRow {
   totalRevenue: number;
   readUsers: number;
   totalSec: number;
+  notificationOpen: number;
 }
 
 const RANGES = [7, 14, 30] as const;
@@ -86,7 +87,7 @@ export default function AdminDashboardPage() {
 
       const dauMap: Record<
         string,
-        { dau: number; wau: number; mau: number; dauPerMau: number; totalRevenue: number }
+        { dau: number; wau: number; mau: number; dauPerMau: number; totalRevenue: number; notificationOpen: number }
       > = {};
       for (const d of dauDocs) {
         dauMap[fromDauId(d.id)] = {
@@ -95,6 +96,7 @@ export default function AdminDashboardPage() {
           mau: asNumber(d.mau),
           dauPerMau: asNumber(d.dauPerMau),
           totalRevenue: asNumber(d.totalRevenue),
+          notificationOpen: asNumber(d.notificationOpen),
         };
       }
 
@@ -128,6 +130,7 @@ export default function AdminDashboardPage() {
           totalRevenue: dau?.totalRevenue ?? 0,
           readUsers: readUsersMap[date] ?? 0,
           totalSec: timeMap[date] ?? 0,
+          notificationOpen: dau?.notificationOpen ?? 0,
         };
       });
 
@@ -287,7 +290,7 @@ export default function AdminDashboardPage() {
 
       {/* Data table — today row 흐리게 + 집계 중 표시 */}
       <div style={{ overflowX: "auto" }}>
-        <table className="ad-table" style={{ fontSize: 12, minWidth: 680 }}>
+        <table className="ad-table" style={{ fontSize: 12, minWidth: 760 }}>
           <thead>
             <tr>
               <th>날짜</th>
@@ -303,6 +306,12 @@ export default function AdminDashboardPage() {
                 title="GA4 totalRevenue — AdMob 포함 광고수익. T+24~48h 지연."
               >
                 광고수익 ⓘ
+              </th>
+              <th
+                style={{ textAlign: "right", cursor: "help" }}
+                title="GA4 notification_open 이벤트 수. 푸시 알림 탭 횟수. T+24~48h 지연."
+              >
+                푸시탭 ⓘ
               </th>
             </tr>
           </thead>
@@ -342,12 +351,15 @@ export default function AdminDashboardPage() {
                   <td style={{ textAlign: "right" }}>
                     {r.totalRevenue > 0 ? `$${r.totalRevenue.toFixed(2)}` : "—"}
                   </td>
+                  <td style={{ textAlign: "right" }}>
+                    {r.notificationOpen > 0 ? r.notificationOpen : "—"}
+                  </td>
                 </tr>
               );
             })}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={9} style={{ textAlign: "center", color: "#aaa", padding: "30px 0" }}>
+                <td colSpan={10} style={{ textAlign: "center", color: "#aaa", padding: "30px 0" }}>
                   데이터 없음
                 </td>
               </tr>
