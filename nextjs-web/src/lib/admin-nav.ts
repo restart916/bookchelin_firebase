@@ -19,6 +19,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { href: "/admin/edit-log-select", label: "로그 셀렉트", description: "log_select 관리", group: "홈 구성", ready: true },
   { href: "/admin/edit-time-event", label: "타임 이벤트", description: "time_event 편집", group: "이벤트", ready: true },
   { href: "/admin/edit-limit-event", label: "리밋 이벤트", description: "limit_event 편집", group: "이벤트", ready: true },
+  { href: "/admin/dashboard", label: "대시보드", description: "통합 지표 (DAU·RH·광고수익)", group: "통계", ready: true },
   { href: "/admin/event-count", label: "이벤트 카운트", description: "이벤트 집계", group: "통계", ready: true },
   { href: "/admin/count", label: "일별 집계", description: "dayly_total", group: "통계", ready: true },
   { href: "/admin/count-time", label: "독서시간 집계", description: "dayly_total_time", group: "통계", ready: true },

@@ -848,24 +848,23 @@ exports.refresh_active_books = functions.https.onRequest(async (req, res) => {
 
 // GA4 DAU/WAU/MAU를 매일 자동 수집해 Firestore(analytics_dau, analytics_meta/dau_latest)에 저장.
 // 매일 한국시간(KST) 오전 9시에 실행. 최근 3일치를 다시 가져와 늦게 집계되는 값을 보정한다.
-// 매일 자동 수집 비활성화 (아직 미사용). 필요해지면 아래 블록 주석을 해제하고 배포할 것.
 // 수동 1회 실행은 아래 collect_dau_now(HTTPS)로 가능.
-// exports.collect_dau = functions
-//   .region('asia-northeast1')
-//   .pubsub.schedule('every day 09:00')
-//   .timeZone('Asia/Seoul')
-//   .onRun(async () => {
-//     try {
-//       const result = await fetchAndStoreDau(db, { lookbackDays: 3 });
-//       console.log('collect_dau done', JSON.stringify(result.rows));
-//     } catch (e) {
-//       const status = e?.response?.status;
-//       const msg = e?.response?.data?.error?.message ?? e.message;
-//       console.error(`collect_dau failed (status ${status}): ${msg}`);
-//       throw e;
-//     }
-//     return null;
-//   });
+exports.collect_dau = functions
+  .region('asia-northeast1')
+  .pubsub.schedule('every day 09:00')
+  .timeZone('Asia/Seoul')
+  .onRun(async () => {
+    try {
+      const result = await fetchAndStoreDau(db, { lookbackDays: 3 });
+      console.log('collect_dau done', JSON.stringify(result.rows));
+    } catch (e) {
+      const status = e?.response?.status;
+      const msg = e?.response?.data?.error?.message ?? e.message;
+      console.error(`collect_dau failed (status ${status}): ${msg}`);
+      throw e;
+    }
+    return null;
+  });
 
 // DAU 수집을 수동으로 1회 실행하는 검증용 HTTPS 트리거. (배포 직후 동작 확인용)
 // 쿼리 파라미터: ?days=N (기본 7일, 최대 90일)
