@@ -18,6 +18,12 @@ const UNITS: { key: UnitKey; label: string; ranges: { label: string; days: numbe
   { key: "day", label: "일", ranges: [{ label: "14일", days: 14 }, { label: "30일", days: 30 }, { label: "90일", days: 90 }] },
 ];
 
+// seconds → "142.5h" (≥10h는 정수, 미만은 소수점 1자리)
+function fmtHours(seconds: number): string {
+  const h = seconds / 3600;
+  return h >= 10 ? `${Math.round(h)}h` : `${h.toFixed(1)}h`;
+}
+
 function fmtDate(d: Date): string {
   const pad = (x: number) => String(x).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -102,6 +108,23 @@ export default function AdminCountTimePage() {
     }
     return m;
   }, [bucketReaderMap]);
+
+  // 버킷별 전체 독서시간 합계 (초) — rows(전 도서, 필터 무관)에서 계산. 추가 Firestore 읽기 없음.
+  const totalTimeBucketMap = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const row of rows) {
+      for (const [b, t] of Object.entries(row.buckets)) {
+        m[b] = (m[b] ?? 0) + t;
+      }
+    }
+    return m;
+  }, [rows]);
+
+  // 기간 전체 총합 (초)
+  const grandTotalSeconds = useMemo(
+    () => rows.reduce((s, r) => s + r.count, 0),
+    [rows],
+  );
 
   async function runQuery(startId: string | null, endId: string | null, unit: UnitKey) {
     setLoading(true);
@@ -304,16 +327,27 @@ export default function AdminCountTimePage() {
                 <div style={{ fontWeight: 400, fontSize: 10, color: "#888", marginTop: 1 }}>
                   (독자 연인원)
                 </div>
+                {grandTotalSeconds > 0 && (
+                  <div style={{ fontWeight: 700, fontSize: 11, color: "#c05", marginTop: 2 }}>
+                    {fmtHours(grandTotalSeconds)}
+                  </div>
+                )}
               </th>
               {buckets.map((b) => (
                 <th key={b} style={{ textAlign: "right" }}>
                   <div>{b}</div>
-                  {/* Option A: 전체 유니크 유저 수 (일 단위) 또는 연인원 (주/월 단위) */}
+                  {/* DAU(일) 또는 연인원(주/월) */}
                   {(byUserBucketMap[b] ?? 0) > 0 && (
                     <div style={{ fontWeight: 400, fontSize: 10, color: "#888", marginTop: 1 }}>
                       {activeUnit === "day"
                         ? `${byUserBucketMap[b]}명`
                         : `연${byUserBucketMap[b]}명`}
+                    </div>
+                  )}
+                  {/* 일간 총 독서시간 */}
+                  {(totalTimeBucketMap[b] ?? 0) > 0 && (
+                    <div style={{ fontWeight: 700, fontSize: 11, color: "#c05", marginTop: 1 }}>
+                      {fmtHours(totalTimeBucketMap[b])}
                     </div>
                   )}
                 </th>
