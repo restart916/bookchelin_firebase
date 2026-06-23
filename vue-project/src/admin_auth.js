@@ -10,6 +10,7 @@ import Firebase from 'firebase';
 export const ADMIN_EMAILS = [
   'restart916@gmail.com',
   'helgi2019@gmail.com',
+  'ejcjjj@gmail.com',
 ];
 
 export function isAdmin(user) {
