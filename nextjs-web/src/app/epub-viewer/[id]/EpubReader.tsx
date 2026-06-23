@@ -244,38 +244,37 @@ export function EpubReader({
         </button>
         <button type="button" onClick={() => changeSideMargin(sideMargin - 10)}>여백-</button>
         <button type="button" onClick={() => changeSideMargin(sideMargin + 10)}>여백+</button>
-        <div className="epub-font-picker-wrap">
-          <button
-            type="button"
-            className={showFontPicker ? "epub-bar-btn-active" : ""}
-            onClick={() => setShowFontPicker((v) => !v)}
-          >
-            글꼴
-          </button>
-          {showFontPicker && (
-            <>
-              <div className="epub-font-picker-backdrop" onClick={() => setShowFontPicker(false)} />
-              <div className="epub-font-picker" role="listbox" aria-label="폰트 선택">
-                {FONT_OPTIONS.map((fo) => (
-                  <button
-                    key={fo.id}
-                    type="button"
-                    role="option"
-                    aria-selected={font === fo.id}
-                    className={font === fo.id ? "epub-bar-btn-active" : ""}
-                    onClick={() => { changeFont(fo.id); setShowFontPicker(false); }}
-                  >
-                    {fo.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        <button
+          type="button"
+          className={showFontPicker ? "epub-bar-btn-active" : ""}
+          onClick={() => setShowFontPicker((v) => !v)}
+        >
+          글꼴
+        </button>
         <button type="button" onClick={goPrev}>이전</button>
         <button type="button" onClick={goNext}>다음</button>
         <button type="button" onClick={() => setShowToc(true)} aria-label="목차">목차</button>
       </div>
+
+      {showFontPicker && (
+        <>
+          <div className="epub-font-picker-backdrop" onClick={() => setShowFontPicker(false)} />
+          <div className="epub-font-picker" role="listbox" aria-label="폰트 선택">
+            {FONT_OPTIONS.map((fo) => (
+              <button
+                key={fo.id}
+                type="button"
+                role="option"
+                aria-selected={font === fo.id}
+                className={font === fo.id ? "epub-font-picker-active" : ""}
+                onClick={() => { changeFont(fo.id); setShowFontPicker(false); }}
+              >
+                {fo.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {showToc && (
         <div className="epub-toc-backdrop" onClick={() => setShowToc(false)}>
@@ -316,13 +315,15 @@ html, body { height: 100%; margin: 0; }
 .epub-root.epub-dark .epub-bar { background: #1c1c1c; border-top-color: #444; }
 .epub-root.epub-dark .epub-bar button { color: #e0e0e0; }
 .epub-root.epub-dark .epub-bar .epub-bar-btn-active { color: #ff6b8a; }
-.epub-font-picker-wrap { position: relative; flex-shrink: 0; }
 .epub-font-picker-backdrop { position: fixed; inset: 0; z-index: 10000; }
-.epub-font-picker { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 10001; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 4px; display: flex; flex-direction: column; gap: 2px; min-width: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.12); }
-.epub-font-picker button { font-size: 14px; padding: 7px 12px; border-radius: 6px; width: 100%; text-align: center; }
+.epub-font-picker { position: fixed; bottom: calc(48px + max(8px, env(safe-area-inset-bottom))); right: 16px; z-index: 10001; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 4px; display: flex; flex-direction: column; gap: 2px; min-width: 80px; box-shadow: 0 -2px 12px rgba(0,0,0,0.18); }
+.epub-font-picker button { font-size: 14px; padding: 10px 16px; border-radius: 6px; width: 100%; text-align: center; background: none; border: none; cursor: pointer; color: #212121; white-space: nowrap; }
 .epub-font-picker button:hover { background: #f5f5f5; }
+.epub-font-picker .epub-font-picker-active { color: #ff1d5e; font-weight: 700; }
 .epub-root.epub-dark .epub-font-picker { background: #2a2a2a; border-color: #555; }
+.epub-root.epub-dark .epub-font-picker button { color: #e0e0e0; }
 .epub-root.epub-dark .epub-font-picker button:hover { background: #3a3a3a; }
+.epub-root.epub-dark .epub-font-picker .epub-font-picker-active { color: #ff6b8a; }
 .epub-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .epub-spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #eee; border-top-color: #ff1d5e; animation: epub-spin 1s linear infinite; }
 @keyframes epub-spin { to { transform: rotate(360deg); } }
