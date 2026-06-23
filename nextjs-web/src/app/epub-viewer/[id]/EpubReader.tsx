@@ -310,7 +310,7 @@ html, body { height: 100%; margin: 0; }
 .epub-root.epub-dark { background: #141414; }
 .epub-viewport { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .epub-viewport .epub-container { overflow-anchor: none; }
-.epub-bar { display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid #777; background: #fff; flex-wrap: nowrap; overflow-x: auto; }
+.epub-bar { display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); border-top: 1px solid #777; background: #fff; flex-wrap: nowrap; overflow-x: auto; }
 .epub-bar button { background: none; border: none; font-size: 13px; color: #212121; cursor: pointer; padding: 4px 2px; white-space: nowrap; flex-shrink: 0; }
 .epub-bar .epub-bar-btn-active { color: #ff1d5e; font-weight: 700; }
 .epub-root.epub-dark .epub-bar { background: #1c1c1c; border-top-color: #444; }

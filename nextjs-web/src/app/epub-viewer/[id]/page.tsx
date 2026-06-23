@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 
 import { resolveEpubDownloadUrl } from "@/lib/epub-storage";
@@ -10,6 +10,11 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
   title: "북슐랭 리더",
+};
+// viewport-fit=cover 로 iOS 홈 인디케이터 영역까지 확장 후
+// CSS env(safe-area-inset-bottom) 으로 하단 컨트롤바를 안전영역 위로 올림.
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 type Props = {
