@@ -44,6 +44,7 @@ export function EpubReader({
   const [loading, setLoading] = useState(true);
   const [toc, setToc] = useState<NavItem[]>([]);
   const [showToc, setShowToc] = useState(false);
+  const [showFontPicker, setShowFontPicker] = useState(false);
   const [fontSize, setFontSize] = useState(settings.fontSize);
   const [sideMargin, setSideMargin] = useState(settings.sideMargin);
   const [theme, setTheme] = useState<EpubTheme>(settings.theme);
@@ -232,47 +233,48 @@ export function EpubReader({
       <div ref={viewerRef} className="epub-viewport" />
 
       <div className="epub-bar">
-        <button type="button" onClick={() => changeFontSize(fontSize - 10)}>
-          가-
+        <button type="button" onClick={() => changeFontSize(fontSize - 10)}>가-</button>
+        <button type="button" onClick={() => changeFontSize(fontSize + 10)}>가+</button>
+        <button
+          type="button"
+          className={theme === "dark" ? "epub-bar-btn-active" : ""}
+          onClick={() => changeTheme(theme === "dark" ? "normal" : "dark")}
+        >
+          다크
         </button>
-        <button type="button" onClick={() => changeFontSize(fontSize + 10)}>
-          가+
-        </button>
-        {theme !== "normal" && (
-          <button type="button" onClick={() => changeTheme("normal")}>
-            라이트
-          </button>
-        )}
-        {theme !== "dark" && (
-          <button type="button" onClick={() => changeTheme("dark")}>
-            다크
-          </button>
-        )}
-        <button type="button" onClick={() => changeSideMargin(sideMargin - 10)}>
-          여백-
-        </button>
-        <button type="button" onClick={() => changeSideMargin(sideMargin + 10)}>
-          여백+
-        </button>
-        {FONT_OPTIONS.map((fo) => (
+        <button type="button" onClick={() => changeSideMargin(sideMargin - 10)}>여백-</button>
+        <button type="button" onClick={() => changeSideMargin(sideMargin + 10)}>여백+</button>
+        <div className="epub-font-picker-wrap">
           <button
-            key={fo.id}
             type="button"
-            className={font === fo.id ? "epub-bar-btn-active" : ""}
-            onClick={() => changeFont(fo.id)}
+            className={showFontPicker ? "epub-bar-btn-active" : ""}
+            onClick={() => setShowFontPicker((v) => !v)}
           >
-            {fo.label}
+            글꼴
           </button>
-        ))}
-        <button type="button" onClick={goPrev}>
-          이전
-        </button>
-        <button type="button" onClick={goNext}>
-          다음
-        </button>
-        <button type="button" onClick={() => setShowToc(true)} aria-label="목차">
-          목차
-        </button>
+          {showFontPicker && (
+            <>
+              <div className="epub-font-picker-backdrop" onClick={() => setShowFontPicker(false)} />
+              <div className="epub-font-picker" role="listbox" aria-label="폰트 선택">
+                {FONT_OPTIONS.map((fo) => (
+                  <button
+                    key={fo.id}
+                    type="button"
+                    role="option"
+                    aria-selected={font === fo.id}
+                    className={font === fo.id ? "epub-bar-btn-active" : ""}
+                    onClick={() => { changeFont(fo.id); setShowFontPicker(false); }}
+                  >
+                    {fo.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        <button type="button" onClick={goPrev}>이전</button>
+        <button type="button" onClick={goNext}>다음</button>
+        <button type="button" onClick={() => setShowToc(true)} aria-label="목차">목차</button>
       </div>
 
       {showToc && (
@@ -308,12 +310,19 @@ html, body { height: 100%; margin: 0; }
 .epub-root.epub-dark { background: #141414; }
 .epub-viewport { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .epub-viewport .epub-container { overflow-anchor: none; }
-.epub-bar { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 8px 12px; border-top: 1px solid #777; background: #fff; flex-wrap: wrap; }
-.epub-bar button { background: none; border: none; font-size: 15px; color: #212121; cursor: pointer; padding: 4px 2px; }
+.epub-bar { display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid #777; background: #fff; flex-wrap: nowrap; overflow-x: auto; }
+.epub-bar button { background: none; border: none; font-size: 13px; color: #212121; cursor: pointer; padding: 4px 2px; white-space: nowrap; flex-shrink: 0; }
 .epub-bar .epub-bar-btn-active { color: #ff1d5e; font-weight: 700; }
 .epub-root.epub-dark .epub-bar { background: #1c1c1c; border-top-color: #444; }
 .epub-root.epub-dark .epub-bar button { color: #e0e0e0; }
 .epub-root.epub-dark .epub-bar .epub-bar-btn-active { color: #ff6b8a; }
+.epub-font-picker-wrap { position: relative; flex-shrink: 0; }
+.epub-font-picker-backdrop { position: fixed; inset: 0; z-index: 10000; }
+.epub-font-picker { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 10001; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 4px; display: flex; flex-direction: column; gap: 2px; min-width: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.12); }
+.epub-font-picker button { font-size: 14px; padding: 7px 12px; border-radius: 6px; width: 100%; text-align: center; }
+.epub-font-picker button:hover { background: #f5f5f5; }
+.epub-root.epub-dark .epub-font-picker { background: #2a2a2a; border-color: #555; }
+.epub-root.epub-dark .epub-font-picker button:hover { background: #3a3a3a; }
 .epub-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .epub-spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #eee; border-top-color: #ff1d5e; animation: epub-spin 1s linear infinite; }
 @keyframes epub-spin { to { transform: rotate(360deg); } }
