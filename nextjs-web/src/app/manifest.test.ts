@@ -10,8 +10,8 @@ describe("web app manifest", () => {
       description: "좋은 전자책을 무료로 읽는 북슐랭",
       start_url: "/",
       display: "standalone",
-      background_color: "#f44336",
-      theme_color: "#f44336",
+      background_color: "#fb3026",
+      theme_color: "#fb3026",
       icons: [
         { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
         { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
