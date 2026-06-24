@@ -74,6 +74,7 @@ export default function AdminCountTimePage() {
   const [loading, setLoading] = useState(false);
   const [filterText, setFilterText] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("book");
+  const [pubFilter, setPubFilter] = useState<string>("");
 
   const [titleMap, setTitleMap] = useState<Record<string, string>>({});
   const [hiddenSet, setHiddenSet] = useState<Record<string, boolean>>({});
@@ -157,6 +158,21 @@ export default function AdminCountTimePage() {
     if (!q) return rows;
     return rows.filter((r) => (titleMap[r.bookId] ?? "").toLowerCase().includes(q) || r.bookId.toLowerCase().includes(q));
   }, [rows, filterText, titleMap]);
+
+  const bookFilteredRows = useMemo(() => {
+    if (!pubFilter) return filteredRows;
+    return filteredRows.filter((r) => {
+      if (pubFilter === "__none__") return (bookPubMap[r.bookId] ?? "") === "";
+      return bookPubMap[r.bookId] === pubFilter;
+    });
+  }, [filteredRows, pubFilter, bookPubMap]);
+
+  const pubOptions = useMemo(() => {
+    if (!pubMapsLoaded) return [] as { code: string; name: string }[];
+    return Object.entries(pubNameMap)
+      .map(([code, name]) => ({ code, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  }, [pubNameMap, pubMapsLoaded]);
 
   const filteredPubRows = useMemo(() => {
     const q = filterText.trim().toLowerCase();
@@ -256,6 +272,7 @@ export default function AdminCountTimePage() {
       const sortedRows = Object.values(byBook).sort((a, b) => b.count - a.count);
       setBuckets(sortedBuckets);
       setRows(sortedRows);
+      void loadPublisherMaps(sortedRows);
 
       const missing = sortedRows.map((r) => r.bookId).filter((id) => !titles[id]).slice(0, 100);
       if (missing.length) {
@@ -308,8 +325,9 @@ export default function AdminCountTimePage() {
 
   function handleViewModeToggle(next: ViewMode) {
     setViewMode(next);
-    if (next === "publisher" && !pubMapsLoaded && rows.length > 0) {
-      loadPublisherMaps(rows);
+    if (next === "publisher") {
+      setPubFilter("");
+      if (!pubMapsLoaded && rows.length > 0) loadPublisherMaps(rows);
     }
   }
 
@@ -383,15 +401,30 @@ export default function AdminCountTimePage() {
         </button>
       </div>
 
-      <div className="ad-filters">
+      <div className="ad-filters" style={{ flexWrap: "wrap", gap: "6px 8px" }}>
+        {viewMode === "book" && (
+          <select
+            value={pubFilter}
+            onChange={(e) => setPubFilter(e.target.value)}
+            disabled={loading || pubLoading}
+            style={{ minWidth: 120 }}
+          >
+            <option value="">출판사 전체</option>
+            <option value="__none__">출판사 없음</option>
+            {pubOptions.map((p) => (
+              <option key={p.code} value={p.code}>{p.name}</option>
+            ))}
+          </select>
+        )}
         <input
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
           placeholder={viewMode === "book" ? "책 제목·ID 검색" : "출판사명 검색"}
+          style={{ minWidth: 160 }}
         />
         <span>
           {loading ? "불러오는 중…" : viewMode === "book"
-            ? `${rangeLabel} · 책 ${filteredRows.length}권 · 읽힌 ${docCount}일`
+            ? `${rangeLabel} · 책 ${bookFilteredRows.length}권 · 읽힌 ${docCount}일`
             : `${rangeLabel} · 출판사 ${filteredPubRows.length}개 · 읽힌 ${docCount}일`}
         </span>
       </div>
@@ -399,7 +432,7 @@ export default function AdminCountTimePage() {
       <div style={{ overflowX: "auto" }}>
         {viewMode === "book" ? (
           <BookTable
-            filteredRows={filteredRows}
+            filteredRows={bookFilteredRows}
             buckets={buckets}
             titleMap={titleMap}
             hiddenSet={hiddenSet}
