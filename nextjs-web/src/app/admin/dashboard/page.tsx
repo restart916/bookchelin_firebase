@@ -159,6 +159,8 @@ export default function AdminDashboardPage() {
         date: fmtMD(r.date),
         DAU: r.dau || null,
         "수익($)": r.totalRevenue > 0 ? parseFloat(r.totalRevenue.toFixed(2)) : null,
+        // RH(시간) — dayly_total_time 합(초)을 시간으로. 추가 read 없음.
+        "RH(시간)": r.totalSec > 0 ? parseFloat((r.totalSec / 3600).toFixed(1)) : null,
       })),
     [stableRows],
   );
@@ -237,7 +239,7 @@ export default function AdminDashboardPage() {
       {!loading && chartData.length > 0 && (
         <div style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 12, color: "#888", margin: "0 0 6px 0" }}>
-            DAU · 광고수익 추세{" "}
+            DAU · 광고수익 · RH(독서시간) 추세{" "}
             <span style={{ color: "#ccc" }}>(오늘 제외)</span>
           </p>
           <ResponsiveContainer width="100%" height={220}>
@@ -261,9 +263,13 @@ export default function AdminDashboardPage() {
                 width={44}
                 tickFormatter={(v: number) => `$${v}`}
               />
+              {/* RH(시간) 전용 축 — DAU/수익과 스케일이 달라 자체 자동스케일.
+                  축을 숨겨 모바일에서도 안 깨지게(라인 추세만 꽉 차게 보임). */}
+              <YAxis yAxisId="rh" hide domain={[0, "auto"]} />
               <Tooltip
                 formatter={(value: unknown, name?: string | number) => {
                   if (name === "수익($)") return [`$${value}`, "광고수익"];
+                  if (name === "RH(시간)") return [`${value}h`, "RH(독서시간)"];
                   return [`${value}`, String(name ?? "")];
                 }}
               />
@@ -279,6 +285,14 @@ export default function AdminDashboardPage() {
                 yAxisId="right"
                 dataKey="수익($)"
                 stroke="#f0923a"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+                connectNulls
+              />
+              <Line
+                yAxisId="rh"
+                dataKey="RH(시간)"
+                stroke="#10b981"
                 strokeWidth={2}
                 dot={{ r: 3 }}
                 connectNulls
