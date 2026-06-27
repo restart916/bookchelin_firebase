@@ -182,9 +182,19 @@ export default function AdminEditBooksPage() {
     try {
       await updateDocAt("books", b.id, { category });
       setBooks((prev) => prev.map((x) => (x.id === b.id ? { ...x, category } : x)));
-      alert(`${asString(b.title)} 카테고리 수정 성공`);
+      alert(`${asString(b.title)} 카테고리(v1) 수정 성공`);
     } catch {
       alert(`${asString(b.title)} 수정 실패`);
+    }
+  }
+
+  async function onChangeBookCategoryV2(b: DocRow, category_v2: string) {
+    try {
+      await updateDocAt("books", b.id, { category_v2 });
+      setBooks((prev) => prev.map((x) => (x.id === b.id ? { ...x, category_v2 } : x)));
+      alert(`${asString(b.title)} 카테고리 v2 수정 성공`);
+    } catch {
+      alert(`${asString(b.title)} v2 수정 실패`);
     }
   }
 
@@ -426,7 +436,8 @@ export default function AdminEditBooksPage() {
           <tr>
             <th />
             <th>제목</th>
-            <th>카테고리</th>
+            <th>카테고리 v1</th>
+            <th>카테고리 v2</th>
             <th>출판사</th>
             <th>상태</th>
             <th>관리</th>
@@ -448,6 +459,18 @@ export default function AdminEditBooksPage() {
                     선택
                   </option>
                   {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td>
+                <select value={asString(b.category_v2 ?? "")} onChange={(e) => onChangeBookCategoryV2(b, e.target.value)}>
+                  <option disabled value="">
+                    선택
+                  </option>
+                  {catsV2.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
