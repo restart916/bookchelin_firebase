@@ -79,6 +79,7 @@ export function EpubReader({
   useEffect(() => {
     let cancelled = false;
     let cleanupBook: (() => void) | undefined;
+    let selPollId: ReturnType<typeof setInterval> | null = null;
 
     (async () => {
       const ePub = (await import("epubjs")).default;
@@ -95,6 +96,7 @@ export function EpubReader({
       });
       renditionRef.current = rendition;
       cleanupBook = () => {
+        if (selPollId) { clearInterval(selPollId); selPollId = null; }
         scrollAnchorCleanupRef.current?.();
         scrollAnchorCleanupRef.current = null;
         tocPreloadGuardRef.current?.destroy();
@@ -172,34 +174,35 @@ export function EpubReader({
         );
       });
 
-      // 선택 텍스트 캡처 — epubjs 'selected'(iframe selectionchange 디바운스)만으로는
-      // iOS WebKit에서 iframe 내부 selectionchange 가 불안정해 버튼이 안 뜬다.
-      // touchend/mouseup/pointerup 에서도 직접 getSelection 을 읽어 set/clear 한다.
-      rendition.hooks.content.register((contents: unknown) => {
-        const c = contents as { document?: Document; window?: Window };
-        const doc = c.document;
-        const win = c.window;
-        if (!doc || !win) return;
-        const readSelection = () => {
-          const sel = win.getSelection?.() ?? doc.getSelection?.();
-          const raw = sel ? sel.toString().trim() : "";
-          if (raw) {
-            const capped = capShareText(raw);
-            // openShare 가 읽는 값. 버튼 탭 시 선택이 해제돼도 잃지 않도록 비울 때는 안 지움.
-            selectedTextRef.current = capped;
-            setSelectedText(capped);
-          } else {
-            setSelectedText(null); // 버튼만 숨김(텍스트 ref 는 유지)
+      // 선택 텍스트 감지 — 이벤트 비의존(폴링).
+      // iOS WebKit은 iframe 내부 selectionchange/touch 이벤트가 안정적으로 발화하지
+      // 않아(네이티브 선택 메뉴는 떠도 JS 이벤트는 안 옴) 이벤트 기반은 신뢰 불가.
+      // 대신 짧은 주기로 각 섹션 iframe의 getSelection()을 직접 읽어 선택을 감지한다.
+      // (epubjs도 iframe getSelection을 쓰고 iOS에서 동작 → "값 읽기"는 되고 "이벤트"만
+      //  안 오는 문제를 폴링이 우회.) 값이 바뀔 때만 setState 해 리렌더 churn 방지.
+      let lastPolled: string | null = null;
+      const pollSelection = () => {
+        const root = viewerRef.current;
+        if (!root) return;
+        let found = "";
+        const iframes = root.querySelectorAll("iframe");
+        for (let i = 0; i < iframes.length; i++) {
+          try {
+            const sel = iframes[i].contentWindow?.getSelection?.();
+            const t = sel ? sel.toString().trim() : "";
+            if (t) { found = t; break; }
+          } catch {
+            /* iframe 로딩 중/접근 불가 — 무시 */
           }
-        };
-        // up 이벤트는 iOS가 선택을 확정할 시간을 주려고 약간 지연 후 읽는다.
-        const readDeferred = () => setTimeout(readSelection, 120);
-        // selectionchange: 데스크톱/안드로이드. pointer/touch/mouse up: iOS 포함 보강.
-        doc.addEventListener("selectionchange", readSelection);
-        doc.addEventListener("mouseup", readDeferred);
-        doc.addEventListener("touchend", readDeferred);
-        doc.addEventListener("pointerup", readDeferred);
-      });
+        }
+        const next = found ? capShareText(found) : null;
+        if (next === lastPolled) return;
+        lastPolled = next;
+        // 선택이 비어도 ref 는 유지(버튼 탭 시 선택 해제로 텍스트를 잃는 race 방지).
+        if (next) selectedTextRef.current = next;
+        setSelectedText(next);
+      };
+      selPollId = setInterval(pollSelection, 350);
 
       // Single themes.default() call covers theme + fontSize + sideMargin + font in one
       // stylesheet block. Avoids the epubjs cascade bug where each named-theme
