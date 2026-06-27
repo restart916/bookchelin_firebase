@@ -129,14 +129,23 @@ export default function AdminCategoriesPage() {
       // 신규면 merge=false (완전 overwrite), 수정도 동일
       await setDocAt("book_category_v2", id, data, false);
 
-      // 레거시 id("1"~"6")이면 book_category에도 icon_url 동기화
-      if (iconUrl && LEGACY_IDS.has(id)) {
-        const result = await listDocsPaginated("book_category", {
-          pageSize: 3,
-          whereClauses: [["id", "==", id]],
-        });
-        if (result.docs.length > 0) {
-          await updateDocAt("book_category", result.docs[0].id, { icon_url: iconUrl });
+      // 새 아이콘을 올린 경우에만 레거시 book_category(구앱용)에 icon_url 동기화.
+      // (이름/순서/문서는 절대 안 건드림 — 동결 규칙. 이름만 바꿀 땐 여기 진입 안 함.)
+      // book_category 문서ID는 자동생성이므로 id 필드로 조회 후 "실제 docId"로 업데이트한다.
+      // (listDocsPaginated 의 .id 는 data의 id 필드에 덮어써져 신뢰 불가 → docId 사용.)
+      // 동기화 실패해도 v2 저장은 유지(non-fatal).
+      if (iconFile && iconUrl && LEGACY_IDS.has(id)) {
+        try {
+          const result = await listDocsPaginated("book_category", {
+            pageSize: 3,
+            whereClauses: [["id", "==", id]],
+          });
+          const docId = result.docs[0]?.docId as string | undefined;
+          if (docId) {
+            await updateDocAt("book_category", docId, { icon_url: iconUrl });
+          }
+        } catch (syncErr) {
+          console.warn("book_category icon_url 동기화 실패(무시)", syncErr);
         }
       }
 

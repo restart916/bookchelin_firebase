@@ -120,7 +120,9 @@ export async function listDocsPaginated(
 
   const snap = await getDocs(query(collection(db, path), ...constraints));
   return {
-    docs: snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    // `docId` = 실제 Firestore 문서 ID. (`id`는 data의 id 필드에 덮어쓰일 수 있어
+    //  book_category 처럼 문서ID≠id필드인 컬렉션에선 신뢰 불가 → 업데이트엔 docId 사용.)
+    docs: snap.docs.map((d) => ({ id: d.id, ...d.data(), docId: d.id })),
     lastDoc: snap.docs[snap.docs.length - 1] ?? null,
     hasMore: snap.docs.length === pageSize,
   };
