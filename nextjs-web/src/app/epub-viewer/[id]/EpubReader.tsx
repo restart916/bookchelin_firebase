@@ -62,9 +62,9 @@ export function EpubReader({
   const [shareUrl, setShareUrl] = useState<string | null>(null); // null = 모달 닫힘
   const [shareLoading, setShareLoading] = useState(false);
   const metaRef = useRef(meta);
-  const selectedTextRef = useRef(selectedText);
+  // 마지막으로 선택된 본문(공유에 사용). 선택 해제로 버튼이 숨어도 값은 유지 — 버튼 탭 race 방지.
+  const selectedTextRef = useRef<string>("");
   useEffect(() => { metaRef.current = meta; }, [meta]);
-  useEffect(() => { selectedTextRef.current = selectedText; }, [selectedText]);
 
   // Keep the latest values for use inside epubjs callbacks without re-binding.
   const fontSizeRef = useRef(fontSize);
@@ -121,7 +121,11 @@ export function EpubReader({
       rendition.on("selected", (_cfiRange: string, contents: unknown) => {
         const win = (contents as { window?: Window })?.window;
         const text = win?.getSelection?.()?.toString?.().trim();
-        if (text) setSelectedText(capShareText(text));
+        if (text) {
+          const capped = capShareText(text);
+          selectedTextRef.current = capped;
+          setSelectedText(capped);
+        }
       });
 
       // Inject Google Fonts into each chapter iframe so Korean font-family works.
@@ -168,16 +172,33 @@ export function EpubReader({
         );
       });
 
-      // 선택이 비워지면(탭으로 해제) "공유하기" 버튼을 숨긴다.
+      // 선택 텍스트 캡처 — epubjs 'selected'(iframe selectionchange 디바운스)만으로는
+      // iOS WebKit에서 iframe 내부 selectionchange 가 불안정해 버튼이 안 뜬다.
+      // touchend/mouseup/pointerup 에서도 직접 getSelection 을 읽어 set/clear 한다.
       rendition.hooks.content.register((contents: unknown) => {
         const c = contents as { document?: Document; window?: Window };
         const doc = c.document;
         const win = c.window;
         if (!doc || !win) return;
-        doc.addEventListener("selectionchange", () => {
-          const s = win.getSelection();
-          if (!s || s.toString().trim() === "") setSelectedText(null);
-        });
+        const readSelection = () => {
+          const sel = win.getSelection?.() ?? doc.getSelection?.();
+          const raw = sel ? sel.toString().trim() : "";
+          if (raw) {
+            const capped = capShareText(raw);
+            // openShare 가 읽는 값. 버튼 탭 시 선택이 해제돼도 잃지 않도록 비울 때는 안 지움.
+            selectedTextRef.current = capped;
+            setSelectedText(capped);
+          } else {
+            setSelectedText(null); // 버튼만 숨김(텍스트 ref 는 유지)
+          }
+        };
+        // up 이벤트는 iOS가 선택을 확정할 시간을 주려고 약간 지연 후 읽는다.
+        const readDeferred = () => setTimeout(readSelection, 120);
+        // selectionchange: 데스크톱/안드로이드. pointer/touch/mouse up: iOS 포함 보강.
+        doc.addEventListener("selectionchange", readSelection);
+        doc.addEventListener("mouseup", readDeferred);
+        doc.addEventListener("touchend", readDeferred);
+        doc.addEventListener("pointerup", readDeferred);
       });
 
       // Single themes.default() call covers theme + fontSize + sideMargin + font in one
