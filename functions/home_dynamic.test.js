@@ -188,10 +188,10 @@ test('buildAutoSuggestDocs: order "0"/"00", auto:true, 제목/books 매핑', () 
   const discover = ['x', 'y', 'z'];
   const docs = hd.buildAutoSuggestDocs(trending, discover);
   assert.deepStrictEqual(docs._auto_trending, {
-    auto: true, order: '0', title: '🔥 지금 인기', books: ['A', 'B'],
+    auto: true, order: '0', title: '지금 인기', books: ['A', 'B'],
   });
   assert.deepStrictEqual(docs._auto_discover, {
-    auto: true, order: '00', title: '✨ 오늘의 발견', books: ['x', 'y', 'z'],
+    auto: true, order: '00', title: '오늘의 발견', books: ['x', 'y', 'z'],
   });
 });
 

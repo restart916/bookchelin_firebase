@@ -402,13 +402,13 @@ function buildAutoSuggestDocs(trending, discover) {
     _auto_trending: {
       auto: true,
       order: '0',
-      title: '🔥 지금 인기',
+      title: '지금 인기',
       books: trending.map((t) => t.book_id),
     },
     _auto_discover: {
       auto: true,
       order: '00',
-      title: '✨ 오늘의 발견',
+      title: '오늘의 발견',
       books: discover.slice(),
     },
   };
