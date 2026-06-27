@@ -13,6 +13,11 @@ import {
   runGuardedTocDisplay,
   TocPreloadGuard,
 } from "@/lib/epub-toc-navigation";
+import {
+  anchorCorrection,
+  pickAnchorIndex,
+  shouldCorrect,
+} from "@/lib/epub-scroll-anchor";
 
 declare global {
   interface Window {
@@ -61,6 +66,7 @@ export function EpubReader({
   const renditionRef = useRef<Rendition | null>(null);
   const tocPreloadGuardRef = useRef<TocPreloadGuard | null>(null);
   const tocNavigationRef = useRef(false);
+  const scrollAnchorCleanupRef = useRef<(() => void) | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [toc, setToc] = useState<NavItem[]>([]);
@@ -98,6 +104,8 @@ export function EpubReader({
       });
       renditionRef.current = rendition;
       cleanupBook = () => {
+        scrollAnchorCleanupRef.current?.();
+        scrollAnchorCleanupRef.current = null;
         tocPreloadGuardRef.current?.destroy();
         tocPreloadGuardRef.current = null;
         rendition.destroy();
@@ -129,6 +137,14 @@ export function EpubReader({
         return;
       }
       tocPreloadGuardRef.current = tocPreloadGuard;
+
+      // Keep the reader pinned to what it is looking at when the continuous
+      // manager streams/resizes sections mid-scroll (and on font/margin changes).
+      const container = getScrollContainer(rendition);
+      if (container) {
+        scrollAnchorCleanupRef.current = attachScrollAnchorKeeper(container);
+      }
+
       if (!cancelled) setLoading(false);
     })();
 
@@ -289,4 +305,108 @@ function applyFontSize(rendition: Rendition | null, percent: number) {
 
 function applySideMargin(rendition: Rendition | null, px: number) {
   rendition?.themes.default({ body: { padding: `0px ${px}px !important` } });
+}
+
+/** The continuous manager's scroll container (the element that owns scrollTop). */
+function getScrollContainer(rendition: Rendition): HTMLElement | null {
+  const manager = (rendition as unknown as { manager?: { container?: HTMLElement } })
+    .manager;
+  const container = manager?.container;
+  return container && typeof container.scrollTop === "number" ? container : null;
+}
+
+/**
+ * Pins the reader to the section it is currently looking at. epub.js's continuous
+ * manager appends/prepends and resizes sections as you scroll (and on font/margin
+ * changes); when a section *above* the viewport changes height the reader would
+ * otherwise lurch to a different spot. We remember the top-most visible view and
+ * its offset on genuine scrolls, and after any layout change we add the drift
+ * back to scrollTop so that view stays put.
+ *
+ * Recording only happens on "clean" frames (no layout change pending), so epub.js's
+ * own programmatic scroll compensation — which always rides along with a resize or
+ * DOM mutation — is treated as a layout change to undo, not as a new user position.
+ */
+function attachScrollAnchorKeeper(container: HTMLElement): () => void {
+  let anchor: { el: Element; top: number } | null = null;
+  let dirty = false;
+  let scrolled = false;
+  let rafId = 0;
+
+  const childRectsRelativeToTop = () => {
+    const containerTop = container.getBoundingClientRect().top;
+    const children = Array.from(container.children);
+    const rects = children.map((c) => {
+      const r = c.getBoundingClientRect();
+      return { top: r.top - containerTop, bottom: r.bottom - containerTop };
+    });
+    return { children, rects, containerTop };
+  };
+
+  const record = () => {
+    const { children, rects } = childRectsRelativeToTop();
+    const idx = pickAnchorIndex(rects);
+    anchor = idx >= 0 ? { el: children[idx], top: rects[idx].top } : null;
+  };
+
+  const restore = () => {
+    if (!anchor || !anchor.el.isConnected) {
+      record();
+      return;
+    }
+    const containerTop = container.getBoundingClientRect().top;
+    const currentTop = anchor.el.getBoundingClientRect().top - containerTop;
+    const delta = anchorCorrection(anchor.top, currentTop);
+    if (shouldCorrect(delta)) container.scrollTop += delta;
+  };
+
+  const tick = () => {
+    rafId = 0;
+    if (dirty) {
+      dirty = false;
+      scrolled = false;
+      restore();
+    } else if (scrolled) {
+      scrolled = false;
+      record();
+    }
+  };
+
+  const schedule = () => {
+    if (!rafId) rafId = requestAnimationFrame(tick);
+  };
+
+  const onScroll = () => {
+    scrolled = true;
+    schedule();
+  };
+  const onLayoutChange = () => {
+    dirty = true;
+    schedule();
+  };
+
+  container.addEventListener("scroll", onScroll, { passive: true });
+
+  const resizeObserver = new ResizeObserver(onLayoutChange);
+  const observeChildren = () => {
+    for (const child of Array.from(container.children)) resizeObserver.observe(child);
+  };
+  observeChildren();
+
+  // Sections are added/removed as you scroll; re-observe the new set and re-pin.
+  const mutationObserver = new MutationObserver(() => {
+    resizeObserver.disconnect();
+    observeChildren();
+    onLayoutChange();
+  });
+  mutationObserver.observe(container, { childList: true });
+
+  record();
+
+  return () => {
+    container.removeEventListener("scroll", onScroll);
+    resizeObserver.disconnect();
+    mutationObserver.disconnect();
+    if (rafId) cancelAnimationFrame(rafId);
+  };
 }
