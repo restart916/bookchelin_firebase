@@ -30,7 +30,9 @@ export default function AdminEditSuggestBookPage() {
 
   async function reloadGroups() {
     const g = await listDocs("suggest_group", { field: "order", dir: "asc" });
-    setGroups(g);
+    // _auto_*(지금 인기/오늘의 발견 자동 미러)는 앱이 안 읽고 매일 덮어써짐 → 여기선 숨김.
+    // 그 두 줄은 "지금 인기·오늘의 발견" 메뉴에서 관리.
+    setGroups(g.filter((d) => d.auto !== true && !asString(d.id).startsWith("_auto")));
   }
 
   useEffect(() => {
@@ -39,7 +41,9 @@ export default function AdminEditSuggestBookPage() {
       const [b, g] = await Promise.all([listDocs("books"), listDocs("suggest_group", { field: "order", dir: "asc" })]);
       if (!active) return;
       setBooks(b);
-      setGroups(g);
+      // _auto_*(지금 인기/오늘의 발견 자동 미러)는 앱이 안 읽고 매일 덮어써짐 → 여기선 숨김.
+    // 그 두 줄은 "지금 인기·오늘의 발견" 메뉴에서 관리.
+    setGroups(g.filter((d) => d.auto !== true && !asString(d.id).startsWith("_auto")));
       setLoaded(true);
     })();
     return () => {

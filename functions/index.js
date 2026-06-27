@@ -833,6 +833,23 @@ exports.regenerate_home_dynamic_on_pin_write = functions.firestore
     return null;
   });
 
+// 어드민에서 '지금 인기/오늘의 발견' 제외 목록(home_dynamic_config/main.exclude)을
+// 바꾸면 즉시 홈 편성을 재생성한다 → 뺀 책이 바로 사라지고 빈 자리는 자동 백필.
+// (home_dynamic 컬렉션이 아닌 별도 컬렉션이라 current 쓰기로 인한 무한 트리거 없음)
+exports.regenerate_home_dynamic_on_config_write = functions.firestore
+  .document('home_dynamic_config/{docId}')
+  .onWrite(async (change, context) => {
+    const result = await generateHomeDynamic(db);
+    console.log(
+      'regenerate_home_dynamic_on_config_write done',
+      context.params.docId,
+      result.date,
+      result.trending.length,
+      result.discover.length
+    );
+    return null;
+  });
+
 // 활성 이벤트 캐시(event_state/active_books)를 수동으로 즉시 재빌드한다.
 // 신규 이벤트를 Firebase Console 등 외부에서 생성한 직후, daily_job을 기다리지 않고
 // 이 엔드포인트를 호출하면 로그 트리거가 바로 그 이벤트를 인식할 수 있다.

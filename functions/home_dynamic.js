@@ -440,10 +440,19 @@ async function generateHomeDynamic(db, now = new Date()) {
   );
   const pinIds = pins.map((p) => p.book_id);
 
+  // 수동 제외 목록(어드민) — 지금 인기/오늘의 발견 후보에서 영구 제외. 자동 큐레이션은
+  // 그대로 돌되 빠진 자리는 다음 순위 책으로 자동 백필된다. (캐러셀/추천은 별도 핀으로 관리)
+  const excludeSnap = await db.collection('home_dynamic_config').doc('main').get();
+  const excludeList =
+    excludeSnap.exists && Array.isArray((excludeSnap.data() || {}).exclude)
+      ? excludeSnap.data().exclude.filter((x) => typeof x === 'string')
+      : [];
+  const excludeSet = new Set(excludeList);
+
   const aggregates = aggregateReaders(logs, now);
   const ranked = rankTrending(aggregates, {
     visibleIds,
-    excludeIds: pinIds,
+    excludeIds: [...pinIds, ...excludeList],
     minReaders: 2,
   });
 
@@ -472,7 +481,7 @@ async function generateHomeDynamic(db, now = new Date()) {
   const trendingSet = new Set(trending.map((t) => t.book_id));
   const readSet = new Set(aggregates.map((a) => a.book_id));
   const basePool = visibleIds
-    .filter((id) => !pinSet.has(id) && !trendingSet.has(id))
+    .filter((id) => !pinSet.has(id) && !trendingSet.has(id) && !excludeSet.has(id))
     .sort();
   const dormant = basePool.filter((id) => !readSet.has(id));
   const active = basePool.filter((id) => readSet.has(id));
