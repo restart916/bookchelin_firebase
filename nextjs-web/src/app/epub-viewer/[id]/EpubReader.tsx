@@ -284,6 +284,52 @@ export function EpubReader({
     setShareLoading(true);
   }
 
+  // 엔드포인트는 CORS * 허용 → blob fetch 가능(클립보드/Web Share/다운로드 공용).
+  async function fetchShareBlob(): Promise<Blob | null> {
+    if (!shareUrl) return null;
+    try {
+      const res = await fetch(shareUrl, { mode: "cors" });
+      if (!res.ok) return null;
+      return await res.blob();
+    } catch {
+      return null;
+    }
+  }
+
+  // 모바일/웹뷰 우선 경로: Web Share API(파일 공유) → 실패 시 다운로드 폴백.
+  async function shareImage() {
+    const blob = await fetchShareBlob();
+    if (!blob) { alert("이미지를 길게 눌러 저장해 주세요."); return; }
+    const file = new File([blob], "bookchelin.png", { type: "image/png" });
+    const nav = navigator as Navigator & { canShare?: (d?: unknown) => boolean };
+    try {
+      if (nav.canShare && nav.canShare({ files: [file] }) && navigator.share) {
+        await navigator.share({ files: [file], title: "북슐랭" });
+        return;
+      }
+    } catch {
+      // 사용자가 공유 취소했거나 미지원 → 다운로드로 폴백
+    }
+    downloadBlob(blob);
+  }
+
+  async function saveImage() {
+    const blob = await fetchShareBlob();
+    if (!blob) { alert("이미지를 길게 눌러 저장해 주세요."); return; }
+    downloadBlob(blob);
+  }
+
+  function downloadBlob(blob: Blob) {
+    const u = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = u;
+    a.download = "bookchelin.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 4000);
+  }
+
   return (
     <div className={`epub-root epub-${theme}`}>
       {loading && (
@@ -388,7 +434,13 @@ export function EpubReader({
                 onError={() => setShareLoading(false)}
               />
             </div>
-            <p className="epub-share-hint">이미지를 길게 눌러 저장하거나 공유하세요</p>
+            {!shareLoading && (
+              <div className="epub-share-actions">
+                <button type="button" className="epub-share-action primary" onClick={shareImage}>공유하기</button>
+                <button type="button" className="epub-share-action" onClick={saveImage}>이미지 저장</button>
+              </div>
+            )}
+            <p className="epub-share-hint">버튼이 안 되면 이미지를 길게 눌러 저장하세요</p>
           </div>
         </div>
       )}
@@ -453,7 +505,13 @@ html, body { height: 100%; margin: 0; }
 .epub-share-card__head button { background: none; border: none; font-size: 16px; cursor: pointer; color: inherit; }
 .epub-share-card__body { display: flex; align-items: center; justify-content: center; padding: 16px; min-height: 200px; }
 .epub-share-img { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.18); -webkit-touch-callout: default; }
-.epub-share-hint { margin: 0; padding: 0 16px 16px; text-align: center; font-size: 12px; color: #888; }
+.epub-share-actions { display: flex; gap: 10px; padding: 0 16px 4px; }
+.epub-share-action { flex: 1; padding: 13px 0; border-radius: 10px; border: 1px solid #e0e0e0; background: #fff; color: #212121; font-size: 15px; font-weight: 700; cursor: pointer; }
+.epub-share-action.primary { background: #fb3026; border-color: #fb3026; color: #fff; }
+.epub-share-action:active { transform: translateY(1px); }
+.epub-root.epub-dark .epub-share-action { background: #2a2a2a; border-color: #555; color: #e0e0e0; }
+.epub-root.epub-dark .epub-share-action.primary { background: #fb3026; border-color: #fb3026; color: #fff; }
+.epub-share-hint { margin: 0; padding: 12px 16px 16px; text-align: center; font-size: 12px; color: #888; }
 `;
 
 /**
