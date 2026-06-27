@@ -9,6 +9,7 @@ import { getFirebaseAuth } from "./firebase-client";
 export const ADMIN_EMAILS = [
   "restart916@gmail.com",
   "helgi2019@gmail.com",
+  "ejcjjj@gmail.com",
 ];
 
 export function isAdmin(user: Pick<User, "email"> | null | undefined): boolean {

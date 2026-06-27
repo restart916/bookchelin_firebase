@@ -16,6 +16,21 @@ export const metadata: Metadata = {
   applicationName: "북슐랭",
   alternates: { canonical: "/" },
   appleWebApp: { capable: true, title: "북슐랭" },
+  openGraph: {
+    type: "website",
+    siteName: "북슐랭",
+    url: "/",
+    title: "북슐랭 | 무제한 무료 독서 앱",
+    description: "문학부터 지식교양까지, 좋은 전자책을 북슐랭 앱에서 무료로 읽어보세요.",
+    locale: "ko_KR",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "책을 맛보다, 북슐랭" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "북슐랭 | 무제한 무료 독서 앱",
+    description: "문학부터 지식교양까지, 좋은 전자책을 북슐랭 앱에서 무료로 읽어보세요.",
+    images: ["/og.png"],
+  },
   other: { "apple-itunes-app": "app-id=1544648278" },
 };
 

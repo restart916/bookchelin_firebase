@@ -44,7 +44,6 @@ export function BookCard({
         </div>
         {category ? <span className="eyebrow">{category.name}</span> : null}
         <h3>{book.title}</h3>
-        {book.publisher ? <p>{book.publisher}</p> : null}
       </Link>
     </article>
   );

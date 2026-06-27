@@ -201,13 +201,16 @@ function createReviewHandlers({ db, admin }) {
 
   async function adminListReviewReports(data, context) {
     requireAdmin(context);
-    const [reportsSnapshot, pendingSnapshot] = await Promise.all([
+    const [openSnap, closedSnap, pendingSnap] = await Promise.all([
       db.collection('review_reports').where('status', '==', 'open').limit(200).get(),
+      db.collection('review_reports').where('status', 'in', ['reviewed', 'dismissed']).limit(200).get(),
       db.collection('book_reviews').where('moderation_status', '==', 'pending').limit(200).get(),
     ]);
-    const reports = reportsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    const pending = pendingSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    return { reports, pending };
+    return {
+      reports: openSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+      closedReports: closedSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+      pending: pendingSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+    };
   }
 
   async function closeOpenReports(reviewId, status) {
@@ -233,6 +236,7 @@ function createReviewHandlers({ db, admin }) {
 
     if (action === 'hide') {
       await reviewRef.update({ ...audit, hide: '1', moderation_status: 'hidden' });
+      await closeOpenReports(reviewId, 'reviewed');
     } else if (action === 'restore') {
       await reviewRef.update({
         ...audit,
@@ -252,6 +256,7 @@ function createReviewHandlers({ db, admin }) {
       }, { merge: true });
       if (action === 'ban') {
         await reviewRef.update({ ...audit, hide: '1', moderation_status: 'hidden' });
+        await closeOpenReports(reviewId, 'reviewed');
       }
     } else {
       throw new functions.https.HttpsError('invalid-argument', '지원하지 않는 처리입니다.');

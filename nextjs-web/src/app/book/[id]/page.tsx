@@ -50,7 +50,6 @@ export default async function BookPage({ params }: Props) {
         <div className="book-detail__intro">
           {category ? <Link className="eyebrow" href={`/category/${category.slug}`}>{category.name}</Link> : null}
           <h1>{book.title}</h1>
-          {book.publisher ? <p className="publisher">{book.publisher}</p> : null}
           {reviews.average !== null ? <p className="rating">★ {reviews.average} <span>리뷰 {reviews.count}개</span></p> : null}
           <p className="book-detail__lede">이 책의 전체 내용은 북슐랭 앱에서 무료로 읽을 수 있어요.</p>
           <StoreCta placement="book_detail" bookId={book.id} source="book_detail" />

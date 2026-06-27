@@ -1,11 +1,14 @@
 // Shared client-side Firestore/Storage helpers for the admin UI. Mirrors the
 // Vue admin's direct-write model (data protection is Firestore-rules' job —
 // tracked separately as security debt). Browser-only; call from "use client".
+import type { DocumentSnapshot, QueryConstraint, WhereFilterOp } from "firebase/firestore";
 import {
   getFirebaseApp,
   getFirebaseDb,
   getFirebaseStorage,
 } from "./firebase-client";
+
+export type { DocumentSnapshot };
 
 export interface DocRow {
   id: string;
@@ -67,6 +70,86 @@ export async function countDocs(
   const q = match ? query(ref, where(match.field, "==", match.value)) : query(ref);
   const snap = await getCountFromServer(q);
   return snap.data().count;
+}
+
+export interface PaginatedResult {
+  docs: DocRow[];
+  lastDoc: DocumentSnapshot | null;
+  hasMore: boolean;
+}
+
+/**
+ * Cursor-based paginated read. Never loads the full collection — fetches one
+ * page at a time. Pass `startAfter` (last doc from previous page) to advance.
+ * Supports optional where-clauses and a single orderBy field.
+ */
+export async function listDocsPaginated(
+  path: string,
+  {
+    pageSize = 25,
+    startAfter = null,
+    whereClauses = [],
+    orderField,
+    orderDir = "desc",
+  }: {
+    pageSize?: number;
+    startAfter?: DocumentSnapshot | null;
+    whereClauses?: Array<[string, WhereFilterOp, unknown]>;
+    orderField?: string;
+    orderDir?: OrderDir;
+  } = {},
+): Promise<PaginatedResult> {
+  const db = await getFirebaseDb();
+  const {
+    collection,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    startAfter: saFn,
+    where,
+  } = await import("firebase/firestore");
+
+  const constraints: QueryConstraint[] = [];
+  if (orderField) constraints.push(orderBy(orderField, orderDir));
+  for (const [field, op, value] of whereClauses) {
+    constraints.push(where(field, op as WhereFilterOp, value));
+  }
+  constraints.push(limit(pageSize));
+  if (startAfter) constraints.push(saFn(startAfter));
+
+  const snap = await getDocs(query(collection(db, path), ...constraints));
+  return {
+    docs: snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    lastDoc: snap.docs[snap.docs.length - 1] ?? null,
+    hasMore: snap.docs.length === pageSize,
+  };
+}
+
+/**
+ * Fetch specific documents by ID. Batches into chunks of 30 to stay within
+ * the Firestore `in` operator limit. Returns docs in arbitrary order.
+ */
+export async function getDocsByIds(
+  path: string,
+  ids: string[],
+): Promise<DocRow[]> {
+  if (ids.length === 0) return [];
+  const db = await getFirebaseDb();
+  const { collection, documentId, getDocs, query, where } = await import(
+    "firebase/firestore"
+  );
+  const CHUNK = 30;
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK));
+  const results = await Promise.all(
+    chunks.map((chunk) =>
+      getDocs(
+        query(collection(db, path), where(documentId(), "in", chunk)),
+      ).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    ),
+  );
+  return results.flat();
 }
 
 /** Call an onCall Cloud Function (default region us-central1) and return its data. */

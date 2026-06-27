@@ -17,6 +17,10 @@ interface Category {
   id: string;
   name: string;
 }
+interface CatV2 {
+  id: string;
+  name: string;
+}
 interface Publisher {
   code: string;
   name: string;
@@ -30,6 +34,7 @@ const EMPTY_FORM = {
   image_url: "",
   firestore_url: "",
   category: "0",
+  category_v2: "",
   publisher: "",
   order: "0",
   hidden: false,
@@ -41,6 +46,7 @@ const EMPTY_FORM = {
 export default function AdminEditBooksPage() {
   const [books, setBooks] = useState<DocRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [catsV2, setCatsV2] = useState<CatV2[]>([]);
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -60,15 +66,17 @@ export default function AdminEditBooksPage() {
   const [saving, setSaving] = useState(false);
 
   async function reload() {
-    const [b, c, p] = await Promise.all([
+    const [b, c, cv2, p] = await Promise.all([
       listDocs("books", { field: "title", dir: "asc" }),
       listDocs("book_category", { field: "id", dir: "desc" }),
+      listDocs("book_category_v2", { field: "order", dir: "asc" }),
       listDocs("publisher"),
     ]);
     setBooks(b);
     // book_category is ordered by its `id` field; listDocs surfaces that field
     // as row.id (data fields override the doc id in the spread).
     setCategories(c.map((d) => ({ id: asString(d.id), name: asString(d["name"]) })));
+    setCatsV2(cv2.map((d) => ({ id: asString(d.id), name: asString(d["name"]) })));
     setPublishers(p.map((d) => ({ code: asString(d["code"]), name: asString(d["name"]) })));
     setLoaded(true);
   }
@@ -76,14 +84,16 @@ export default function AdminEditBooksPage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [b, c, p] = await Promise.all([
+      const [b, c, cv2, p] = await Promise.all([
         listDocs("books", { field: "title", dir: "asc" }),
         listDocs("book_category", { field: "id", dir: "desc" }),
+        listDocs("book_category_v2", { field: "order", dir: "asc" }),
         listDocs("publisher"),
       ]);
       if (!active) return;
       setBooks(b);
       setCategories(c.map((d) => ({ id: asString(d.id), name: asString(d["name"]) })));
+      setCatsV2(cv2.map((d) => ({ id: asString(d.id), name: asString(d["name"]) })));
       setPublishers(p.map((d) => ({ code: asString(d["code"]), name: asString(d["name"]) })));
       setLoaded(true);
     })();
@@ -154,6 +164,7 @@ export default function AdminEditBooksPage() {
       image_url: asString(b.image_url),
       firestore_url: asString(b.firestore_url),
       category: asString(b.category ?? "0"),
+      category_v2: asString(b.category_v2 ?? "") || asString(b.category ?? ""),
       publisher: asString(b.publisher ?? ""),
       order: asString(b.order ?? "0"),
       hidden: b.hidden === true,
@@ -184,6 +195,7 @@ export default function AdminEditBooksPage() {
       toc: form.toc,
       image_url: form.image_url,
       category: form.category,
+      category_v2: form.category_v2,
       publisher: form.publisher,
       order: asNumber(form.order),
       hidden: form.hidden,
@@ -353,6 +365,16 @@ export default function AdminEditBooksPage() {
                   선택해주세요
                 </option>
                 {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="카테고리 v2 (optional)">
+              <select value={form.category_v2} onChange={(e) => setForm({ ...form, category_v2: e.target.value })}>
+                <option value="">선택 없음</option>
+                {catsV2.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>

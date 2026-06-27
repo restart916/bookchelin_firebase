@@ -5,6 +5,41 @@
 
 export type EpubTheme = "normal" | "dark";
 
+/** 한국어 폰트 ID 목록 (웹폰트 로드 + epub.js fontFamily 적용). */
+export type EpubFont = "sans" | "serif" | "gothic";
+
+export interface FontOption {
+  id: EpubFont;
+  label: string;
+  /** Google Fonts URL fragment for the <link> tag injected into the EPUB iframe. */
+  googleFontParam: string | null;
+  /** CSS font-family value applied via themes.default(). */
+  css: string;
+}
+
+export const FONT_OPTIONS: FontOption[] = [
+  {
+    id: "sans",
+    label: "고딕",
+    googleFontParam: "Noto+Sans+KR:wght@400;700",
+    css: "'Noto Sans KR', sans-serif",
+  },
+  {
+    id: "serif",
+    label: "명조",
+    googleFontParam: "Noto+Serif+KR:wght@400;700",
+    css: "'Noto Serif KR', serif",
+  },
+  {
+    id: "gothic",
+    label: "도서",
+    googleFontParam: "Nanum+Gothic:wght@400;700",
+    css: "'Nanum Gothic', sans-serif",
+  },
+];
+
+export const DEFAULT_FONT: EpubFont = "sans";
+
 export interface ViewerSettings {
   /** epubcfi location to restore, e.g. "epubcfi(/6/18[ch01]!/4/14/1:136)". */
   cfi?: string;
@@ -14,6 +49,8 @@ export interface ViewerSettings {
   sideMargin: number;
   /** Color theme, default "normal". */
   theme: EpubTheme;
+  /** Korean font selection, default "sans". */
+  font: EpubFont;
 }
 
 export const DEFAULT_VIEWER_SETTINGS: ViewerSettings = {
@@ -21,10 +58,11 @@ export const DEFAULT_VIEWER_SETTINGS: ViewerSettings = {
   fontSize: 100,
   sideMargin: 20,
   theme: "normal",
+  font: DEFAULT_FONT,
 };
 
 /** Bridge message event keys understood by the iOS app's `_processChannel`. */
-export type BridgeEvent = "relocated" | "fontsize" | "margin" | "theme";
+export type BridgeEvent = "relocated" | "fontsize" | "margin" | "theme" | "font";
 
 function firstString(value: string | string[] | undefined): string | undefined {
   if (Array.isArray(value)) return value[0];
@@ -64,11 +102,16 @@ export function parseViewerSettings(
   const themeRaw = firstString(query.theme);
   const theme: EpubTheme = themeRaw === "dark" ? "dark" : "normal";
 
+  const fontRaw = firstString(query.font);
+  const font: EpubFont =
+    FONT_OPTIONS.some((f) => f.id === fontRaw) ? (fontRaw as EpubFont) : DEFAULT_FONT;
+
   return {
     cfi,
     fontSize: toPositiveInt(query.fontsize, DEFAULT_VIEWER_SETTINGS.fontSize),
     sideMargin: toPositiveInt(query.margin, DEFAULT_VIEWER_SETTINGS.sideMargin),
     theme,
+    font,
   };
 }
 
