@@ -25,6 +25,13 @@ declare global {
   interface Window {
     // Injected by the iOS app (Flutter `addJavaScriptChannel('flutter_webview')`).
     flutter_webview?: { postMessage: (message: string) => void };
+    // Injected by the Android app (WebEpubActivity addJavascriptInterface).
+    // Android WebView lacks navigator.share(files)/blob download, so share/save
+    // route to native here.
+    android_bridge?: {
+      shareImage?: (url: string, text: string) => void;
+      saveImage?: (url: string) => void;
+    };
   }
 }
 
@@ -322,13 +329,8 @@ export function EpubReader({
     }
   }
 
-  // 모바일/웹뷰 우선 경로: Web Share API(파일 공유) → 실패 시 다운로드 폴백.
-  async function shareImage() {
-    const blob = await fetchShareBlob();
-    if (!blob) { alert("이미지를 길게 눌러 저장해 주세요."); return; }
-    const file = new File([blob], "bookchelin.png", { type: "image/png" });
-    const nav = navigator as Navigator & { canShare?: (d?: unknown) => boolean };
-    // 공유 멘트: 인용문 + 책 정보 + 북슐랭 웹 책 링크(설치 유도 SEO 페이지).
+  // 공유 멘트(A안): 인용문 + 책 정보 + 북슐랭 웹 책 링크(설치 유도 SEO 페이지).
+  function buildShareText(): { base: string; withLink: string; link: string; title: string } {
     const title = metaRef.current.title || "북슐랭";
     const author = metaRef.current.author;
     const quote = selectedTextRef.current;
@@ -336,20 +338,44 @@ export function EpubReader({
     const link = bookId
       ? `https://bookchelin.com/book/${encodeURIComponent(bookId)}`
       : "https://bookchelin.com";
-    const text =
-      `"${quoteShort}"\n\n『${title}』${author ? ` · ${author}` : ""}\n북슐랭에서 무료로 읽기`;
+    const base = `"${quoteShort}"\n\n『${title}』${author ? ` · ${author}` : ""}\n북슐랭에서 무료로 읽기`;
+    return { base, withLink: `${base}\n${link}`, link, title };
+  }
+
+  async function shareImage() {
+    if (!shareUrl) return;
+    const { base, withLink, link, title } = buildShareText();
+
+    // 1) Android 인앱 WebView — navigator.share(파일)/blob 다운로드 미지원 → 네이티브 브릿지.
+    const bridge = typeof window !== "undefined" ? window.android_bridge : undefined;
+    if (bridge && typeof bridge.shareImage === "function") {
+      try { bridge.shareImage(shareUrl, withLink); return; } catch { /* 폴백 진행 */ }
+    }
+
+    // 2) iOS/데스크톱 Chrome — Web Share(파일). 링크는 url 로 별도 전달(텍스트 중복 방지).
+    const blob = await fetchShareBlob();
+    if (!blob) { alert("이미지를 길게 눌러 저장해 주세요."); return; }
+    const file = new File([blob], "bookchelin.png", { type: "image/png" });
+    const nav = navigator as Navigator & { canShare?: (d?: unknown) => boolean };
     try {
       if (nav.canShare && nav.canShare({ files: [file] }) && navigator.share) {
-        await navigator.share({ files: [file], text, url: link, title });
+        await navigator.share({ files: [file], text: base, url: link, title });
         return;
       }
     } catch {
       // 사용자가 공유 취소했거나 미지원 → 다운로드로 폴백
     }
+    // 3) 다운로드 폴백
     downloadBlob(blob);
   }
 
   async function saveImage() {
+    if (!shareUrl) return;
+    // Android 인앱 WebView 는 blob 다운로드가 안 되므로 네이티브로 갤러리 저장.
+    const bridge = typeof window !== "undefined" ? window.android_bridge : undefined;
+    if (bridge && typeof bridge.saveImage === "function") {
+      try { bridge.saveImage(shareUrl); return; } catch { /* 폴백 진행 */ }
+    }
     const blob = await fetchShareBlob();
     if (!blob) { alert("이미지를 길게 눌러 저장해 주세요."); return; }
     downloadBlob(blob);
