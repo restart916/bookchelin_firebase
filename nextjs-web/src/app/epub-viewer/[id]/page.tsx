@@ -31,5 +31,5 @@ export default async function EpubViewerPage({ params, searchParams }: Props) {
 
   const settings = parseViewerSettings(query);
 
-  return <EpubReader url={resolved.url} settings={settings} />;
+  return <EpubReader url={resolved.url} settings={settings} bookId={id} />;
 }

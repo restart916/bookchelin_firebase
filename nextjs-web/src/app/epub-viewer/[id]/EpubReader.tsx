@@ -37,9 +37,11 @@ function notifyApp(event: "relocated" | "fontsize" | "margin" | "theme" | "font"
 export function EpubReader({
   url,
   settings,
+  bookId,
 }: {
   url: string;
   settings: ViewerSettings;
+  bookId?: string;
 }) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const renditionRef = useRef<Rendition | null>(null);
@@ -326,9 +328,19 @@ export function EpubReader({
     if (!blob) { alert("이미지를 길게 눌러 저장해 주세요."); return; }
     const file = new File([blob], "bookchelin.png", { type: "image/png" });
     const nav = navigator as Navigator & { canShare?: (d?: unknown) => boolean };
+    // 공유 멘트: 인용문 + 책 정보 + 북슐랭 웹 책 링크(설치 유도 SEO 페이지).
+    const title = metaRef.current.title || "북슐랭";
+    const author = metaRef.current.author;
+    const quote = selectedTextRef.current;
+    const quoteShort = quote.length > 120 ? quote.slice(0, 119).trimEnd() + "…" : quote;
+    const link = bookId
+      ? `https://bookchelin.com/book/${encodeURIComponent(bookId)}`
+      : "https://bookchelin.com";
+    const text =
+      `"${quoteShort}"\n\n『${title}』${author ? ` · ${author}` : ""}\n북슐랭에서 무료로 읽기`;
     try {
       if (nav.canShare && nav.canShare({ files: [file] }) && navigator.share) {
-        await navigator.share({ files: [file], title: "북슐랭" });
+        await navigator.share({ files: [file], text, url: link, title });
         return;
       }
     } catch {
