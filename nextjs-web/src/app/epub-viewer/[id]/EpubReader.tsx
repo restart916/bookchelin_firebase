@@ -56,6 +56,16 @@ export function EpubReader({
   const [theme, setTheme] = useState<EpubTheme>(settings.theme);
   const [font, setFont] = useState<EpubFont>(settings.font);
 
+  // 본문 선택 → 공유 이미지 (wimouniv /api/share-image).
+  const [meta, setMeta] = useState<{ title: string; author: string }>({ title: "", author: "" });
+  const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null); // null = 모달 닫힘
+  const [shareLoading, setShareLoading] = useState(false);
+  const metaRef = useRef(meta);
+  const selectedTextRef = useRef(selectedText);
+  useEffect(() => { metaRef.current = meta; }, [meta]);
+  useEffect(() => { selectedTextRef.current = selectedText; }, [selectedText]);
+
   // Keep the latest values for use inside epubjs callbacks without re-binding.
   const fontSizeRef = useRef(fontSize);
   const sideMarginRef = useRef(sideMargin);
@@ -97,9 +107,21 @@ export function EpubReader({
         if (!cancelled) setToc(nav.toc ?? []);
       });
 
+      // 책 제목/저자 — 공유 이미지에 사용 (EPUB content.opf 메타데이터).
+      book.loaded.metadata.then((m: { title?: string; creator?: string }) => {
+        if (!cancelled) setMeta({ title: m?.title ?? "", author: m?.creator ?? "" });
+      });
+
       rendition.on("relocated", (location: { end?: { cfi?: string } }) => {
         const cfi = location?.end?.cfi;
         if (cfi) notifyApp("relocated", cfi);
+      });
+
+      // 본문 드래그 선택 → 하단 "공유하기" 노출. epubjs 'selected'는 선택 확정 시 발화.
+      rendition.on("selected", (_cfiRange: string, contents: unknown) => {
+        const win = (contents as { window?: Window })?.window;
+        const text = win?.getSelection?.()?.toString?.().trim();
+        if (text) setSelectedText(capShareText(text));
       });
 
       // Inject Google Fonts into each chapter iframe so Korean font-family works.
@@ -144,6 +166,18 @@ export function EpubReader({
           },
           true, // capture — fires before onclick and before WKWebView native handling
         );
+      });
+
+      // 선택이 비워지면(탭으로 해제) "공유하기" 버튼을 숨긴다.
+      rendition.hooks.content.register((contents: unknown) => {
+        const c = contents as { document?: Document; window?: Window };
+        const doc = c.document;
+        const win = c.window;
+        if (!doc || !win) return;
+        doc.addEventListener("selectionchange", () => {
+          const s = win.getSelection();
+          if (!s || s.toString().trim() === "") setSelectedText(null);
+        });
       });
 
       // Single themes.default() call covers theme + fontSize + sideMargin + font in one
@@ -238,6 +272,18 @@ export function EpubReader({
     }
   }
 
+  function openShare() {
+    const text = selectedTextRef.current;
+    if (!text) return;
+    const qs = new URLSearchParams({
+      title: metaRef.current.title,
+      author: metaRef.current.author,
+      content: text,
+    });
+    setShareUrl(`${SHARE_IMAGE_BASE}?${qs.toString()}`);
+    setShareLoading(true);
+  }
+
   return (
     <div className={`epub-root epub-${theme}`}>
       {loading && (
@@ -314,9 +360,49 @@ export function EpubReader({
         </div>
       )}
 
+      {selectedText && !shareUrl && (
+        <div className="epub-share-cta">
+          <button type="button" className="epub-share-btn" onClick={openShare}>
+            🖼 선택 문장 공유하기
+          </button>
+        </div>
+      )}
+
+      {shareUrl && (
+        <div className="epub-share-modal" onClick={() => { setShareUrl(null); setSelectedText(null); }}>
+          <div className="epub-share-card" onClick={(e) => e.stopPropagation()}>
+            <header className="epub-share-card__head">
+              <span>공유 이미지</span>
+              <button type="button" onClick={() => { setShareUrl(null); setSelectedText(null); }} aria-label="닫기">✕</button>
+            </header>
+            <div className="epub-share-card__body">
+              {shareLoading && <div className="epub-spinner" />}
+              {/* 생성된 이미지만 표시. 모바일에선 이미지를 꾹 눌러 저장/공유. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={shareUrl}
+                alt="공유 이미지"
+                className="epub-share-img"
+                style={{ display: shareLoading ? "none" : "block" }}
+                onLoad={() => setShareLoading(false)}
+                onError={() => setShareLoading(false)}
+              />
+            </div>
+            <p className="epub-share-hint">이미지를 길게 눌러 저장하거나 공유하세요</p>
+          </div>
+        </div>
+      )}
+
       <style dangerouslySetInnerHTML={{ __html: READER_CSS }} />
     </div>
   );
+}
+
+// 공유 이미지 엔드포인트 (wimouniv 헤드리스 next/og). 본문은 길이 캡 + 공백 정규화.
+const SHARE_IMAGE_BASE = "https://wimouniv.com/api/share-image";
+function capShareText(t: string): string {
+  const norm = t.replace(/\s+/g, " ").trim();
+  return norm.length > 300 ? norm.slice(0, 299).trimEnd() + "…" : norm;
 }
 
 const READER_CSS = `
@@ -352,6 +438,22 @@ html, body { height: 100%; margin: 0; }
 .epub-toc ul { list-style: none; margin: 0; padding: 0; }
 .epub-toc li button { display: block; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid #f2f2f2; padding: 12px 16px; font-size: 14px; color: #212121; cursor: pointer; }
 .epub-root.epub-dark .epub-toc li button { color: #e0e0e0; border-bottom-color: #2e2e2e; }
+
+/* 선택 시 하단 공유 CTA (하단 컨트롤 바 위에 떠 있음) */
+.epub-share-cta { position: fixed; left: 0; right: 0; bottom: calc(52px + env(safe-area-inset-bottom)); z-index: 10002; display: flex; justify-content: center; pointer-events: none; }
+.epub-share-btn { pointer-events: auto; background: #fb3026; color: #fff; border: none; border-radius: 999px; padding: 12px 22px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 16px rgba(251,48,38,0.35); cursor: pointer; }
+.epub-share-btn:active { transform: translateY(1px); }
+
+/* 생성된 이미지 모달 */
+.epub-share-modal { position: fixed; inset: 0; z-index: 10003; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.epub-share-card { width: min(92vw, 460px); max-height: 90vh; background: #fff; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.epub-root.epub-dark .epub-share-card { background: #1c1c1c; }
+.epub-share-card__head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; font-weight: 600; color: #212121; }
+.epub-root.epub-dark .epub-share-card__head { border-bottom-color: #444; color: #e0e0e0; }
+.epub-share-card__head button { background: none; border: none; font-size: 16px; cursor: pointer; color: inherit; }
+.epub-share-card__body { display: flex; align-items: center; justify-content: center; padding: 16px; min-height: 200px; }
+.epub-share-img { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.18); -webkit-touch-callout: default; }
+.epub-share-hint { margin: 0; padding: 0 16px 16px; text-align: center; font-size: 12px; color: #888; }
 `;
 
 /**
