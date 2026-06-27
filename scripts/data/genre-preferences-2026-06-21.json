@@ -1,0 +1,243 @@
+{
+  "generated_at": "2026-06-21T06:43:27.623Z",
+  "window_days": 30,
+  "cutoff": "2026-05-22T06:43:24.738Z",
+  "totals": {
+    "hours": 614.5,
+    "sessions": 8958,
+    "unique_readers": 529
+  },
+  "genre_ranking": [
+    {
+      "genre": "문학",
+      "hours": 269.8,
+      "share_pct": 43.9,
+      "sessions": 4658,
+      "readers": 292,
+      "books_read": 144,
+      "sec_per_reader": 3326
+    },
+    {
+      "genre": "경제경영",
+      "hours": 139.5,
+      "share_pct": 22.7,
+      "sessions": 731,
+      "readers": 85,
+      "books_read": 48,
+      "sec_per_reader": 5908
+    },
+    {
+      "genre": "자기계발",
+      "hours": 102.1,
+      "share_pct": 16.6,
+      "sessions": 2204,
+      "readers": 200,
+      "books_read": 48,
+      "sec_per_reader": 1838
+    },
+    {
+      "genre": "지식교양",
+      "hours": 92.3,
+      "share_pct": 15,
+      "sessions": 1039,
+      "readers": 133,
+      "books_read": 61,
+      "sec_per_reader": 2499
+    },
+    {
+      "genre": "키즈",
+      "hours": 10,
+      "share_pct": 1.6,
+      "sessions": 282,
+      "readers": 56,
+      "books_read": 30,
+      "sec_per_reader": 640
+    },
+    {
+      "genre": "취업수험",
+      "hours": 0.8,
+      "share_pct": 0.1,
+      "sessions": 44,
+      "readers": 17,
+      "books_read": 12,
+      "sec_per_reader": 168
+    }
+  ],
+  "top_books": [
+    {
+      "title": "성경과 함께 떠나는 시장경제 여행",
+      "genre": "경제경영",
+      "hours": 87,
+      "readers": 1,
+      "sessions": 1
+    },
+    {
+      "title": "일본어 유래 사전",
+      "genre": "지식교양",
+      "hours": 48.2,
+      "readers": 2,
+      "sessions": 3
+    },
+    {
+      "title": "교통사고 전문 삼비 탐정",
+      "genre": "문학",
+      "hours": 32.4,
+      "readers": 3,
+      "sessions": 23
+    },
+    {
+      "title": "십자도 살인사건",
+      "genre": "문학",
+      "hours": 24.3,
+      "readers": 4,
+      "sessions": 32
+    },
+    {
+      "title": "창업, 오늘 안하면 내일도 못한다",
+      "genre": "경제경영",
+      "hours": 22.8,
+      "readers": 3,
+      "sessions": 6
+    },
+    {
+      "title": "말 잘하는 즐거움",
+      "genre": "자기계발",
+      "hours": 20.7,
+      "readers": 26,
+      "sessions": 250
+    },
+    {
+      "title": "지혜의 기술",
+      "genre": "문학",
+      "hours": 20,
+      "readers": 31,
+      "sessions": 310
+    },
+    {
+      "title": "뜬금없이 사랑이 시작되었다",
+      "genre": "문학",
+      "hours": 19.9,
+      "readers": 22,
+      "sessions": 400
+    },
+    {
+      "title": "다치지 않고 상처주지 않고 말하는 기술",
+      "genre": "자기계발",
+      "hours": 18.2,
+      "readers": 30,
+      "sessions": 253
+    },
+    {
+      "title": "지치지 않는 힘",
+      "genre": "자기계발",
+      "hours": 17.5,
+      "readers": 36,
+      "sessions": 433
+    },
+    {
+      "title": "스토아적 삶의 권유",
+      "genre": "지식교양",
+      "hours": 14.3,
+      "readers": 10,
+      "sessions": 200
+    },
+    {
+      "title": "안개의 산",
+      "genre": "문학",
+      "hours": 13.7,
+      "readers": 4,
+      "sessions": 225
+    },
+    {
+      "title": "삼국지 1",
+      "genre": "문학",
+      "hours": 13.4,
+      "readers": 18,
+      "sessions": 223
+    },
+    {
+      "title": "죽은 시인의 사회",
+      "genre": "문학",
+      "hours": 12.7,
+      "readers": 12,
+      "sessions": 210
+    },
+    {
+      "title": "딴짓의 힘",
+      "genre": "자기계발",
+      "hours": 9.7,
+      "readers": 10,
+      "sessions": 242
+    },
+    {
+      "title": "변화의 시작 하루 1%",
+      "genre": "자기계발",
+      "hours": 9.4,
+      "readers": 22,
+      "sessions": 162
+    },
+    {
+      "title": "병원에서 죽는다는 것",
+      "genre": "문학",
+      "hours": 8.8,
+      "readers": 10,
+      "sessions": 119
+    },
+    {
+      "title": "어린왕자",
+      "genre": "문학",
+      "hours": 8.3,
+      "readers": 34,
+      "sessions": 181
+    },
+    {
+      "title": "레미제라블",
+      "genre": "문학",
+      "hours": 8.2,
+      "readers": 16,
+      "sessions": 247
+    },
+    {
+      "title": "흔들리고 있는 소녀를 보거든",
+      "genre": "문학",
+      "hours": 7.5,
+      "readers": 9,
+      "sessions": 164
+    },
+    {
+      "title": "셜록홈즈 1 (셜록 홈즈의 모험 1)",
+      "genre": "문학",
+      "hours": 6.3,
+      "readers": 14,
+      "sessions": 115
+    },
+    {
+      "title": "부활",
+      "genre": "문학",
+      "hours": 5.8,
+      "readers": 5,
+      "sessions": 78
+    },
+    {
+      "title": "탈무드",
+      "genre": "지식교양",
+      "hours": 5.5,
+      "readers": 20,
+      "sessions": 132
+    },
+    {
+      "title": "행복한 부자 되는 법",
+      "genre": "경제경영",
+      "hours": 4.7,
+      "readers": 11,
+      "sessions": 136
+    },
+    {
+      "title": "셜록홈즈 4 (셜록 홈즈의 회상록 2)",
+      "genre": "문학",
+      "hours": 4.4,
+      "readers": 3,
+      "sessions": 94
+    }
+  ]
+}

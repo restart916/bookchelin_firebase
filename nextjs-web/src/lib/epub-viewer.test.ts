@@ -15,7 +15,7 @@ describe("parseViewerSettings", () => {
   it("parses fontsize, margin and theme", () => {
     expect(
       parseViewerSettings({ fontsize: "130", margin: "40", theme: "dark" }),
-    ).toEqual({ cfi: undefined, fontSize: 130, sideMargin: 40, theme: "dark" });
+    ).toEqual({ cfi: undefined, fontSize: 130, sideMargin: 40, theme: "dark", font: "sans" });
   });
 
   it("decodes a url-encoded cfi (which itself contains colons/parens)", () => {
