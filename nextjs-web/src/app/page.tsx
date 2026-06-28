@@ -38,7 +38,7 @@ export default async function HomePage() {
         <div className="container hero__inner">
           <div className="hero__copy">
             <span className="hero__kicker">오늘, 어떤 문장을 만나고 싶나요?</span>
-            <h1>좋은 책을 고르는 시간부터<br />독서는 시작되니까.</h1>
+            <h1>좋은 책을 발견하고,<br />매일 더 맛있는 독서 습관을</h1>
             <p>매일 새롭게 고른 책을 발견하고, 북슐랭 앱에서 끝까지 무료로 읽어보세요.</p>
             <StoreCta placement="home_hero" source="home" />
           </div>
