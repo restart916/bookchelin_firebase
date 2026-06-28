@@ -81,6 +81,13 @@ node_modules/
 
 # Script-generated artifacts (verify-book-images 등)
 scripts/output/
+scripts/series_out/
+
+# Claude Code 로컬 설정 (커밋 안 함)
+.claude/
+
+# 로컬 연구/작업 산출물 (커밋 안 함)
+outputs/
 
 # 사전 데이터 덤프 (repo에 커밋하지 않음 — CLAUDE.md 참조)
 bookoc119_books.json
