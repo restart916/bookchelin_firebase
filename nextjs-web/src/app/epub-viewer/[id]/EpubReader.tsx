@@ -173,8 +173,22 @@ export function EpubReader({
             if (!link) return;
             const href = link.getAttribute("href");
             if (!href) return;
-            // Leave external / mailto links alone.
-            if (href.startsWith("http") || href.startsWith("//") || href.startsWith("mailto:")) return;
+            // 외부 링크(http/https///): 앱이면 네이티브 브리지로 외부 브라우저, 웹이면 새 탭.
+            // epubjs 콘텐츠는 샌드박스 iframe이라 그 안의 window.open/링크 이동이 막혀
+            // 아무 일도 일어나지 않으므로, 부모 컨텍스트에서 직접 처리한다.
+            if (href.startsWith("http") || href.startsWith("//")) {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              const url = href.startsWith("//") ? `https:${href}` : href;
+              if (typeof window !== "undefined" && window.flutter_webview) {
+                window.flutter_webview.postMessage(formatBridgeMessage("openExternal", url));
+              } else {
+                window.open(url, "_blank", "noopener,noreferrer");
+              }
+              return;
+            }
+            // mailto/tel 등은 기본 처리(메일·전화 앱)에 맡긴다.
+            if (href.startsWith("mailto:") || href.startsWith("tel:")) return;
             e.preventDefault();
             e.stopImmediatePropagation();
             rendition.display(href);

@@ -62,7 +62,7 @@ export const DEFAULT_VIEWER_SETTINGS: ViewerSettings = {
 };
 
 /** Bridge message event keys understood by the iOS app's `_processChannel`. */
-export type BridgeEvent = "relocated" | "fontsize" | "margin" | "theme" | "font";
+export type BridgeEvent = "relocated" | "fontsize" | "margin" | "theme" | "font" | "openExternal";
 
 function firstString(value: string | string[] | undefined): string | undefined {
   if (Array.isArray(value)) return value[0];
