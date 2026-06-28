@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   addDocTo,
-  asNumber,
   asString,
   deleteDocAt,
   listDocs,
@@ -94,7 +93,9 @@ export default function AdminEditSuggestBookPage() {
     const data: Record<string, unknown> = {
       title: form.title,
       books: bookIds,
-      order: asNumber(form.order),
+      // order 는 문자열로 저장한다(앱·기존 데이터가 문자열 사전순 정렬). 숫자로 저장하면
+      // Firestore 타입 정렬상 숫자가 문자열보다 앞서서 그룹이 맨 위로 튄다.
+      order: String(form.order ?? "").trim() || "0",
     };
     try {
       if (form.suggestId) {
