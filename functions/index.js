@@ -32,6 +32,7 @@ const { handleWebBook } = require('./web_book');
 const { getActiveBooks, rebuildActiveBooksCache } = require('./event_cache');
 const { sendDailyPersonalizedPush } = require('./personalized_push');
 const { createReviewHandlers } = require('./reviews');
+const { classifyReadTime } = require('./read_time_sanitize');
 
 // read_time_logs 보관 기간(일). TTL 정책용 expireAt 필드 계산에 사용.
 // Firestore 네이티브 TTL: Firebase Console → Firestore → Indexes → TTL → read_time_logs / expireAt
@@ -108,18 +109,23 @@ updateReadTimeLog = async () => {
     // console.log(doc.id, " => ", doc.data())
     let read_info = doc.data();
     let book_id = read_info.book_id;
+    const cls = classifyReadTime(read_info.read_time);
+    if (!cls.valid) {
+      continue; // 손상값은 일집계에서도 제외
+    }
+    const rt = cls.value;
     if (book_id in count_data) {
-      count_data[book_id] += read_info.read_time;
+      count_data[book_id] += rt;
     } else {
-      count_data[book_id] = read_info.read_time;
+      count_data[book_id] = rt;
     }
 
     let user_uid = read_info.user_uid;
     if (user_uid !== undefined) {
       if (user_uid in count_data_by_user) {
-        count_data_by_user[user_uid] += read_info.read_time;
+        count_data_by_user[user_uid] += rt;
       } else {
-        count_data_by_user[user_uid] = read_info.read_time;
+        count_data_by_user[user_uid] = rt;
       }
       if (book_id) {
         if (!readers_by_book[book_id]) readers_by_book[book_id] = new Set();
@@ -511,14 +517,35 @@ exports.add_time_read_time_logs = functions.firestore
     const user_uid = newValue.user_uid || 'unknown';
     const book_id = newValue.book_id;
 
-    // 활성 이벤트가 없는 책은 time_event / limit_event 조회를 스킵해 읽기 비용을 절감한다.
-    // event_state/active_books 를 5분 인스턴스 캐시로 읽는다(대부분 히트).
-    // 신규 이벤트 반영 지연: 외부에서 이벤트 생성 시 daily_job(자정) 또는
-    //   refresh_active_books HTTPS 호출 전까지 최대 5분 추가 지연이 있다.
-    const activeBooks = await getActiveBooks(db);
-    if (activeBooks.time.has(book_id) || activeBooks.limit.has(book_id)) {
-      await updateTimeEvent(book_id, user_uid, newValue.read_time, context.timestamp);
-      await updateLimitEvent(book_id, user_uid, newValue.read_time, context.timestamp);
+    const cls = classifyReadTime(newValue.read_time);
+    if (!cls.valid) {
+      // 손상값(비숫자/NaN/Infinity/음수): 합산 제외. 데이터는 남기되 마커+로그.
+      console.warn('read_time_logs corrupt value skipped', JSON.stringify({
+        docId: context.params.document_id, book_id, user_uid,
+        read_time: newValue.read_time, source: newValue.source || null,
+        client: newValue.client || null,
+      }));
+      await snap.ref.set({ corrupt: true }, { merge: true });
+      // createdAt/expireAt 부착은 아래 공통 로직에서 계속 진행(TTL 청소 위해)
+    } else {
+      if (cls.anomaly) {
+        // 유한 양수 거대값: 값은 보존(자르지 않음) + 합산 + 마커/로그.
+        console.warn('read_time_logs anomaly (over threshold)', JSON.stringify({
+          docId: context.params.document_id, book_id, user_uid,
+          read_time: cls.value, source: newValue.source || null,
+          client: newValue.client || null,
+        }));
+        await snap.ref.set({ anomaly: true }, { merge: true });
+      }
+      // 활성 이벤트가 없는 책은 time_event / limit_event 조회를 스킵해 읽기 비용을 절감한다.
+      // event_state/active_books 를 5분 인스턴스 캐시로 읽는다(대부분 히트).
+      // 신규 이벤트 반영 지연: 외부에서 이벤트 생성 시 daily_job(자정) 또는
+      //   refresh_active_books HTTPS 호출 전까지 최대 5분 추가 지연이 있다.
+      const activeBooks = await getActiveBooks(db);
+      if (activeBooks.time.has(book_id) || activeBooks.limit.has(book_id)) {
+        await updateTimeEvent(book_id, user_uid, cls.value, context.timestamp);
+        await updateLimitEvent(book_id, user_uid, cls.value, context.timestamp);
+      }
     }
 
     const docData = snap.data();
