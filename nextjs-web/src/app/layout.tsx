@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AdSenseLoader } from "@/components/adsense-loader";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -31,7 +32,10 @@ export const metadata: Metadata = {
     description: "문학부터 지식교양까지, 좋은 전자책을 북슐랭 앱에서 무료로 읽어보세요.",
     images: ["/og.png"],
   },
-  other: { "apple-itunes-app": "app-id=1544648278" },
+  other: {
+    "apple-itunes-app": "app-id=1544648278",
+    "google-adsense-account": "ca-pub-1514313371293640",
+  },
 };
 
 export default function RootLayout({
@@ -42,6 +46,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
+        <AdSenseLoader />
         <AnalyticsProvider />
         <SiteHeader />
         <main className="site-main">{children}</main>
