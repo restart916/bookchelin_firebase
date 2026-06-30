@@ -17,8 +17,9 @@ const HALFLIFE_DAYS = 3;
 const EXPOSURE_PENALTY = 0.35;
 // 안전장치: 연속 노출이 이 일수 이상이면 1일 강제 쿨다운(무한 점유 방지). 0 이면 끔.
 const SAFETY_MAX_DAYS_SHOWN = 5;
-// 안전장치 강제 쿨다운 기간(일).
-const SAFETY_COOLDOWN_DAYS = 1;
+// 안전장치 강제 쿨다운 기간(일). cooldownUntil = flagDay + N - 1 이라 N일 동안 제외된다.
+// (예: 3 → 5일 연속 노출된 책이 그 후 3일 빠졌다가 복귀)
+const SAFETY_COOLDOWN_DAYS = 3;
 const DAY_MS = 86400000;
 
 // read_time_log 경과일(days_ago)에 대한 지수 감쇠 가중치(반감기 halfLife).

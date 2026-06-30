@@ -462,6 +462,25 @@ test('selectTrendingWithCooldown: 쿨다운 중이면 제외', () => {
   assert.ok(r2.selected.some((c) => c.book_id === 'A')); // 만료 → 복귀
 });
 
+test('selectTrendingWithCooldown: 안전장치 쿨다운 기본값(상수)은 3일 휴식', () => {
+  // safetyCooldownDays 를 생략 → 상수 SAFETY_COOLDOWN_DAYS 사용. 5일 연속 후 3일 빠졌다 복귀.
+  const OPT_CONST = { exposurePenalty: 0.35, safetyMaxDaysShown: 5 };
+  const prev = { A: { days_shown: 5 } };
+  const r0 = hd.selectTrendingWithCooldown(RANK, prev, 300, { limit: 2, ...OPT_CONST });
+  assert.ok(!r0.selected.some((c) => c.book_id === 'A')); // 300: 강제 제외
+  // cooldownUntil = 300 + 3 - 1 = 302 (3일짜리 쿨다운)
+  assert.deepStrictEqual(r0.nextState.A, { days_shown: 0, cooldownUntil: 302 });
+
+  const r1 = hd.selectTrendingWithCooldown(RANK, r0.nextState, 301, { limit: 2, ...OPT_CONST });
+  assert.ok(!r1.selected.some((c) => c.book_id === 'A')); // 301: 아직 쿨다운
+
+  const r2 = hd.selectTrendingWithCooldown(RANK, r1.nextState, 302, { limit: 2, ...OPT_CONST });
+  assert.ok(!r2.selected.some((c) => c.book_id === 'A')); // 302: 아직 쿨다운
+
+  const r3 = hd.selectTrendingWithCooldown(RANK, r2.nextState, 303, { limit: 2, ...OPT_CONST });
+  assert.ok(r3.selected.some((c) => c.book_id === 'A')); // 303: 3일 휴식 후 복귀
+});
+
 test('selectTrendingWithCooldown: 구 streak 필드도 days_shown 으로 마이그레이션', () => {
   const prev = { A: { streak: 3 } }; // 구 스키마
   const { nextState } = hd.selectTrendingWithCooldown(RANK, prev, 500, { limit: 3, ...OPT });
