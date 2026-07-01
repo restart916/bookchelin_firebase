@@ -103,7 +103,23 @@ export function EpubReader({
         // never dead-ends at a chapter boundary (no pull-to-turn needed).
         manager: "continuous",
         flow: "scrolled",
-      });
+        // epubjs's own Contents.linksHandler() sets target="_blank" on every
+        // absolute-URL <a> (see replaceLinks() in contents.js) — that's how
+        // it marks "don't intercept this internally". Without allowPopups,
+        // epubjs omits "allow-popups" from the section iframe's sandbox
+        // attribute (defaults to allowPopups: false). On iOS WKWebView, taps
+        // on a target="_blank" link inside a sandboxed iframe that lacks
+        // allow-popups never reach JS at all — confirmed via Safari Web
+        // Inspector: not even touchstart fires on the link, the iframe's own
+        // document, or the iframe element itself, while a normal <button>
+        // outside the iframe works fine. (We never actually need popups to
+        // open — our own onclick below intercepts and calls
+        // preventDefault-equivalent — but WebKit still needs the permission
+        // present to dispatch the tap in the first place.)
+        // allowPopups isn't in epubjs's RenditionOptions .d.ts even though
+        // rendition.js reads it — cast to pass it through.
+        allowPopups: true,
+      } as Parameters<typeof book.renderTo>[1]);
       renditionRef.current = rendition;
       cleanupBook = () => {
         if (selPollId) { clearInterval(selPollId); selPollId = null; }
