@@ -89,6 +89,7 @@ export function EpubReader({
     let cancelled = false;
     let cleanupBook: (() => void) | undefined;
     let selPollId: ReturnType<typeof setInterval> | null = null;
+    let linkPollId: ReturnType<typeof setInterval> | null = null;
 
     (async () => {
       const ePub = (await import("epubjs")).default;
@@ -106,6 +107,7 @@ export function EpubReader({
       renditionRef.current = rendition;
       cleanupBook = () => {
         if (selPollId) { clearInterval(selPollId); selPollId = null; }
+        if (linkPollId) { clearInterval(linkPollId); linkPollId = null; }
         scrollAnchorCleanupRef.current?.();
         scrollAnchorCleanupRef.current = null;
         tocPreloadGuardRef.current?.destroy();
@@ -153,60 +155,77 @@ export function EpubReader({
         doc.head.appendChild(link);
       });
 
-      // Intercept EPUB link clicks before epubjs's own built-in handling.
+      // EPUB 링크 클릭 처리 — 이벤트 비의존(폴링).
       //
-      // History: originally used a document-level capture listener
-      // (doc.addEventListener("click", ..., true)) to fix epubjs's built-in
-      // handleLinks, which calls rendition.display(book.path.relative(href))
-      // — this resolves to "../chap_01.xhtml" (wrong) because book.path.directory
-      // is "EPUB/" and path.relative("EPUB/", "chap_01.xhtml") = "../chap_01.xhtml".
-      // spine.get("../chap_01.xhtml") returns null, JS fails silently, then
-      // WKWebView navigates the whole WebView to the relative URL → Next.js 404.
-      //
-      // That capture listener works on Android but external-link taps do
-      // nothing on iOS WKWebView: synthetic click()/dispatchEvent() calls
-      // from the top-level page's JS context onto elements inside the
-      // section's (srcdoc) iframe do not reliably invoke document-level
-      // capture listeners on WebKit — the exact mechanism is unconfirmed
-      // (WKWebView iframe/event-realm boundary, not something we can fix
-      // from outside epubjs).
-      //
-      // Fix: instead of a delegated document-level listener, assign onclick
-      // directly on each <a href> element — the same mechanism epubjs's own
-      // Contents.linksHandler()/replaceLinks() already uses successfully for
-      // internal links (see contents.js), which is per-element and doesn't
-      // depend on capture-phase delegation surviving iframe re-render timing.
-      rendition.hooks.content.register((contents: unknown) => {
-        const doc = (contents as { document?: Document }).document;
-        if (!doc) return;
-        const links = doc.querySelectorAll<HTMLAnchorElement>("a[href]");
-        links.forEach((link) => {
-          const href = link.getAttribute("href");
-          if (!href) return;
-          // mailto/tel 등은 기본 처리(메일·전화 앱)에 맡긴다.
-          if (href.startsWith("mailto:") || href.startsWith("tel:")) return;
-          // 외부 링크(http/https///): 앱이면 네이티브 브리지로 외부 브라우저, 웹이면 새 탭.
-          // epubjs 콘텐츠는 샌드박스 iframe이라 그 안의 window.open/링크 이동이 막혀
-          // 아무 일도 일어나지 않으므로, 부모 컨텍스트에서 직접 처리한다.
-          if (href.startsWith("http") || href.startsWith("//")) {
+      // History: originally intercepted clicks via a document-level capture
+      // listener (doc.addEventListener("click", ..., true)) registered in
+      // rendition.hooks.content, to fix epubjs's built-in handleLinks
+      // (rendition.display(book.path.relative(href)) resolves to
+      // "../chap_01.xhtml" — wrong, because book.path.directory is "EPUB/"
+      // and path.relative("EPUB/", "chap_01.xhtml") = "../chap_01.xhtml";
+      // spine.get() then returns null and WKWebView falls through to
+      // navigating the whole WebView to the relative URL → Next.js 404).
+      // Then tried assigning onclick directly per <a href> element (the same
+      // mechanism epubjs's own Contents.linksHandler()/replaceLinks() uses
+      // for internal links, see contents.js) instead of the delegated
+      // listener. Neither survived contact with a real device: on iOS
+      // WKWebView, taps on links inside the continuous-scroll section
+      // iframes don't fire ANY click-based handler — confirmed no
+      // combination of native taps, .click(), or dispatchEvent() invokes an
+      // onclick assigned once at hook-fire time. (Directly calling the
+      // handler function works, so the assignment itself is fine — the
+      // event never reaches it. Same iOS-only iframe/event unreliability as
+      // the "선택 텍스트 감지" polling below, just for click instead of
+      // selectionchange.) Fix: skip event handling of any kind — mirror the
+      // existing selection-poll pattern and periodically scan for <a href>
+      // elements, assigning onclick each tick. This survives whatever
+      // WebKit-internal re-render invalidates single-shot hook/listener
+      // wiring, since it doesn't depend on catching a specific event at all.
+      const linkOnclickAttached = new WeakSet<HTMLAnchorElement>();
+      const pollLinks = () => {
+        const root = viewerRef.current;
+        if (!root) return;
+        const iframes = root.querySelectorAll("iframe");
+        for (let i = 0; i < iframes.length; i++) {
+          let doc: Document | null;
+          try {
+            doc = iframes[i].contentDocument;
+          } catch {
+            continue; // iframe 로딩 중/접근 불가 — 무시
+          }
+          if (!doc) continue;
+          const links = doc.querySelectorAll<HTMLAnchorElement>("a[href]");
+          links.forEach((link) => {
+            if (linkOnclickAttached.has(link)) return;
+            linkOnclickAttached.add(link);
+            const href = link.getAttribute("href");
+            if (!href) return;
+            // mailto/tel 등은 기본 처리(메일·전화 앱)에 맡긴다.
+            if (href.startsWith("mailto:") || href.startsWith("tel:")) return;
+            // 외부 링크(http/https///): 앱이면 네이티브 브리지로 외부 브라우저, 웹이면 새 탭.
+            // epubjs 콘텐츠는 샌드박스 iframe이라 그 안의 window.open/링크 이동이 막혀
+            // 아무 일도 일어나지 않으므로, 부모 컨텍스트에서 직접 처리한다.
+            if (href.startsWith("http") || href.startsWith("//")) {
+              link.onclick = () => {
+                const url = href.startsWith("//") ? `https:${href}` : href;
+                if (typeof window !== "undefined" && window.flutter_webview) {
+                  window.flutter_webview.postMessage(formatBridgeMessage("openExternal", url));
+                } else {
+                  window.open(url, "_blank", "noopener,noreferrer");
+                }
+                return false;
+              };
+              return;
+            }
+            // 내부 링크: epubjs 기본 핸들러(book.path.relative 오류)를 우회해 raw href로 직접 이동.
             link.onclick = () => {
-              const url = href.startsWith("//") ? `https:${href}` : href;
-              if (typeof window !== "undefined" && window.flutter_webview) {
-                window.flutter_webview.postMessage(formatBridgeMessage("openExternal", url));
-              } else {
-                window.open(url, "_blank", "noopener,noreferrer");
-              }
+              rendition.display(href);
               return false;
             };
-            return;
-          }
-          // 내부 링크: epubjs 기본 핸들러(book.path.relative 오류)를 우회해 raw href로 직접 이동.
-          link.onclick = () => {
-            rendition.display(href);
-            return false;
-          };
-        });
-      });
+          });
+        }
+      };
+      linkPollId = setInterval(pollLinks, 300);
 
       // 선택 텍스트 감지 — 이벤트 비의존(폴링).
       // iOS WebKit은 iframe 내부 selectionchange/touch 이벤트가 안정적으로 발화하지
